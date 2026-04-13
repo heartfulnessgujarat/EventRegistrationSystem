@@ -1142,43 +1142,44 @@ async function processFinalDeletion(regId) {
   }
 
 function finalSubmitRegistration() {
-    // 1. LOOKUP: Try to find the data in the global window object or the variable
-    let sourceData = (typeof regData !== 'undefined') ? regData : window.regData;
-
-    if (!sourceData) {
-        console.error("MERS: Source data not found in regData.");
-        alert("System Error: Registration data not found. Please refresh the page and try again.");
+    // 1. ACCESS GLOBAL STORAGE
+    // In your system, the Section 1 data is preserved in 'mersTempData_Section1'
+    if (typeof mersTempData_Section1 === 'undefined' || !mersTempData_Section1) {
+        console.error("MERS: Global Section 1 data missing.");
+        alert("System Error: Profile data not found. Please refresh.");
         return;
     }
 
-    // 2. CLONE: Start with the Section 1 profile data
-    let finalData = { ...sourceData }; 
+    // 2. CLONE DATA
+    let finalData = { ...mersTempData_Section1 }; 
 
-    // 3. MERGE: Add the MERS memory bank data (Section 2 & 3)
+    // 3. MERGE MERS MEMORY (Section 2 & 3)
     Object.keys(mersTempData).forEach(key => {
         const cleanKey = key.replace('extra_', '');
         finalData[cleanKey] = mersTempData[key];
     });
 
-    // 4. SCRAPE: Catch any last-minute values currently on the screen
+    // 4. SCRAPE CURRENT SCREEN
     const currentInputs = document.querySelectorAll('[id^="extra_"]');
     currentInputs.forEach(input => {
         const cleanKey = input.id.replace('extra_', '');
         finalData[cleanKey] = input.value;
     });
 
-    // 5. UPDATE: Status and Path
+    // 5. FINALIZE STATUS
     finalData["registration_status"] = "CONFIRMED";
     finalData["last_updated"] = new Date().toLocaleString();
 
-    const regPath = `registrations/${finalData.event_id}/${finalData.registration_id}`;
+    // 6. SAVE TO FIREBASE
+    const eventId = finalData.event_id || "EVT001"; // Fallback if needed
+    const regId = finalData.registration_id;
+    const regPath = `registrations/${eventId}/${regId}`;
     
-    console.log("MERS: Attempting to save to:", regPath);
+    console.log("MERS: Saving to path:", regPath);
 
-    // 6. SAVE: Push to Firebase
     db.ref(regPath).set(finalData)
         .then(() => {
-            // SUCCESS: Hide form and show your Thank You screen
+            // SUCCESS: Show the Thank You screen
             document.getElementById('form-content').style.display = 'none';
             document.getElementById('success-screen').style.display = 'block';
             window.scrollTo(0, 0);
@@ -1189,8 +1190,6 @@ function finalSubmitRegistration() {
         });
 }
 
-
-  
 
 function showSuccessScreen() {
     // Hide the main form card
