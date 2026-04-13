@@ -1053,7 +1053,49 @@ function buildExtraSections() {
     });
 }
 
+function finalSubmitRegistration() {
+    console.log("MERS: Starting Final Submission...");
 
+    // 1. Collect Data from Section 1 (Existing Profile Logic)
+    // We assume your existing 'currentUser' object holds the profile info.
+    let finalData = { ...currentUser }; 
+
+    // 2. Collect Data from Section 2 (Extra Fields)
+    moreSections.forEach(item => {
+        const inputElement = document.getElementById(`extra_${item.field_id}`);
+        if (inputElement) {
+            // We use the field_id (e.g., 'gender') as the key for the database
+            finalData[item.field_id] = inputElement.value;
+        }
+    });
+
+    // 3. Simple Validation: Check if any extra fields are empty
+    let missingFields = moreSections.filter(item => !finalData[item.field_id]);
+    if (missingFields.length > 0) {
+        alert("Please answer all questions in the Logistics section.");
+        return;
+    }
+
+    // 4. Send to Firebase
+    // This uses your existing 'eventId' and 'db' (Firebase) setup
+    const regId = finalData.mobile; // Using mobile as the ID as per your current system
+    
+    db.ref('registrations/' + eventId + '/' + regId).set(finalData)
+    .then(() => {
+        console.log("MERS: Registration successful!");
+        // Redirect to your existing 'Thank You' logic
+        if (typeof showThankYouPage === "function") {
+            showThankYouPage();
+        } else {
+            alert("Registration Successful!");
+            location.reload();
+        }
+    })
+    .catch((error) => {
+        console.error("MERS: Firebase Error:", error);
+        alert("Submission failed. Please try again.");
+    });
+}
 
 
 
