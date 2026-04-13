@@ -224,7 +224,7 @@ function blockUIWithNotice(message) {
         const mode = (urlParams.get('mode') || 'new').toLowerCase();
         const regId = urlParams.get('regId');
 
-        // 1. Fetch Config
+        // 1. Fetch Config from Firebase
         const configSnap = await db.ref('config/eventConfig').once('value');
         const allConfigs = configSnap.val() || {};
         eventConfig = allConfigs[eventId];
@@ -234,69 +234,92 @@ function blockUIWithNotice(message) {
             return;
         }
 
-        // 2. Date/Capacity Checks (Standard)
+        // 2. DATE CHECK (Gatekeeper Tier 1)
         const today = getISTDate();
         const startDate = parseCustomDate(eventConfig.reg_start_date);
         const endDate = parseCustomDate(eventConfig.reg_end_date);
-        if (startDate && endDate && (today < startDate || today > endDate)) {
-            blockUIWithNotice(eventConfig.reg_close_msg || "Registration is closed.");
-            return; 
+
+        if (startDate && endDate) {
+            if (today < startDate || today > endDate) {
+                blockUIWithNotice(eventConfig.reg_close_msg || "Registration is currently closed.");
+                return; 
+            }
         }
 
-        // 3. LOAD UI COMPONENTS
+        // 3. CAPACITY CHECK (Gatekeeper Tier 2)
+        if (mode === 'new') {
+            const counterSnap = await db.ref('counters/' + eventId).once('value');
+            const currentCount = Number(counterSnap.val() || 0); 
+            const maxCapacity = Number(eventConfig.hall_capacity || 0);
+
+            if (maxCapacity > 0 && currentCount >= maxCapacity) {
+                blockUIWithNotice(eventConfig.hall_capacity_full_msg || "Hall Capacity is full.");
+                return; 
+            }
+        }
+
+        // 4. LOAD UI COMPONENTS
         const [thankSnap, bannerSnap] = await Promise.all([
             db.ref('htmlStorage/' + eventId + '/thank').once('value'),
             db.ref('htmlStorage/' + eventId + '/banner').once('value')
         ]);
+
         eventConfig.final_html = thankSnap.val() || "<h2>Registration Successful!</h2>";
         const bannerHtml = bannerSnap.val(); 
 
         document.getElementById('title').innerHTML = eventConfig.title || "Registration";
+
         const container = document.getElementById('header-img-cont');
         if (bannerHtml && container) {
             container.innerHTML = bannerHtml;
             container.style.display = 'block';
+        } else if (container) {
+            container.style.display = 'none';
         }
+      
         document.getElementById('subtitle').innerHTML = eventConfig.subtitle || "";
         
-        // --- MERS: DATA BRIDGE (PATHFINDER EDITION) ---
+        // --- MERS: DATA BRIDGE ---
         
-        // 1. Load Field Rules
-        const rulesSnap = await db.ref('config/fieldRules').once('value');
-        fieldRules = Object.values(rulesSnap.val() || {}).filter(r => String(r.event_id).toUpperCase() === eventId);
-        console.log("DIAGNOSTIC 1: Field Rules in memory:", fieldRules.length);
-
-        // 2. Load More Sections (Trying multiple common paths)
-        let sectionsRaw = null;
-        
-        // Try Path A: config/more_sections
-        const snapA = await db.ref('config/more_sections').once('value');
-        if (snapA.exists()) {
-            sectionsRaw = snapA.val();
-            console.log("DIAGNOSTIC 2: Found data at 'config/more_sections'");
-        } else {
-            // Try Path B: just 'more_sections'
-            const snapB = await db.ref('more_sections').once('value');
-            if (snapB.exists()) {
-                sectionsRaw = snapB.val();
-                console.log("DIAGNOSTIC 2: Found data at 'more_sections'");
-            }
+        // 1. Load Field Rules (Filtering for this specific Event ID)
+        try {
+            const rulesSnap = await db.ref('config/fieldRules').once('value');
+            const allRules = rulesSnap.val() || {};
+            fieldRules = Object.values(allRules).filter(r => String(r.event_id).toUpperCase() === eventId);
+            console.log("MERS: Field Rules Loaded:", fieldRules.length);
+        } catch (ruleErr) {
+            console.error("MERS: Field Rules fetch error:", ruleErr);
+            fieldRules = [];
         }
 
-        if (sectionsRaw) {
-            // Flatten the object (Section2, Section3) into our array
-            moreSections = Object.values(sectionsRaw);
-            console.log("DIAGNOSTIC 3: moreSections array ready:", moreSections.length);
-        } else {
-            console.error("DIAGNOSTIC 2: Failed to find more_sections at any known path.");
+        // 2. Load More Sections (Correcting path to camelCase 'moreSections')
+        try {
+            const sectionsSnap = await db.ref('config/moreSections').once('value');
+            if (sectionsSnap.exists()) {
+                const allSections = sectionsSnap.val() || {};
+                moreSections = Object.values(allSections);
+                console.log("MERS: moreSections Loaded from Firebase:", moreSections.length);
+            } else {
+                console.warn("MERS: No data found at 'config/moreSections'.");
+                moreSections = [];
+            }
+        } catch (secErr) {
+            console.error("MERS: moreSections fetch error:", secErr);
             moreSections = [];
         }
 
-        // --- END MERS BRIDGE ---
+        // --- END MERS DATA BRIDGE ---
         
+        // --- ROUTING LOGIC ---
         if (mode === 'edit' || mode === 'delete') {
-            if (regId) { loadExistingData(regId, mode); }
+            if (regId) {
+                loadExistingData(regId, mode); 
+            } else {
+                alert("Invalid Link: Registration ID missing.");
+                location.href = window.location.pathname + "?id=" + eventId;
+            }
         } else {
+            // Normal New Registration
             renderForm();
             document.getElementById('loading-init').style.display = 'none';
             document.getElementById('form-content').style.display = 'block';
@@ -304,9 +327,10 @@ function blockUIWithNotice(message) {
         
     } catch (e) { 
         console.error("Initialization Error:", e);
-        document.getElementById('loading-init').innerHTML = "<h2>Error loading form.</h2>";
+        document.getElementById('loading-init').innerHTML = "<h2>Error loading form. Please refresh.</h2>";
     }
 }
+
   function renderForm() {
   const container = document.getElementById('dynamic-fields');
   container.innerHTML = '';
