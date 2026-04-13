@@ -888,6 +888,11 @@ function manualFormatCheck() {
 /** --- NEW: EDIT & DELETE LOGIC ENGINE --- **/
 
 
+
+
+
+  
+
 async function loadExistingData(regId, mode) {
     try {
         const snap = await db.ref('registrations/' + regId).once('value');
@@ -993,31 +998,23 @@ async function processFinalDeletion(regId) {
     }
 }
 
+
 function buildExtraSections(targetSectionNumber) {
-    // 1. Defaulting Logic: If no section is passed, assume we start at Section2
     if (!targetSectionNumber) targetSectionNumber = "Section2";
 
     const container = document.getElementById('dynamic-sections-content');
     const titleHeader = document.getElementById('title-Section2');
     
-    // Ensure these IDs match your HTML exactly
-    const nextBtn = document.getElementById('btn-next-to-section3'); 
-    const registerBtn = document.getElementById('btn-confirm-register'); 
-
+    // Get your navigation buttons
+    const actionBtn = document.getElementById('btn-next-action'); 
+    
     container.innerHTML = ""; 
 
-    if (!moreSections || moreSections.length === 0) {
-        container.innerHTML = "<p style='text-align:center;'>No additional information required.</p>";
-        return;
-    }
-
-    // 2. Find the specific section data
     const sectionObj = moreSections.find(s => s.section_number === targetSectionNumber);
     
     if (sectionObj) {
         titleHeader.innerText = sectionObj.section_name || "Details";
 
-        // 3. Build the questions
         Object.keys(sectionObj).forEach(key => {
             if (key.startsWith('question') && sectionObj[key]) {
                 const fieldId = sectionObj[key];
@@ -1026,16 +1023,18 @@ function buildExtraSections(targetSectionNumber) {
                 if (rule) {
                     const fieldWrapper = document.createElement('div');
                     fieldWrapper.className = 'form-group';
-                    fieldWrapper.style.marginBottom = "15px";
+                    fieldWrapper.style.marginBottom = "20px";
+                    fieldWrapper.style.textAlign = "left";
 
                     const label = document.createElement('label');
-                    // FIX: Using display_label to avoid "undefined"
+                    // FIX: Using display_label from your Firebase
                     label.innerHTML = `<strong>${rule.display_label || fieldId}</strong>`;
-                    label.style.display = "block";
                     fieldWrapper.appendChild(label);
 
                     let input;
-                    if (rule.type === 'dropdown' || rule.edit_behavior === 'Editable_Lookup') {
+
+                    // --- NEW LOGIC FOR EDITABLE_LOOKUP_DROPDOWN ---
+                    if (rule.type === 'dropdown' || rule.edit_behavior === 'Editable_lookup_Dropdown') {
                         input = document.createElement('select');
                         input.className = 'form-control';
                         input.id = `extra_${fieldId}`;
@@ -1045,14 +1044,18 @@ function buildExtraSections(targetSectionNumber) {
                         placeholder.value = "";
                         input.appendChild(placeholder);
 
-                        const choices = rule.options ? rule.options.split(',') : [];
-                        choices.forEach(choice => {
-                            const opt = document.createElement('option');
-                            opt.value = choice.trim();
-                            opt.text = choice.trim();
-                            input.appendChild(opt);
-                        });
+                        // Populate the options from your 'options' column
+                        if (rule.options) {
+                            const choices = rule.options.split(',');
+                            choices.forEach(choice => {
+                                const opt = document.createElement('option');
+                                opt.value = choice.trim();
+                                opt.text = choice.trim();
+                                input.appendChild(opt);
+                            });
+                        }
                     } else {
+                        // Default to standard text input for other behaviors
                         input = document.createElement('input');
                         input.type = 'text';
                         input.className = 'form-control';
@@ -1065,21 +1068,22 @@ function buildExtraSections(targetSectionNumber) {
             }
         });
 
-        // 4. Button Toggle Logic
-        if (targetSectionNumber === "Section3") {
-            if(registerBtn) registerBtn.style.display = "block";
-            if(nextBtn) nextBtn.style.display = "none";
-        } else {
-            if(registerBtn) registerBtn.style.display = "none";
-            if(nextBtn) nextBtn.style.display = "block";
+        // --- BUTTON LABEL & NAVIGATION LOGIC ---
+        if (targetSectionNumber === "Section2") {
+            // Label for moving from Accomodation to Travel
+            if (actionBtn) {
+                actionBtn.innerText = "PROCEED TO TRAVEL DETAILS";
+                actionBtn.setAttribute("onclick", "buildExtraSections('Section3')");
+            }
+        } else if (targetSectionNumber === "Section3") {
+            // Final label for completion
+            if (actionBtn) {
+                actionBtn.innerText = "CONFIRM & REGISTER";
+                actionBtn.setAttribute("onclick", "finalSubmitRegistration()");
+            }
         }
-    } else {
-        console.error("MERS: Could not find section data for:", targetSectionNumber);
-        container.innerHTML = "<p>Error: Section data not found.</p>";
     }
 }
-
-
 
   
 function finalSubmitRegistration() {
