@@ -971,30 +971,22 @@ async function processFinalDeletion(regId) {
 
 
   // MERS: Transition from Section 1 (Profile) to Section 2 (Logistics)
+
 function proceedToLogistics() {
     console.log("MERS: Transitioning to Section 2...");
 
-    // 1. Hide the Search/Profile section
-    const profileSection = document.getElementById('profile-container');
-    if (profileSection) profileSection.style.display = 'none';
+    // 1. Hide the entire Section1 Room (Profile, Buttons, Search results)
+    const s1 = document.getElementById('Section1');
+    if (s1) s1.style.display = 'none';
 
-    // 2. Hide the original button containers
-    const btnsStart = document.getElementById('btns-start');
-    if (btnsStart) btnsStart.style.display = 'none';
-    
-    const btnMasterUpdate = document.getElementById('btn-master-update');
-    if (btnMasterUpdate) btnMasterUpdate.style.display = 'none';
+    // 2. Show the entire Section2 Room (Logistics, Back Button, Title)
+    const s2 = document.getElementById('Section2');
+    if (s2) s2.style.display = 'block';
 
-    // 3. Show the new Extra Sections container we created in Step A
-    const extraSection = document.getElementById('extra-sections-container');
-    if (extraSection) {
-        extraSection.style.display = 'block';
-    }
-
-    // 4. Smooth scroll to the top of the new section
+    // 3. Smooth scroll to the top
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    // 5. Trigger the dynamic builder (we will write this function next)
+    // 4. Trigger the dynamic builder (driven by more_sections)
     if (typeof buildExtraSections === "function") {
         buildExtraSections();
     } else {
@@ -1002,20 +994,17 @@ function proceedToLogistics() {
     }
 }
 
-// MERS: Back Button Logic to return to Profile
+// MERS: Back Button Logic
 document.getElementById('btn-back-to-profile').onclick = function() {
-    // Hide Logistics
-    document.getElementById('extra-sections-container').style.display = 'none';
+    // 1. Hide the Section2 Room
+    document.getElementById('Section2').style.display = 'none';
     
-    // Show Profile and the correct buttons
-    document.getElementById('profile-container').style.display = 'block';
+    // 2. Show the Section1 Room (Everything returns exactly as it was)
+    document.getElementById('Section1').style.display = 'block';
     
-    // Note: We show btns-start by default; your existing showButtons() 
-    // logic will handle the specific visibility of edit vs confirm.
-    document.getElementById('btns-start').style.display = 'flex';
+    // 3. Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 };
-
-
     
   init();
 </script>
