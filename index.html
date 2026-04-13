@@ -217,7 +217,6 @@ function blockUIWithNotice(message) {
 }
 /** --- END: GATEKEEPER HELPER FUNCTIONS --- **/
 
-
 async function init() {
     try {
         // --- NEW: URL PARAMETER CAPTURE ---
@@ -248,7 +247,6 @@ async function init() {
         }
 
         // 3. CAPACITY CHECK (Gatekeeper Tier 2 - THE INTERLOCK)
-        // MODIFIED: Only run this check if mode is 'new'
         if (mode === 'new') {
             const counterSnap = await db.ref('counters/' + eventId).once('value');
             const currentCount = Number(counterSnap.val() || 0); 
@@ -260,9 +258,7 @@ async function init() {
             }
         }
 
-
-// 4. LOAD UI
-        // Fetch BOTH the thank you HTML and the banner HTML together for speed
+        // 4. LOAD UI
         const [thankSnap, bannerSnap] = await Promise.all([
             db.ref('htmlStorage/' + eventId + '/thank').once('value'),
             db.ref('htmlStorage/' + eventId + '/banner').once('value')
@@ -276,41 +272,47 @@ async function init() {
         // --- NEW MERS BANNER LOGIC ---
         const container = document.getElementById('header-img-cont');
         if (bannerHtml && container) {
-            // Inject the ready-made HTML from Step 1 (includes the 100% width fix)
             container.innerHTML = bannerHtml;
             container.style.display = 'block';
         } else if (container) {
             container.style.display = 'none';
         }
       
-      
         document.getElementById('subtitle').innerHTML = eventConfig.subtitle || "";
         
-       // --- MERS: DATA BRIDGE FOR EXTRA SECTIONS ---
+        // --- MERS: PROTECTED DATA BRIDGE ---
         
-        // 1. Load Field Rules (Filtering for this specific Event ID)
-        const rulesSnap = await db.ref('config/fieldRules').once('value');
-        const allRules = rulesSnap.val() || {};
-        fieldRules = Object.values(allRules).filter(r => String(r.event_id).toUpperCase() === eventId);
-        console.log("MERS: Field Rules Loaded:", fieldRules.length);
+        // 1. Load Field Rules (With Safety)
+        try {
+            const rulesSnap = await db.ref('config/fieldRules').once('value');
+            const allRules = rulesSnap.val() || {};
+            fieldRules = Object.values(allRules).filter(r => String(r.event_id).toUpperCase() === eventId);
+            console.log("MERS: Field Rules Loaded:", fieldRules.length);
+        } catch (ruleErr) {
+            console.warn("MERS: fieldRules fetch failed, using empty array.", ruleErr);
+            fieldRules = [];
+        }
 
-        // 2. Load More Sections (The Page 2 Map)
-        const sectionsSnap = await db.ref('config/more_sections').once('value');
-        const allSections = sectionsSnap.val() || {};
-        // Filter sections to only show those belonging to this event
-        moreSections = Object.values(allSections).filter(s => String(s.event_id).toUpperCase() === eventId);
-        console.log("MERS: More Sections Loaded:", moreSections.length);
+        // 2. Load More Sections (With Safety)
+        try {
+            const sectionsSnap = await db.ref('config/more_sections').once('value');
+            const allSections = sectionsSnap.val() || {};
+            moreSections = Object.values(allSections).filter(s => String(s.event_id).toUpperCase() === eventId);
+            console.log("MERS: More Sections Loaded:", moreSections.length);
+        } catch (secErr) {
+            console.warn("MERS: more_sections fetch failed, using empty array.", secErr);
+            moreSections = [];
+        }
 
         // --- END MERS DATA BRIDGE ---
         
         // --- NEW: ROUTING LOGIC ---
         if (mode === 'edit' || mode === 'delete') {
-            // If we have a regId, load that specific person
             if (regId) {
                 loadExistingData(regId, mode); 
             } else {
                 alert("Invalid Link: Registration ID missing.");
-                location.href = window.location.pathname + "?id=" + eventId; // Redirect to blank form
+                location.href = window.location.pathname + "?id=" + eventId;
             }
         } else {
             // Normal New Registration
@@ -324,7 +326,7 @@ async function init() {
         document.getElementById('loading-init').innerHTML = "<h2>Error loading form. Please refresh.</h2>";
     }
 }
-
+  
 
   function renderForm() {
   const container = document.getElementById('dynamic-fields');
