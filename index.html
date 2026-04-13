@@ -993,30 +993,27 @@ async function processFinalDeletion(regId) {
     }
 }
 
-function buildExtraSections() {
+function buildExtraSections(targetSectionNumber) {
     const container = document.getElementById('dynamic-sections-content');
     const titleHeader = document.getElementById('title-Section2');
-    container.innerHTML = ""; // Clear the "room"
+    container.innerHTML = ""; // Clear the room
 
     if (!moreSections || moreSections.length === 0) {
         container.innerHTML = "<p style='text-align:center;'>No additional information required.</p>";
         return;
     }
 
-    // 1. Loop through all sections found (e.g., Section2, Section3)
-    moreSections.forEach(sectionObj => {
-        
-        // Update the header with the section name (e.g., "Accomodation")
-        if (sectionObj.section_name) {
-            titleHeader.innerText = sectionObj.section_name;
-        }
+    // 1. FIND ONLY THE SPECIFIC SECTION (e.g., "Section2")
+    const sectionObj = moreSections.find(s => s.section_number === targetSectionNumber);
+    
+    if (sectionObj) {
+        // Update Header
+        titleHeader.innerText = sectionObj.section_name || "Details";
 
-        // 2. Scan for keys starting with "question" (question1, question2, etc.)
+        // 2. Scan keys for questions
         Object.keys(sectionObj).forEach(key => {
             if (key.startsWith('question') && sectionObj[key]) {
                 const fieldId = sectionObj[key];
-
-                // 3. Match the fieldId (e.g., "gender") to the Field Rules
                 const rule = fieldRules.find(r => r.field_id === fieldId);
                 
                 if (rule) {
@@ -1025,12 +1022,13 @@ function buildExtraSections() {
                     fieldWrapper.style.marginBottom = "15px";
 
                     const label = document.createElement('label');
-                    label.innerHTML = `<strong>${rule.label}</strong>`;
+                    // FIX: Changed rule.label to rule.display_label
+                    label.innerHTML = `<strong>${rule.display_label || fieldId}</strong>`;
                     label.style.display = "block";
                     fieldWrapper.appendChild(label);
 
                     let input;
-                    if (rule.type === 'dropdown') {
+                    if (rule.type === 'dropdown' || rule.edit_behavior === 'Editable_Lookup') {
                         input = document.createElement('select');
                         input.className = 'form-control';
                         input.id = `extra_${fieldId}`;
@@ -1049,7 +1047,7 @@ function buildExtraSections() {
                         });
                     } else {
                         input = document.createElement('input');
-                        input.type = rule.type === 'number' ? 'number' : 'text';
+                        input.type = 'text';
                         input.className = 'form-control';
                         input.id = `extra_${fieldId}`;
                     }
@@ -1059,8 +1057,10 @@ function buildExtraSections() {
                 }
             }
         });
-    });
+    }
 }
+
+
 
 
   
