@@ -1088,24 +1088,27 @@ async function buildExtraSections(targetSectionNumber) {
             }
         }
 
-        // --- STEP 3: RESET BUTTON IDENTITY (FORCEFUL LABELS) ---
+
+
+// --- STEP 3: RESET BUTTON IDENTITY (FORCEFUL LABELS) ---
         if (targetSectionNumber === "Section2") {
             actionBtn.style.display = "block";
-            actionBtn.innerText = "PROCEED TO TRAVEL DETAILS";
+            actionBtn.innerText = "PROCEED TO TRAVEL DETAILS"; // This forces the change
             actionBtn.onclick = function() { buildExtraSections('Section3'); };
         } else if (targetSectionNumber === "Section3") {
             actionBtn.style.display = "block";
-            actionBtn.innerText = "CONFIRM & REGISTER";
+            actionBtn.innerText = "CONFIRM & REGISTER"; // This forces the change for final step
             actionBtn.onclick = function() { 
                 console.log("Final Submission Data:", mersTempData);
-                // Trigger your final save logic here
                 if(typeof finalSubmitRegistration === "function") {
                     finalSubmitRegistration();
                 } else {
-                    alert("Ready to Register! (Final function not yet linked)");
+                    alert("Ready to Register!");
                 }
             };
         }
+
+
     }
 }  
 function finalSubmitRegistration() {
