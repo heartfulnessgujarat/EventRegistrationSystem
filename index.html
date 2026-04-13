@@ -998,16 +998,13 @@ async function processFinalDeletion(regId) {
     }
 }
 
-
-function buildExtraSections(targetSectionNumber) {
+  async function buildExtraSections(targetSectionNumber) {
     if (!targetSectionNumber) targetSectionNumber = "Section2";
 
     const container = document.getElementById('dynamic-sections-content');
     const titleHeader = document.getElementById('title-Section2');
-    
-    // Get your navigation buttons
     const actionBtn = document.getElementById('btn-next-action'); 
-    
+
     container.innerHTML = ""; 
 
     const sectionObj = moreSections.find(s => s.section_number === targetSectionNumber);
@@ -1015,7 +1012,8 @@ function buildExtraSections(targetSectionNumber) {
     if (sectionObj) {
         titleHeader.innerText = sectionObj.section_name || "Details";
 
-        Object.keys(sectionObj).forEach(key => {
+        // We use a for...of loop here because we need to 'await' the lookup data
+        for (const key of Object.keys(sectionObj)) {
             if (key.startsWith('question') && sectionObj[key]) {
                 const fieldId = sectionObj[key];
                 const rule = fieldRules.find(r => r.field_id === fieldId);
@@ -1024,17 +1022,14 @@ function buildExtraSections(targetSectionNumber) {
                     const fieldWrapper = document.createElement('div');
                     fieldWrapper.className = 'form-group';
                     fieldWrapper.style.marginBottom = "20px";
-                    fieldWrapper.style.textAlign = "left";
 
                     const label = document.createElement('label');
-                    // FIX: Using display_label from your Firebase
                     label.innerHTML = `<strong>${rule.display_label || fieldId}</strong>`;
                     fieldWrapper.appendChild(label);
 
                     let input;
 
-                    // --- NEW LOGIC FOR EDITABLE_LOOKUP_DROPDOWN ---
-                    if (rule.type === 'dropdown' || rule.edit_behavior === 'Editable_lookup_Dropdown') {
+                    if (rule.edit_behavior === 'Editable_lookup_Dropdown') {
                         input = document.createElement('select');
                         input.className = 'form-control';
                         input.id = `extra_${fieldId}`;
@@ -1044,18 +1039,32 @@ function buildExtraSections(targetSectionNumber) {
                         placeholder.value = "";
                         input.appendChild(placeholder);
 
-                        // Populate the options from your 'options' column
-                        if (rule.options) {
-                            const choices = rule.options.split(',');
-                            choices.forEach(choice => {
-                                const opt = document.createElement('option');
-                                opt.value = choice.trim();
-                                opt.text = choice.trim();
-                                input.appendChild(opt);
-                            });
+                        // --- THE DYNAMIC LOOKUP LOGIC ---
+                        try {
+                            const tabName = rule.lookup_tab;       // e.g., "master_gender"
+                            const colName = rule.lookup_column;    // e.g., "gender"
+                            
+                            if (tabName && colName) {
+                                // Fetching the specific master data tab from Firebase
+                                const lookupSnap = await db.ref(`config/lookups/${tabName}`).once('value');
+                                const lookupData = lookupSnap.val() || [];
+                                
+                                // Map the data to get only the specific column values
+                                const choices = Object.values(lookupData)
+                                    .map(row => row[colName])
+                                    .filter(val => val); // Remove empty values
+
+                                choices.forEach(choice => {
+                                    const opt = document.createElement('option');
+                                    opt.value = choice;
+                                    opt.text = choice;
+                                    input.appendChild(opt);
+                                });
+                            }
+                        } catch (err) {
+                            console.error(`MERS: Lookup failed for ${fieldId}`, err);
                         }
                     } else {
-                        // Default to standard text input for other behaviors
                         input = document.createElement('input');
                         input.type = 'text';
                         input.className = 'form-control';
@@ -1066,17 +1075,15 @@ function buildExtraSections(targetSectionNumber) {
                     container.appendChild(fieldWrapper);
                 }
             }
-        });
+        }
 
-        // --- BUTTON LABEL & NAVIGATION LOGIC ---
+        // --- BUTTON LOGIC ---
         if (targetSectionNumber === "Section2") {
-            // Label for moving from Accomodation to Travel
             if (actionBtn) {
                 actionBtn.innerText = "PROCEED TO TRAVEL DETAILS";
                 actionBtn.setAttribute("onclick", "buildExtraSections('Section3')");
             }
         } else if (targetSectionNumber === "Section3") {
-            // Final label for completion
             if (actionBtn) {
                 actionBtn.innerText = "CONFIRM & REGISTER";
                 actionBtn.setAttribute("onclick", "finalSubmitRegistration()");
