@@ -111,17 +111,17 @@
 
     <button id="btn-master-update" class="primary-btn" style="display:none; margin: 0 20px 20px 20px;" disabled onclick="proceedToLogistics()">I HAVE UPDATED DETAILS, CLICK HERE TO PROCEED FURTHER</button>
 
-
-<div id="extra-sections-container" class="container" style="display: none; max-width: 600px; margin: 20px auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); min-height: 200px;">
-    </div>
-      
-    <div id="mers-dynamic-content"></div> 
+  
+<div id="extra-sections-container" style="display: none; padding: 0 20px 20px 20px;">
+    <div id="dynamic-sections-content">
+        </div>
     
     <div style="margin-top: 20px; display: flex; gap: 10px;">
-        <button id="btn-back-to-profile" class="btn btn-secondary" style="flex: 1; background: #6c757d; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;">Back</button>
-        <button id="btn-final-submit" class="btn" style="flex: 2; background: #1a237e; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;">Confirm All & Register</button>
+        <button id="btn-back-to-profile" class="btn btn-secondary" style="flex: 1; background: #6c757d;">Back</button>
+        <button id="btn-final-submit" class="btn" style="flex: 2;">Confirm All & Register</button>
     </div>
 </div>
+  
 
 
 
@@ -150,21 +150,10 @@
   const db = firebase.database();
   const eventId = (new URLSearchParams(window.location.search).get('id') || 'EVT001').toUpperCase();
 
-
-// --- MERS: CONSOLIDATED GLOBAL DATA ---
-  let fieldRules = [];
-  let masterData = [];      // Added for Search results
-  let moreSections = [];    // Added for Section Titles/Logistics
-  let eventConfig = {};
+  let fieldRules = [], masterData = [], eventConfig = {};
   let originalData = {}; 
   let verificationStates = { email: false, mobile: false };
-  // --------------------------------------
 
-
-
-
-  
-  
 /** --- START: GATEKEEPER HELPER FUNCTIONS --- **/
 function getISTDate() {
   const now = new Date();
@@ -203,8 +192,6 @@ function blockUIWithNotice(message) {
 /** --- END: GATEKEEPER HELPER FUNCTIONS --- **/
 
 
-
-
 async function init() {
     try {
         // --- NEW: URL PARAMETER CAPTURE ---
@@ -235,6 +222,7 @@ async function init() {
         }
 
         // 3. CAPACITY CHECK (Gatekeeper Tier 2 - THE INTERLOCK)
+        // MODIFIED: Only run this check if mode is 'new'
         if (mode === 'new') {
             const counterSnap = await db.ref('counters/' + eventId).once('value');
             const currentCount = Number(counterSnap.val() || 0); 
@@ -246,38 +234,29 @@ async function init() {
             }
         }
 
-        // 4. LOAD UI & MERS DATA (Surgically Updated for Path and Type)
-        const [thankSnap, bannerSnap, masterSnap, moreSectionsSnap] = await Promise.all([
+
+// 4. LOAD UI
+        // Fetch BOTH the thank you HTML and the banner HTML together for speed
+        const [thankSnap, bannerSnap] = await Promise.all([
             db.ref('htmlStorage/' + eventId + '/thank').once('value'),
-            db.ref('htmlStorage/' + eventId + '/banner').once('value'),
-            // PATH FIX: Pointing to the new masters sub-directory
-            db.ref('masters/Master_Internal_DB').once('value'), 
-            db.ref('more_sections').once('value')
+            db.ref('htmlStorage/' + eventId + '/banner').once('value')
         ]);
 
         eventConfig.final_html = thankSnap.val() || "<h2>Registration Successful!</h2>";
         const bannerHtml = bannerSnap.val(); 
-        
-        // --- TYPE PROTECTION FIX: Convert Object to Array for .filter ---
-        const rawMaster = masterSnap.val();
-        if (rawMaster && !Array.isArray(rawMaster)) {
-            masterData = Object.values(rawMaster);
-        } else {
-            masterData = rawMaster || [];
-        }
-
-        moreSections = moreSectionsSnap.val() || [];
 
         document.getElementById('title').innerHTML = eventConfig.title || "Registration";
 
         // --- NEW MERS BANNER LOGIC ---
         const container = document.getElementById('header-img-cont');
         if (bannerHtml && container) {
+            // Inject the ready-made HTML from Step 1 (includes the 100% width fix)
             container.innerHTML = bannerHtml;
             container.style.display = 'block';
         } else if (container) {
             container.style.display = 'none';
         }
+      
       
         document.getElementById('subtitle').innerHTML = eventConfig.subtitle || "";
         
@@ -287,13 +266,15 @@ async function init() {
         
         // --- NEW: ROUTING LOGIC ---
         if (mode === 'edit' || mode === 'delete') {
+            // If we have a regId, load that specific person
             if (regId) {
                 loadExistingData(regId, mode); 
             } else {
                 alert("Invalid Link: Registration ID missing.");
-                location.href = window.location.pathname + "?id=" + eventId;
+                location.href = window.location.pathname + "?id=" + eventId; // Redirect to blank form
             }
         } else {
+            // Normal New Registration
             renderForm();
             document.getElementById('loading-init').style.display = 'none';
             document.getElementById('form-content').style.display = 'block';
@@ -305,8 +286,7 @@ async function init() {
     }
 }
 
-  
-  
+
   function renderForm() {
   const container = document.getElementById('dynamic-fields');
   container.innerHTML = '';
@@ -368,138 +348,7 @@ async function init() {
   });
 }
 
-async function buildExtraSections() {
-    console.log("MERS: Rendering 7 Logistics Fields...");
-    const container = document.getElementById('extra-sections-container');
-    if (!container) return;
 
-    // 1. Show the container first
-    container.style.display = 'block';
-
-    // 2. Create the Header and Content
-    container.innerHTML = `
-        <button onclick="location.reload()" class="btn-secondary" style="margin-bottom:20px; width:100%; cursor:pointer;">
-            ← Back to Profile
-        </button>
-        <div id="mers-dynamic-content"></div>
-    `;
-    
-    const contentWrapper = document.getElementById('mers-dynamic-content');
-
-    // 3. Filter for Section 2 & 3 (Case Insensitive)
-    const rulesForExtra = fieldRules.filter(r => {
-        const sec = String(r.section_number || "").trim().toLowerCase();
-        return sec !== "" && sec !== "section1";
-    });
-
-    // 4. Get unique sections (Section2, Section3)
-    const sections = [...new Set(rulesForExtra.map(r => r.section_number))].sort();
-    
-    sections.forEach(secId => {
-        const sectionDiv = document.createElement('div');
-        sectionDiv.style.marginBottom = "25px";
-        sectionDiv.style.padding = "15px";
-        sectionDiv.style.border = "1px solid #e0e0e0";
-        sectionDiv.style.borderRadius = "8px";
-        
-        // Add Section Header
-        sectionDiv.innerHTML = `<h3 style="color:#1a237e; border-bottom:2px solid #1a237e; margin-top:0;">${secId}</h3>`;
-        
-        // Add Fields for this section
-        rulesForExtra.filter(r => r.section_number === secId).forEach(r => {
-            const fDiv = document.createElement('div');
-            fDiv.style.marginBottom = "15px";
-            fDiv.style.textAlign = "left";
-            
-            fDiv.innerHTML = `
-                <label style="display:block; font-weight:bold; margin-bottom:5px; color:#333;">${r.display_label || r.field_id}</label>
-                <input type="text" id="inp-${r.field_id}" 
-                       placeholder="Select ${r.display_label || r.field_id}..."
-                       style="width:100%; padding:12px; border:1px solid #ccc; border-radius:5px; box-sizing:border-box;"
-                       onclick="handleExtraLookup('${r.field_id}', this.value)">
-                <div id="res-${r.field_id}" style="display:none; background:white; border:1px solid #ddd; position:absolute; z-index:999; width:90%;"></div>
-            `;
-            sectionDiv.appendChild(fDiv);
-        });
-        contentWrapper.appendChild(sectionDiv);
-    });
-
-    // 5. Add Final Save Button
-    const saveBtn = document.createElement('button');
-    saveBtn.innerText = "Confirm & Register";
-    saveBtn.className = "btn-primary";
-    saveBtn.style.cssText = "width:100%; padding:15px; background:#1a237e; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; margin-top:10px;";
-    saveBtn.onclick = function() { alert("Data captured for Section 2 & 3!"); };
-    contentWrapper.appendChild(saveBtn);
-}
-
-
-
-// Helper for Section 2+ Input handling
-function onExtraInputChange(fId, val) {
-    const rule = fieldRules.find(r => r.field_id === fId);
-    if (rule && rule.edit_behavior === 'Editable_Lookup') {
-        handleExtraLookup(fId, val);
-    }
-    // You can add validation triggers here later
-}
-
-
-async function handleExtraLookup(fId, val) {
-    const resDiv = document.getElementById(`res-${fId}`);
-    if (!val || val.length < 1) {
-        resDiv.style.display = 'none';
-        return;
-    }
-
-    // 1. Find the rule for this field to get the correct Master tab name
-    const rule = fieldRules.find(r => r.field_id === fId);
-    if (!rule || !rule.lookup_tab) return;
-
-    const lookupTab = rule.lookup_tab; // e.g., "master_stay_options"
-    const searchCol = rule.lookup_column || fId;
-
-    try {
-        // 2. Fetch data from the new 'masters/' folder in Firebase
-        const snap = await db.ref(`masters/${lookupTab}`).once('value');
-        const data = snap.val();
-        if (!data) return;
-
-        // 3. Filter the results based on what the user is typing
-        const matches = Object.keys(data).filter(key => {
-            const item = data[key];
-            return item[searchCol] && item[searchCol].toString().toLowerCase().includes(val.toLowerCase());
-        });
-
-        // 4. Draw the dropdown results
-        if (matches.length > 0) {
-            resDiv.innerHTML = matches.map(key => {
-                const displayVal = data[key][searchCol];
-                return `<div onclick="selectExtraValue('${fId}', '${displayVal.replace(/'/g, "\\'")}')">${displayVal}</div>`;
-            }).join('');
-            resDiv.style.display = 'block';
-        } else {
-            resDiv.style.display = 'none';
-        }
-    } catch (e) {
-        console.error("MERS: Lookup Error", e);
-    }
-}
-
-// Helper to handle the selection from the dropdown
-function selectExtraValue(fId, val) {
-    const inp = document.getElementById(`inp-${fId}`);
-    inp.value = val;
-    document.getElementById(`res-${fId}`).style.display = 'none';
-    
-    // Trigger any validation if necessary
-    if (typeof checkAllValidations === "function") {
-        checkAllValidations();
-    }
-}
-
-
-  
  
   async function onInputChange(fId, val) {
   if (fId === 'full_name' || fId === 'centre') handleSearch(fId, val);
@@ -1093,39 +942,7 @@ async function processFinalDeletion(regId) {
                 <p>The seat has been released for others.</p>
             </div>`;
         document.getElementById('success-screen').style.display = 'block';
-function proceedToLogistics() {
-    console.log("MERS: Transitioning to Section 2...");
 
-    // 1. Hide the Search/Profile section AND the subtitle
-    const profileSection = document.getElementById('profile-container');
-    if (profileSection) profileSection.style.display = 'none';
-    
-    const subtitle = document.getElementById('subtitle');
-    if (subtitle) subtitle.style.display = 'none';
-
-    // 2. Hide the original button containers
-    const btnsStart = document.getElementById('btns-start');
-    if (btnsStart) btnsStart.style.display = 'none';
-    
-    const btnMasterUpdate = document.getElementById('btn-master-update');
-    if (btnMasterUpdate) btnMasterUpdate.style.display = 'none';
-
-    // 3. Show the new Extra Sections container
-    const extraSection = document.getElementById('extra-sections-container');
-    if (extraSection) {
-        extraSection.style.display = 'block';
-    }
-
-    // 4. Force scroll to top
-    window.scrollTo(0, 0);
-
-    // 5. Build the sections
-    if (typeof buildExtraSections === "function") {
-        buildExtraSections();
-    } else {
-        console.warn("MERS: buildExtraSections function not defined yet.");
-    }
-}
     } catch (error) {
         alert("Deletion failed. Please try again.");
         document.getElementById('processing-overlay').style.display = 'none';
@@ -1134,23 +951,12 @@ function proceedToLogistics() {
 
 
   // MERS: Transition from Section 1 (Profile) to Section 2 (Logistics)
-  
-
-    
-  init();
-
-  // ... existing functions ...
-
-// --- MERS: TRANSITION ENGINE ---
-window.proceedToLogistics = function() {
-    console.log("MERS: proceedToLogistics triggered successfully.");
+function proceedToLogistics() {
+    console.log("MERS: Transitioning to Section 2...");
 
     // 1. Hide the Search/Profile section
     const profileSection = document.getElementById('profile-container');
     if (profileSection) profileSection.style.display = 'none';
-    
-    const formContent = document.getElementById('form-content');
-    if (formContent) formContent.style.display = 'none';
 
     // 2. Hide the original button containers
     const btnsStart = document.getElementById('btns-start');
@@ -1159,31 +965,39 @@ window.proceedToLogistics = function() {
     const btnMasterUpdate = document.getElementById('btn-master-update');
     if (btnMasterUpdate) btnMasterUpdate.style.display = 'none';
 
-    // 3. Show the Extra Sections container
+    // 3. Show the new Extra Sections container we created in Step A
     const extraSection = document.getElementById('extra-sections-container');
     if (extraSection) {
         extraSection.style.display = 'block';
     }
 
-    // 4. Reset scroll
-    window.scrollTo(0, 0);
+    // 4. Smooth scroll to the top of the new section
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    // 5. Trigger the dynamic builder
+    // 5. Trigger the dynamic builder (we will write this function next)
     if (typeof buildExtraSections === "function") {
         buildExtraSections();
     } else {
-        console.error("MERS Error: buildExtraSections function is missing!");
+        console.warn("MERS: buildExtraSections function not defined yet.");
     }
+}
+
+// MERS: Back Button Logic to return to Profile
+document.getElementById('btn-back-to-profile').onclick = function() {
+    // Hide Logistics
+    document.getElementById('extra-sections-container').style.display = 'none';
+    
+    // Show Profile and the correct buttons
+    document.getElementById('profile-container').style.display = 'block';
+    
+    // Note: We show btns-start by default; your existing showButtons() 
+    // logic will handle the specific visibility of edit vs confirm.
+    document.getElementById('btns-start').style.display = 'flex';
 };
 
-// Start the app
-init(); 
 
-</script>
-</body>
-
-  
-  
+    
+  init();
 </script>
 </body>
 </html>
