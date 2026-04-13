@@ -985,6 +985,81 @@ async function processFinalDeletion(regId) {
 }
 
 
+function buildExtraSections() {
+    const container = document.getElementById('dynamic-sections-content');
+    const titleHeader = document.getElementById('title-Section2');
+    
+    // 1. Clear previous content so it doesn't double-up if they click Back/Proceed again
+    container.innerHTML = "";
+    
+    if (moreSections.length === 0) {
+        container.innerHTML = "<p style='text-align:center;'>No additional information required.</p>";
+        return;
+    }
+
+    // 2. Set the Section Title (e.g., "Logistics" or "Accomodation") from the first record
+    titleHeader.innerText = moreSections[0].section_name || "Additional Details";
+
+    // 3. Loop through each field assigned to this section
+    moreSections.forEach(item => {
+        // Find the specific rule for this field in our fieldRules memory
+        const rule = fieldRules.find(r => r.field_id === item.field_id);
+        
+        if (rule) {
+            const fieldWrapper = document.createElement('div');
+            fieldWrapper.className = 'form-group'; // Uses your existing CSS for spacing
+            fieldWrapper.style.marginBottom = "15px";
+
+            // Add the Label
+            const label = document.createElement('label');
+            label.innerHTML = `<strong>${rule.label}</strong>`;
+            label.style.display = "block";
+            label.style.marginBottom = "5px";
+            fieldWrapper.appendChild(label);
+
+            // 4. Determine Field Type (Dropdown vs Text vs Radio)
+            let input;
+            if (rule.type === 'dropdown') {
+                input = document.createElement('select');
+                input.className = 'form-control'; // Uses your existing styling
+                input.id = `extra_${rule.field_id}`;
+                
+                // Add an empty starting option
+                const placeholder = document.createElement('option');
+                placeholder.text = "-- Select --";
+                placeholder.value = "";
+                input.appendChild(placeholder);
+
+                // Split the 'options' column (e.g., "Male,Female") into actual choices
+                const choices = rule.options.split(',');
+                choices.forEach(choice => {
+                    const opt = document.createElement('option');
+                    opt.value = choice.trim();
+                    opt.text = choice.trim();
+                    input.appendChild(opt);
+                });
+            } else {
+                // Default to Text input for things like "Stay Arrangement" if not dropdown
+                input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'form-control';
+                input.id = `extra_${rule.field_id}`;
+                input.placeholder = rule.placeholder || "";
+            }
+
+            fieldWrapper.appendChild(input);
+            container.appendChild(fieldWrapper);
+        }
+    });
+}
+
+
+
+
+
+
+
+  
   // MERS: Transition from Section 1 (Profile) to Section 2 (Logistics)
 
 function proceedToLogistics() {
