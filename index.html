@@ -993,55 +993,76 @@ async function processFinalDeletion(regId) {
     }
 }
 
-  function buildExtraSections() {
+function buildExtraSections() {
     const container = document.getElementById('dynamic-sections-content');
     const titleHeader = document.getElementById('title-Section2');
-    container.innerHTML = ""; 
-
-    console.log("DIAGNOSTIC: moreSections count:", moreSections.length);
-    console.log("DIAGNOSTIC: moreSections content:", moreSections);
+    container.innerHTML = ""; // Clear the "room"
 
     if (!moreSections || moreSections.length === 0) {
         container.innerHTML = "<p style='text-align:center;'>No additional information required.</p>";
         return;
     }
 
-    moreSections.forEach((sectionObj, index) => {
-        console.log(`DIAGNOSTIC: Checking Section ${index}`, sectionObj);
+    // 1. Loop through all sections found (e.g., Section2, Section3)
+    moreSections.forEach(sectionObj => {
         
+        // Update the header with the section name (e.g., "Accomodation")
         if (sectionObj.section_name) {
             titleHeader.innerText = sectionObj.section_name;
         }
 
+        // 2. Scan for keys starting with "question" (question1, question2, etc.)
         Object.keys(sectionObj).forEach(key => {
             if (key.startsWith('question') && sectionObj[key]) {
                 const fieldId = sectionObj[key];
-                console.log(`DIAGNOSTIC: Found question key '${key}' with fieldId: '${fieldId}'`);
 
+                // 3. Match the fieldId (e.g., "gender") to the Field Rules
                 const rule = fieldRules.find(r => r.field_id === fieldId);
                 
                 if (rule) {
-                    console.log(`DIAGNOSTIC: SUCCESS! Rule found for ${fieldId}. Drawing field...`);
-                    // ... (rest of the drawing logic is the same)
                     const fieldWrapper = document.createElement('div');
                     fieldWrapper.className = 'form-group';
                     fieldWrapper.style.marginBottom = "15px";
+
                     const label = document.createElement('label');
                     label.innerHTML = `<strong>${rule.label}</strong>`;
                     label.style.display = "block";
                     fieldWrapper.appendChild(label);
-                    let input = document.createElement('input');
-                    input.className = 'form-control';
-                    input.id = `extra_${fieldId}`;
+
+                    let input;
+                    if (rule.type === 'dropdown') {
+                        input = document.createElement('select');
+                        input.className = 'form-control';
+                        input.id = `extra_${fieldId}`;
+                        
+                        const placeholder = document.createElement('option');
+                        placeholder.text = "-- Select --";
+                        placeholder.value = "";
+                        input.appendChild(placeholder);
+
+                        const choices = rule.options ? rule.options.split(',') : [];
+                        choices.forEach(choice => {
+                            const opt = document.createElement('option');
+                            opt.value = choice.trim();
+                            opt.text = choice.trim();
+                            input.appendChild(opt);
+                        });
+                    } else {
+                        input = document.createElement('input');
+                        input.type = rule.type === 'number' ? 'number' : 'text';
+                        input.className = 'form-control';
+                        input.id = `extra_${fieldId}`;
+                    }
+
                     fieldWrapper.appendChild(input);
                     container.appendChild(fieldWrapper);
-                } else {
-                    console.warn(`DIAGNOSTIC: FAILED. No rule found in fieldRules for ID: '${fieldId}'`);
                 }
             }
         });
     });
 }
+
+
   
 function finalSubmitRegistration() {
     let finalData = { ...currentUser }; // Start with Section 1 data
