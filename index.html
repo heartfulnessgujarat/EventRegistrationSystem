@@ -777,14 +777,16 @@ async function handleSectionNavigation() {
 }
 
 // 2. THE SACRED ENGINE: The April 10th logic, now firing at the very end
-  async function submitData() {
+
+async function submitData() {
     console.log("%c [DIAGNOSTIC] submitData started! ", "background: #222; color: #bada55; font-size: 14px;");
 
-    // --- 1. THE GUARD (THE INTERCEPTOR) ---
-    if (typeof window.currentSection === 'undefined') window.currentSection = 1;
-
-    if (window.currentSection < 3) {
-        console.log("[DIAGNOSTIC] Intercepted. Section: " + window.currentSection + ". Saving & Turning page.");
+    // --- 1. THE NEW VISUAL GUARD (REPLACES THE OLD GUARD) ---
+    const section3 = document.getElementById('Section3');
+    
+    // Logic: If Section 3 is NOT visible yet, we are still "Page Turning"
+    if (!section3 || section3.style.display === 'none') {
+        console.log("[DIAGNOSTIC] Intercepted. Section 3 not visible. Saving & Turning page.");
         
         const currentInputs = document.querySelectorAll('[id^="extra_"]');
         currentInputs.forEach(input => {
@@ -792,12 +794,15 @@ async function handleSectionNavigation() {
         });
 
         handleSectionNavigation();
-        return; 
+        return; // Stop here and show Section 2 or 3
     }
 
-    // --- 2. THE SACRED ENGINE (SECTION 3 CONFIRMED) ---
+    // --- 2. THE SACRED ENGINE (Released only when Section 3 is on screen) ---
     try {
-        console.log("[DIAGNOSTIC] Section 3 confirmed. Releasing the Engine...");
+        console.log("[DIAGNOSTIC] Section 3 is VISIBLE. Releasing the Engine...");
+        
+        // ... (The rest of your April 10th logic remains exactly the same) ...
+
         
         const urlParams = new URLSearchParams(window.location.search);
         const mode = (urlParams.get('mode') || 'new').toLowerCase();
