@@ -784,101 +784,18 @@ async function handleSectionNavigation() {
 
 // 2. THE SACRED ENGINE: The April 10th logic, now firing at the very end
 
-async function submitData() {
-    console.log("%c MERS PING 2: submitData() was just called!", "color: red; font-weight: bold;");
-    
-    try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const mode = (urlParams.get('mode') || 'new').toLowerCase();
-        const existingRegId = urlParams.get('regId');
 
-        // 1. UI LOCK
-        document.getElementById('app').style.display = 'none';
-        document.getElementById('processing-overlay').style.display = 'block';
 
-        let finalRegId = existingRegId;
-        let finalTimestamp = originalData.timestamp || "";
-        let statusMsg = "CONFIRMED";
 
-        // --- 2. ID & CAPACITY LOGIC (April 10th Stable) ---
-        if (mode === 'new') {
-            const capacityLimit = parseInt(eventConfig.hall_capacity || "0");
-            const counterRef = db.ref('counters/' + eventId);
-            const transactionResult = await counterRef.transaction((current) => {
-                if (capacityLimit > 0 && (current || 0) >= capacityLimit) return; 
-                return (current || 0) + 1;
-            });
 
-            if (!transactionResult.committed) {
-                alert(eventConfig.hall_capacity_full_msg || "Registration is full.");
-                location.reload();
-                return;
-            }
 
-            const currentCount = transactionResult.snapshot.val();
-            const now = new Date();
-            const istNow = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
-            const dd = String(istNow.getUTCDate()).padStart(2, '0');
-            const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
-            const yyyy = istNow.getUTCFullYear();
-            
-            finalTimestamp = `${dd}-${String(istNow.getUTCMonth() + 1).padStart(2, '0')}-${yyyy} ${String(istNow.getUTCHours()).padStart(2, '0')}:${String(istNow.getUTCMinutes()).padStart(2, '0')}:${String(istNow.getUTCSeconds()).padStart(2, '0')}`;
-            const hhmmssms = istNow.getUTCHours().toString().padStart(2, '0') + 
-                             istNow.getUTCMinutes().toString().padStart(2, '0') + 
-                             istNow.getUTCSeconds().toString().padStart(2, '0') + 
-                             istNow.getUTCMilliseconds().toString().padStart(3, '0');
 
-            finalRegId = `${eventId}-REG-${dd}-${months[istNow.getUTCMonth()]}-${yyyy}-${hhmmssms}-${String(currentCount).padStart(3, '0')}`;
-        } else {
-            statusMsg = "EDITED ON " + new Date().toLocaleString();
-        }
 
-        // --- 3. THE MERS MERGE ---
-        const formData = {
-            ...originalData,      // April 10th Profile Data
-            ...mersTempData,      // MERS Logistics Data (Sections 2 & 3)
-            registration_id: finalRegId,
-            timestamp: finalTimestamp,
-            registration_status: statusMsg,
-            email_sent: (mode === 'new') ? "No" : (originalData.email_sent || "No"),
-            event_id: eventId
-        };
 
-        // 4. SAVE & EMAIL (April 10th Sacred Flow)
-        await db.ref('registrations/' + finalRegId).set(formData);
 
-        const scriptUrl = "https://script.google.com/macros/s/AKfycbyPbae3F_Vm2q25LWZF1G59O0V2XRrokeqxNkLvZetTKl19HM4QubILy17nPe65Q-L-zw/exec"; 
-        fetch(`${scriptUrl}?action=sendEmail&regId=${finalRegId}&eventId=${eventId}`)
-            .then(() => console.log("Email trigger sent."))
-            .catch(err => console.error("Email trigger failed:", err));
 
-        // --- 5. THE CLEAN SWEEP (Ensures Thank You message is visible) ---
-        
-        // Hide the master app wrapper
-        document.getElementById('app').style.display = 'none';
-        
-        // Explicitly hide Section 1 and Section 2 rooms
-        if (document.getElementById('Section1')) document.getElementById('Section1').style.display = 'none';
-        if (document.getElementById('Section2')) document.getElementById('Section2').style.display = 'none';
-
-        // Set the content from your Firebase config
-        document.getElementById('success-content').innerHTML = eventConfig.final_html || "<h2>Registration Successful!</h2>";
-        
-        // Switch from Processing to Success
-        document.getElementById('processing-overlay').style.display = 'none';
-        document.getElementById('success-screen').style.display = 'block';
-        
-        // Scroll to top so the user sees the message
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-
-    } catch (error) {
-        console.error("Submission Error:", error);
-        document.getElementById('processing-overlay').style.display = 'none';
-        document.getElementById('app').style.display = 'block';
-        if (document.getElementById('Section2')) document.getElementById('Section2').style.display = 'block';
-    }
-}  
- 
+  
+  
 function manualFormatCheck() {
   const emailInput = document.getElementById('inp-email');
   const emailVal = emailInput.value.trim(); 
