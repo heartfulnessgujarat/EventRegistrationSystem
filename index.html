@@ -1228,7 +1228,12 @@ async function processFinalDeletion(regId) {
                     mersTempData[input.id] = input.value;
                 });
 
-                finalSubmitRegistration(); 
+  // CALL THE REAL ENGINE
+submitData();
+              
+             //   finalSubmitRegistration(); 
+
+              
             }
         };
 
@@ -1241,71 +1246,6 @@ async function processFinalDeletion(regId) {
 
     }
   }
-
-
-
-async function finalSubmitRegistration() {
-    // 1. GET THE ADDRESS (Safety Net)
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlEventId = urlParams.get('id') || eventId; 
-    const urlRegId = urlParams.get('regId');
-
-    // 2. CONSTRUCT THE DATA
-    // We combine: url info + original profile + the new MERS choices
-    let finalPayload = { 
-        ...originalData,
-        ...mersTempData,
-        event_id: originalData.event_id || urlEventId,
-        registration_id: originalData.registration_id || urlRegId,
-        registration_status: "CONFIRMED",
-        last_updated_at: new Date().toLocaleString()
-    };
-
-    // 3. CRITICAL CHECK: Does it have a Registration ID?
-    if (!finalPayload.registration_id) {
-        console.error("MERS: No Registration ID found in originalData or URL.");
-        alert("System Error: Profile ID missing. Please refresh and select your name.");
-        return;
-    }
-
-    // 4. SCRAPE VISIBLE INPUTS (Section 3)
-    const currentInputs = document.querySelectorAll('[id^="extra_"]');
-    currentInputs.forEach(input => {
-        const cleanKey = input.id.replace('extra_', '');
-        finalPayload[cleanKey] = input.value;
-    });
-
-    // 5. DATABASE PATH
-    const regPath = 'registrations/' + finalPayload.registration_id;
-
-    try {
-        // Show your existing processing UI
-        document.getElementById('app').style.display = 'none';
-        document.getElementById('processing-overlay').style.display = 'block';
-
-        // 6. THE WRITE: Push to Firebase
-        await db.ref(regPath).update(finalPayload);
-
-        // 7. SUCCESS TRANSITION
-        document.getElementById('processing-overlay').style.display = 'none';
-        
-        const successScreen = document.getElementById('success-screen');
-        const successContent = document.getElementById('success-content');
-        
-        if (successScreen && successContent) {
-            successContent.innerHTML = eventConfig.final_html || "<h2>Registration Successful!</h2>";
-            successScreen.style.display = 'block';
-        }
-        
-        window.scrollTo(0, 0);
-
-    } catch (error) {
-        console.error("MERS Save Error:", error);
-        document.getElementById('processing-overlay').style.display = 'none';
-        document.getElementById('app').style.display = 'block';
-        alert("Save failed. Please check your connection.");
-    }
-}
 
 
   
