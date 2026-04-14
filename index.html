@@ -809,6 +809,8 @@ async function handleSectionNavigation() {
             statusMsg = "EDITED ON " + istNow.toLocaleString();
         }
 
+
+      
       
         // --- 3. DATA PREPARATION ---
         const formData = {
@@ -819,6 +821,9 @@ async function handleSectionNavigation() {
             ...eventConfig
         };
 
+
+
+      
         fieldRules.forEach(r => {
             const input = document.getElementById(`inp-${r.field_id}`);
             if (input) formData[r.field_id] = input.value.trim();
@@ -922,12 +927,7 @@ async function submitData() {
             event_id: eventId     // Ensure Event ID is pinned
         };
 
-        // Scrape any remaining visible inputs from the final screen
-        const finalInputs = document.querySelectorAll('[id^="extra_"]');
-        finalInputs.forEach(input => {
-            const cleanKey = input.id.replace('extra_', '');
-            formData[cleanKey] = input.value;
-        });
+       
 
         // 4. SAVE TO FIREBASE
         await db.ref('registrations/' + finalRegId).set(formData);
