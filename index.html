@@ -852,6 +852,107 @@ async function handleSectionNavigation() {
 }
 
 
+  async function submitData() {
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const mode = (urlParams.get('mode') || 'new').toLowerCase();
+        const existingRegId = urlParams.get('regId');
+
+        // 1. Initial UI Lock
+        document.getElementById('app').style.display = 'none';
+        document.getElementById('processing-overlay').style.display = 'block';
+
+        let finalRegId = existingRegId;
+        let finalTimestamp = originalData.timestamp || "";
+        let statusMsg = "CONFIRMED";
+
+        // --- 2. CAPACITY & ID LOGIC ---
+        if (mode === 'new') {
+            const capacityLimit = parseInt(eventConfig.hall_capacity || "0");
+            const fullMessage = eventConfig.hall_capacity_full_msg || "Registration is full.";
+            const counterRef = db.ref('counters/' + eventId);
+
+            // THE INTERLOCK TRANSACTION (Only for New)
+            const transactionResult = await counterRef.transaction((currentValue) => {
+                const current = currentValue || 0;
+                if (capacityLimit > 0 && current >= capacityLimit) return; 
+                return current + 1;
+            });
+
+            if (!transactionResult.committed) {
+                document.getElementById('processing-overlay').style.display = 'none';
+                document.getElementById('app').style.display = 'block';
+                alert(fullMessage);
+                location.reload();
+                return;
+            }
+
+            // Generate New ID for New User
+            const currentCount = transactionResult.snapshot.val();
+            const paddedCount = String(currentCount).padStart(3, '0');
+            const now = new Date();
+            const istNow = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+            
+            const dd = String(istNow.getUTCDate()).padStart(2, '0');
+            const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+            const mmm = months[istNow.getUTCMonth()];
+            const yyyy = istNow.getUTCFullYear();
+            
+            const hhmmssms = istNow.getUTCHours().toString().padStart(2, '0') + 
+                             istNow.getUTCMinutes().toString().padStart(2, '0') + 
+                             istNow.getUTCSeconds().toString().padStart(2, '0') + 
+                             istNow.getUTCMilliseconds().toString().padStart(3, '0');
+
+            finalTimestamp = `${dd}-${String(istNow.getUTCMonth() + 1).padStart(2, '0')}-${yyyy} ${String(istNow.getUTCHours()).padStart(2, '0')}:${String(istNow.getUTCMinutes()).padStart(2, '0')}:${String(istNow.getUTCSeconds()).padStart(2, '0')}`;
+            finalRegId = `${eventId}-REG-${dd}-${mmm}-${yyyy}-${hhmmssms}-${paddedCount}`;
+        } else {
+            // It is an EDIT
+            const now = new Date();
+            const istNow = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+            statusMsg = "EDITED ON " + istNow.toLocaleString();
+        }
+
+        // --- 3. DATA PREPARATION ---
+        const formData = {
+            registration_id: finalRegId,
+            timestamp: finalTimestamp,
+            registration_status: statusMsg,
+            email_sent: (mode === 'new') ? "No" : (originalData.email_sent || "No"),
+            ...eventConfig
+        };
+
+        fieldRules.forEach(r => {
+            const input = document.getElementById(`inp-${r.field_id}`);
+            if (input) formData[r.field_id] = input.value.trim();
+        });
+
+        // 4. SAVE TO FIREBASE
+        await db.ref('registrations/' + finalRegId).set(formData);
+
+        // 5. TRIGGER EMAIL (Only for New or if email changed)
+        const scriptUrl = "https://script.google.com/macros/s/AKfycbyPbae3F_Vm2q25LWZF1G59O0V2XRrokeqxNkLvZetTKl19HM4QubILy17nPe65Q-L-zw/exec"; 
+        fetch(`${scriptUrl}?action=sendEmail&regId=${finalRegId}&eventId=${eventId}`)
+            .then(() => console.log("Email trigger sent."))
+            .catch(err => console.error("Email trigger failed:", err));
+
+        // 6. SUCCESS SCREEN
+        let successHTML = eventConfig.final_html || "<h2>Registration Successful!</h2>";
+        if (mode !== 'new') {
+            successHTML = `<h2>Details Updated!</h2><p>Your registration ${finalRegId} has been updated successfully.</p>`;
+        }
+        
+        document.getElementById('success-content').innerHTML = successHTML;
+        document.getElementById('processing-overlay').style.display = 'none';
+        document.getElementById('success-screen').style.display = 'block';
+
+    } catch (error) {
+        console.error("Submission Error:", error);
+        document.getElementById('processing-overlay').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        alert("Submission failed. Please try again.");
+    }
+}
+
 
 
  
