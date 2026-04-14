@@ -220,6 +220,10 @@ function blockUIWithNotice(message) {
 /** --- END: GATEKEEPER HELPER FUNCTIONS --- **/
 
   async function init() {
+
+console.log("%c MERS PING 1: Init sequence started. CurrentSection is: " + (typeof currentSection !== 'undefined' ? currentSection : 'UNDEFINED'), "color: orange;");
+
+    
     try {
         const urlParams = new URLSearchParams(window.location.search);
         const mode = (urlParams.get('mode') || 'new').toLowerCase();
@@ -749,6 +753,8 @@ function checkAllValidations() {
 
 // 1. THE PAGE TURNER: Moves between Section 1, 2, and 3
 async function handleSectionNavigation() {
+
+  console.log("%c MERS PING 3: handleSectionNavigation() was just called!", "color: blue; font-weight: bold;");
     try {
         if (typeof currentSection === 'undefined') window.currentSection = 1;
         
@@ -775,7 +781,11 @@ async function handleSectionNavigation() {
 }
 
 // 2. THE SACRED ENGINE: The April 10th logic, now firing at the very end
+
+  
 async function submitData() {
+  console.log("%c MERS PING 2: submitData() was just called! Lineage check:", "color: red; font-weight: bold;");
+console.trace();
     try {
         const urlParams = new URLSearchParams(window.location.search);
         const mode = (urlParams.get('mode') || 'new').toLowerCase();
