@@ -749,8 +749,7 @@ function checkAllValidations() {
   }
 
 
-
-async function submitData() {
+async function handleSectionNavigation() {
     try {
         const urlParams = new URLSearchParams(window.location.search);
         const mode = (urlParams.get('mode') || 'new').toLowerCase();
