@@ -784,37 +784,27 @@ async function handleSectionNavigation() {
 
 // 2. THE SACRED ENGINE: The April 10th logic, now firing at the very end
 
-
 async function submitData() {
-    console.log("%c MERS PING 2: submitData() was just called!", "color: red; font-weight: bold;");
+    console.log("%c [DIAGNOSTIC] submitData started! ", "background: #222; color: #bada55; font-size: 14px;");
 
     // --- 1. THE GUARD (THE INTERCEPTOR) ---
-    // Ensure we know which section we are in
     if (typeof window.currentSection === 'undefined') window.currentSection = 1;
 
-    // If we are NOT in the final section (Section 3), stop the engine and turn the page
     if (window.currentSection < 3) {
-        console.log("GUARD: Intercepted. Saving data and turning page for Section: " + window.currentSection);
-
-        // Save current inputs into the memory bank (mersTempData) 
-        // This ensures the user's selections are not lost.
+        console.log("[DIAGNOSTIC] Intercepted. Section: " + window.currentSection + ". Saving & Turning page.");
+        
         const currentInputs = document.querySelectorAll('[id^="extra_"]');
         currentInputs.forEach(input => {
-            if (input.value) {
-                mersTempData[input.id] = input.value;
-            }
+            if (input.value) { mersTempData[input.id] = input.value; }
         });
 
-        // Call your navigation logic to move to the next part
         handleSectionNavigation();
-
-        // EXIT: Stop the rest of this function from running
-        return; 
+        return; // EXIT: Stops the email/save logic from firing too early
     }
 
     // --- 2. THE SACRED ENGINE (Released only for Section 3) ---
     try {
-        console.log("GUARD: Section 3 confirmed. Releasing the Engine...");
+        console.log("[DIAGNOSTIC] Section 3 confirmed. Releasing the Engine...");
         
         const urlParams = new URLSearchParams(window.location.search);
         const mode = (urlParams.get('mode') || 'new').toLowerCase();
@@ -828,7 +818,7 @@ async function submitData() {
         let finalTimestamp = originalData.timestamp || "";
         let statusMsg = "CONFIRMED";
 
-        // --- ID & CAPACITY LOGIC (April 10th Stable) ---
+        // --- ID & CAPACITY LOGIC (Your Stable April 10th Logic) ---
         if (mode === 'new') {
             const capacityLimit = parseInt(eventConfig.hall_capacity || "0");
             const counterRef = db.ref('counters/' + eventId);
@@ -863,8 +853,8 @@ async function submitData() {
 
         // --- 3. THE MERS MERGE ---
         const formData = {
-            ...originalData,      // April 10th Profile Data
-            ...mersTempData,      // MERS Logistics Data (Sections 2 & 3)
+            ...originalData,
+            ...mersTempData,
             registration_id: finalRegId,
             timestamp: finalTimestamp,
             registration_status: statusMsg,
@@ -872,44 +862,52 @@ async function submitData() {
             event_id: eventId
         };
 
-        // 4. SAVE & EMAIL (April 10th Sacred Flow)
+        // 4. SAVE & EMAIL
         await db.ref('registrations/' + finalRegId).set(formData);
+        console.log("[DIAGNOSTIC] Firebase Save successful. ID: " + finalRegId);
 
         const scriptUrl = "https://script.google.com/macros/s/AKfycbyPbae3F_Vm2q25LWZF1G59O0V2XRrokeqxNkLvZetTKl19HM4QubILy17nPe65Q-L-zw/exec"; 
         fetch(`${scriptUrl}?action=sendEmail&regId=${finalRegId}&eventId=${eventId}`)
-            .then(() => console.log("Email trigger sent."))
-            .catch(err => console.error("Email trigger failed:", err));
+            .then(() => console.log("[DIAGNOSTIC] Email trigger sent successfully."))
+            .catch(err => console.error("[DIAGNOSTIC] Email failed:", err));
 
-        // --- 5. THE CLEAN SWEEP (Ensures Thank You message is visible) ---
-        
-        // Hide the master app wrapper
+        // --- 5. THE CLEAN SWEEP (Sensors Added Here) ---
+        console.log("[DIAGNOSTIC] Starting Final UI Swap...");
+
+        // Hide Sections
+        const s1 = document.getElementById('Section1');
+        const s2 = document.getElementById('Section2');
+        if (s1) { s1.style.display = 'none'; console.log("[DIAGNOSTIC] Section 1 Hidden."); }
+        if (s2) { s2.style.display = 'none'; console.log("[DIAGNOSTIC] Section 2 Hidden."); }
         document.getElementById('app').style.display = 'none';
-        
-        // Explicitly hide Section 1 and Section 2 rooms
-        if (document.getElementById('Section1')) document.getElementById('Section1').style.display = 'none';
-        if (document.getElementById('Section2')) document.getElementById('Section2').style.display = 'none';
 
-        // Set the content from your Firebase config
-        document.getElementById('success-content').innerHTML = eventConfig.final_html || "<h2>Registration Successful!</h2>";
+        // Check Success Elements
+        const successDiv = document.getElementById('success-screen');
+        const contentDiv = document.getElementById('success-content');
         
-        // Switch from Processing to Success
+        console.log("[DIAGNOSTIC] Success screen found?", !!successDiv);
+        console.log("[DIAGNOSTIC] Success content found?", !!contentDiv);
+
+        if (contentDiv) {
+            contentDiv.innerHTML = eventConfig.final_html || "<h2>Registration Successful! (Fallback)</h2>";
+            console.log("[DIAGNOSTIC] HTML Injected.");
+        }
+
+        if (successDiv) {
+            successDiv.style.display = 'block';
+            console.log("[DIAGNOSTIC] success-screen set to BLOCK.");
+        }
+
         document.getElementById('processing-overlay').style.display = 'none';
-        document.getElementById('success-screen').style.display = 'block';
-        
-        // Scroll to top so the user sees the message
         window.scrollTo({ top: 0, behavior: 'smooth' });
+        console.log("[DIAGNOSTIC] All clear. Message should be visible.");
 
     } catch (error) {
-        console.error("Submission Error:", error);
+        console.error("[DIAGNOSTIC CRASH]:", error);
         document.getElementById('processing-overlay').style.display = 'none';
         document.getElementById('app').style.display = 'block';
-        if (document.getElementById('Section2')) document.getElementById('Section2').style.display = 'block';
     }
 }
-
-
-
-
 
 
 
