@@ -778,37 +778,19 @@ async function handleSectionNavigation() {
 
 // 2. THE SACRED ENGINE: The April 10th logic, now firing at the very end
 
-async function submitData() {
+
+  async function submitData() {
     console.log("%c [DIAGNOSTIC] submitData started! ", "background: #222; color: #bada55; font-size: 14px;");
 
-    // --- 1. THE NEW VISUAL GUARD (REPLACES THE OLD GUARD) ---
-    const section3 = document.getElementById('Section3');
-    
-    // Logic: If Section 3 is NOT visible yet, we are still "Page Turning"
-    if (!section3 || section3.style.display === 'none') {
-        console.log("[DIAGNOSTIC] Intercepted. Section 3 not visible. Saving & Turning page.");
-        
-        const currentInputs = document.querySelectorAll('[id^="extra_"]');
-        currentInputs.forEach(input => {
-            if (input.value) { mersTempData[input.id] = input.value; }
-        });
-
-        handleSectionNavigation();
-        return; // Stop here and show Section 2 or 3
-    }
-
-    // --- 2. THE SACRED ENGINE (Released only when Section 3 is on screen) ---
+    // --- THE SACRED ENGINE ---
+    // We removed the 'Guard' because buildExtraSections() only calls this 
+    // function when the user is truly on the final step.
     try {
-        console.log("[DIAGNOSTIC] Section 3 is VISIBLE. Releasing the Engine...");
-        
-        // ... (The rest of your April 10th logic remains exactly the same) ...
-
-        
         const urlParams = new URLSearchParams(window.location.search);
         const mode = (urlParams.get('mode') || 'new').toLowerCase();
         const existingRegId = urlParams.get('regId');
 
-        // UI LOCK - We hide sections individually instead of the whole 'app'
+        // UI LOCK
         document.getElementById('processing-overlay').style.display = 'block';
 
         let finalRegId = existingRegId;
@@ -848,7 +830,7 @@ async function submitData() {
             statusMsg = "EDITED ON " + new Date().toLocaleString();
         }
 
-        // --- 3. THE MERS MERGE ---
+        // --- THE MERS MERGE ---
         const formData = {
             ...originalData,
             ...mersTempData,
@@ -859,49 +841,55 @@ async function submitData() {
             event_id: eventId
         };
 
-        // 4. SAVE & EMAIL
+        // SAVE & EMAIL
         await db.ref('registrations/' + finalRegId).set(formData);
-        console.log("[DIAGNOSTIC] Firebase Save successful.");
+        console.log("[DIAGNOSTIC] Firebase Save successful. ID: " + finalRegId);
 
         const scriptUrl = "https://script.google.com/macros/s/AKfycbyPbae3F_Vm2q25LWZF1G59O0V2XRrokeqxNkLvZetTKl19HM4QubILy17nPe65Q-L-zw/exec"; 
         fetch(`${scriptUrl}?action=sendEmail&regId=${finalRegId}&eventId=${eventId}`)
-            .then(() => console.log("[DIAGNOSTIC] Email trigger sent successfully."))
+            .then(() => console.log("[DIAGNOSTIC] Email trigger sent."))
             .catch(err => console.error("[DIAGNOSTIC] Email failed:", err));
 
-        // --- 5. THE CLEAN SWEEP (MERS VERSION) ---
+        // --- FINAL UI SWAP (The Clean Sweep) ---
         console.log("[DIAGNOSTIC] Starting Final UI Swap...");
 
-        // Hide Sections 1 and 2 explicitly
+        // Hide dynamic content and standard sections
+        const dynamicContent = document.getElementById('dynamic-sections-content');
         const s1 = document.getElementById('Section1');
         const s2 = document.getElementById('Section2');
-        if (s1) { s1.style.display = 'none'; }
-        if (s2) { s2.style.display = 'none'; }
         
-        // Hide the header/banner area so the success message is prominent
+        if (dynamicContent) dynamicContent.innerHTML = ""; // Clear questions
+        if (s1) s1.style.display = 'none';
+        if (s2) s2.style.display = 'none';
+        
+        // Hide the banner/header/buttons to clear the stage
         const header = document.querySelector('.event-header');
+        const actionBtn = document.getElementById('btn-next-action');
+        const backBtn = document.getElementById('btn-back-to-profile');
+        
         if (header) header.style.display = 'none';
+        if (actionBtn) actionBtn.style.display = 'none';
+        if (backBtn) backBtn.style.display = 'none';
 
-        // CRITICAL FIX: We do NOT hide 'app' because success-screen is inside it.
-        // Instead, we just make sure 'app' is visible.
+        // CRITICAL: Ensure main app wrapper is visible
         document.getElementById('app').style.display = 'block';
 
-        // Show Success Elements
+        // Reveal Success Screen
         const successDiv = document.getElementById('success-screen');
         const contentDiv = document.getElementById('success-content');
         
         if (contentDiv) {
             contentDiv.innerHTML = eventConfig.final_html || "<h2>Registration Successful!</h2>";
-            console.log("[DIAGNOSTIC] HTML Injected into thank-you-card.");
         }
 
         if (successDiv) {
             successDiv.style.display = 'block';
-            console.log("[DIAGNOSTIC] success-screen revealed.");
+            console.log("[DIAGNOSTIC] Success screen displayed.");
         }
 
         document.getElementById('processing-overlay').style.display = 'none';
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        console.log("[DIAGNOSTIC] Finish line reached!");
+        console.log("[DIAGNOSTIC] Finish line reached successfully.");
 
     } catch (error) {
         console.error("[DIAGNOSTIC CRASH]:", error);
