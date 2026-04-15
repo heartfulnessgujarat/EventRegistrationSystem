@@ -1096,9 +1096,14 @@ async function processFinalDeletion(regId) {
         document.getElementById('processing-overlay').style.display = 'none';
     }
 }
-
-  async function buildExtraSections(targetSectionNumber) {
+async function buildExtraSections(targetSectionNumber) {
     if (!targetSectionNumber) targetSectionNumber = "Section2";
+
+    // --- MERS DIAGNOSTIC: FEED THE HUB ---
+    const fbStart = formatFirebaseDate(eventConfig.event_start_date);
+    const fbEnd = formatFirebaseDate(eventConfig.event_end_date);
+    if (document.getElementById('diag-fb-start')) document.getElementById('diag-fb-start').innerText = fbStart || "MISSING";
+    if (document.getElementById('diag-fb-end')) document.getElementById('diag-fb-end').innerText = fbEnd || "MISSING";
 
     // --- STEP 1: SAVE CURRENT SELECTIONS ---
     const currentInputs = document.querySelectorAll('[id^="extra_"]');
@@ -1110,17 +1115,8 @@ async function processFinalDeletion(regId) {
 
     const container = document.getElementById('dynamic-sections-content');
     const titleHeader = document.getElementById('title-Section2');
-
-
-    
     const actionBtn = document.getElementById('btn-next-action'); 
-
-
-
-
-
-    
-    const backBtn = document.getElementById('btn-back-to-profile'); // Back button ID from your HTML
+    const backBtn = document.getElementById('btn-back-to-profile');
 
     container.innerHTML = ""; 
 
@@ -1137,11 +1133,11 @@ async function processFinalDeletion(regId) {
                 if (rule) {
                     const fieldWrapper = document.createElement('div');
                     fieldWrapper.className = 'form-group';
+                    fieldWrapper.id = `wrapper_extra_${fieldId}`; // CRITICAL: Added Wrapper ID for Waterfall
                     fieldWrapper.style.marginBottom = "20px";
                     fieldWrapper.style.textAlign = "left";
 
                     const label = document.createElement('label');
-                    // Mark with * if mandatory
                     const isMandatory = rule.field_validation !== "NULL";
                     label.innerHTML = `<strong>${rule.display_label || fieldId} ${isMandatory ? '<span style="color:red">*</span>' : ''}</strong>`;
                     fieldWrapper.appendChild(label);
@@ -1153,7 +1149,7 @@ async function processFinalDeletion(regId) {
                         input = document.createElement('select');
                         input.className = 'form-control';
                         input.id = inputId;
-                        input.dataset.mandatory = isMandatory; // Bookmark for validation
+                        input.dataset.mandatory = isMandatory;
                         
                         const placeholder = document.createElement('option');
                         placeholder.text = "-- Select --";
@@ -1163,7 +1159,6 @@ async function processFinalDeletion(regId) {
                         try {
                             const tabName = rule.lookup_tab;
                             const colName = rule.lookup_column;
-                            
                             if (tabName && colName) {
                                 const lookupSnap = await db.ref(`masters/${tabName}`).once('value');
                                 const lookupData = lookupSnap.val();
@@ -1187,26 +1182,16 @@ async function processFinalDeletion(regId) {
                         input.dataset.mandatory = isMandatory;
                     }
 
-                  
-                    
-                  // --- SURGICAL REPLACEMENT: PRE-FILL LOGIC FOR EDIT MODE ---
-                    // 1. Check if we have temporary data (user just typed it)
                     if (mersTempData[inputId]) { 
                         input.value = mersTempData[inputId]; 
-                    } 
-                    // 2. Otherwise, if in Edit Mode, check the database (originalData)
-                    else if (typeof originalData !== 'undefined' && originalData[inputId]) {
+                    } else if (typeof originalData !== 'undefined' && originalData[inputId]) {
                         input.value = originalData[inputId];
                     }
-                    // -----------------------------------------------------------
                                 
-                   
-fieldWrapper.appendChild(input);
+                    fieldWrapper.appendChild(input);
 
-                    // --- MERS STEP-BY-STEP WATERFALL ---
+                    // --- MERS STEP-BY-STEP WATERFALL LOGIC ---
                     const fieldLower = fieldId.toLowerCase();
-
-                    // 1. Initial State: Only hide the 3 specific "Follow-up" Travel questions
                     const isStep2 = fieldLower.includes('arrival_time');
                     const isStep3 = fieldLower.includes('departure_date');
                     const isStep4 = fieldLower.includes('departure_time');
@@ -1219,76 +1204,52 @@ fieldWrapper.appendChild(input);
                         const val = this.value;
                         if (!val) return;
 
-                        const eventStart = formatFirebaseDate(eventConfig.event_start_date);
-                        const eventEnd = formatFirebaseDate(eventConfig.event_end_date);
-
-                        // GATE 1: ARRIVAL DATE -> REVEALS ARRIVAL TIME
+                        // GATE 1: ARRIVAL DATE
                         if (fieldLower === 'arrival_date') {
-                            if (eventStart && val > eventStart) {
-                                alert("❌ Error: Arrival date cannot be after Event Start (" + eventConfig.event_start_date + ")");
+                            if (document.getElementById('diag-u-arr')) document.getElementById('diag-u-arr').innerText = val;
+                            if (fbStart && val > fbStart) {
+                                alert("❌ Error: Arrival date ("+val+") cannot be after Event Start ("+fbStart+")");
                                 this.value = ""; return;
                             }
-                            // Show Step 2
                             const next = document.getElementById('wrapper_extra_arrival_time');
                             if (next) next.style.display = 'block';
                         }
 
-                        // GATE 2: ARRIVAL TIME -> REVEALS DEPARTURE DATE
+                        // GATE 2: ARRIVAL TIME
                         if (fieldLower === 'arrival_time') {
-                            const arrDateInput = document.getElementById('extra_arrival_date');
-                            const arrDate = arrDateInput ? arrDateInput.value : "";
+                            const arrDateVal = document.getElementById('extra_arrival_date') ? document.getElementById('extra_arrival_date').value : "";
                             const startTime = (eventConfig.event_start_time || "00:00").padStart(5, '0');
-                            
-                            if (arrDate === eventStart && val > startTime) {
-                                alert("❌ Error: On Day 1, Arrival must be before " + eventConfig.event_start_time);
+                            if (arrDateVal === fbStart && val > startTime) {
+                                alert("❌ Error: Arrival must be before " + eventConfig.event_start_time);
                                 this.value = ""; return;
                             }
-                            // Show Step 3
                             const next = document.getElementById('wrapper_extra_departure_date');
                             if (next) next.style.display = 'block';
                         }
 
-                        // GATE 3: DEPARTURE DATE -> REVEALS DEPARTURE TIME
+                        // GATE 3: DEPARTURE DATE
                         if (fieldLower === 'departure_date') {
-                            const arrDateInput = document.getElementById('extra_arrival_date');
-                            const arrDate = arrDateInput ? arrDateInput.value : "";
-                            
-                            if (arrDate && val < arrDate) {
+                            if (document.getElementById('diag-u-dep')) document.getElementById('diag-u-dep').innerText = val;
+                            const arrDateVal = document.getElementById('extra_arrival_date') ? document.getElementById('extra_arrival_date').value : "";
+                            if (arrDateVal && val < arrDateVal) {
                                 alert("❌ Error: Departure cannot be before Arrival.");
                                 this.value = ""; return;
                             }
-                            if (eventEnd && val < eventEnd) {
-                                alert("❌ Error: Departure cannot be before Event End (" + eventConfig.event_end_date + ")");
+                            if (fbEnd && val < fbEnd) {
+                                alert("❌ Error: Departure cannot be before Event End ("+fbEnd+")");
                                 this.value = ""; return;
                             }
-                            // Show Step 4
                             const next = document.getElementById('wrapper_extra_departure_time');
                             if (next) next.style.display = 'block';
-                        }
-
-                        // GATE 4: DEPARTURE TIME (Final Validation)
-                        if (fieldLower === 'departure_time') {
-                            const depDate = document.getElementById('extra_departure_date').value;
-                            const endTime = (eventConfig.event_end_time || "00:00").padStart(5, '0');
-                            
-                            if (depDate === eventEnd && val < endTime) {
-                                alert("❌ Error: On the last day, Departure must be after " + eventConfig.event_end_time);
-                                this.value = ""; return;
-                            }
                         }
                     });
 
                     container.appendChild(fieldWrapper);
-                                          
-                    
                 }
             }
         }
 
-
-// --- STEP 3: RESET BUTTON IDENTITY & NAVIGATION ---
-        
-        // Handle Back Button Logic
+        // --- STEP 3: NAVIGATION ---
         if (backBtn) {
             if (targetSectionNumber === "Section2") {
                 backBtn.onclick = function() { 
@@ -1300,12 +1261,10 @@ fieldWrapper.appendChild(input);
             }
         }
 
-        // Handle Forward/Submit Button Logic
         actionBtn.onclick = function() {
-            // 1. Mandatory Field Check
             const inputs = container.querySelectorAll('[data-mandatory="true"]');
             for (let i of inputs) {
-                if (!i.value) {
+                if (!i.value && i.parentElement.style.display !== 'none') {
                     alert("Please fill in all required fields marked with *");
                     i.style.border = "2px solid red";
                     return; 
@@ -1313,37 +1272,18 @@ fieldWrapper.appendChild(input);
                 i.style.border = "1px solid #ced4da"; 
             }
 
-            // 2. Navigation or Submission
             if (targetSectionNumber === "Section2") {
                 buildExtraSections('Section3');
             } else {
-                // Final save of Section 3 values into memory bank
-                const currentInputs = document.querySelectorAll('[id^="extra_"]');
-                currentInputs.forEach(input => {
-                    mersTempData[input.id] = input.value;
-                });
-
-  // CALL THE REAL ENGINE
-submitData();
-              
-             //   finalSubmitRegistration(); 
-
-              
+                const finalInputs = document.querySelectorAll('[id^="extra_"]');
+                finalInputs.forEach(input => { mersTempData[input.id] = input.value; });
+                submitData();
             }
         };
 
-        // Update the Button Label Text
-        if (targetSectionNumber === "Section2") {
-            actionBtn.innerText = "PROCEED TO TRAVEL DETAILS";
-        } else {
-            actionBtn.innerText = "CONFIRM & REGISTER";
-        }
-
+        actionBtn.innerText = (targetSectionNumber === "Section2") ? "PROCEED TO TRAVEL DETAILS" : "CONFIRM & REGISTER";
     }
-  }
-
-
-  
+}
 
 function showSuccessScreen() {
     // Hide the main form card
