@@ -1188,63 +1188,72 @@ async function buildExtraSections(targetSectionNumber) {
                         input.value = originalData[inputId];
                     }
                                 
-                    fieldWrapper.appendChild(input);
+                   
+fieldWrapper.appendChild(input);
 
-                    // --- MERS STEP-BY-STEP WATERFALL LOGIC ---
-                    const fieldLower = fieldId.toLowerCase();
-                    const isStep2 = fieldLower.includes('arrival_time');
-                    const isStep3 = fieldLower.includes('departure_date');
-                    const isStep4 = fieldLower.includes('departure_time');
+        // --- MERS SECTION-SPECIFIC WATERFALL ---
+        const fieldLower = fieldId.toLowerCase();
+        
+        // 1. Only apply the "Hide" logic if we are currently building SECTION 2
+        if (targetSectionNumber === "Section2") {
+            const isStep2 = fieldLower.includes('arrival_time');
+            const isStep3 = fieldLower.includes('departure_date');
+            const isStep4 = fieldLower.includes('departure_time');
 
-                    if (isStep2 || isStep3 || isStep4) {
-                        fieldWrapper.style.display = 'none'; 
+            if (isStep2 || isStep3 || isStep4) {
+                fieldWrapper.style.display = 'none'; 
+            }
+        }
+
+        input.addEventListener('change', function() {
+            const val = this.value;
+            if (!val) return;
+
+            // 2. Only run validation and un-hiding triggers for Section 2
+            if (targetSectionNumber === "Section2") {
+                // GATE 1: ARRIVAL DATE
+                if (fieldLower === 'arrival_date') {
+                    if (document.getElementById('diag-u-arr')) document.getElementById('diag-u-arr').innerText = val;
+                    if (fbStart && val > fbStart) {
+                        alert("❌ Error: Arrival ("+val+") cannot be after Event Start ("+fbStart+")");
+                        this.value = ""; return;
                     }
+                    const next = document.getElementById('wrapper_extra_arrival_time');
+                    if (next) next.style.display = 'block';
+                }
 
-                    input.addEventListener('change', function() {
-                        const val = this.value;
-                        if (!val) return;
+                // GATE 2: ARRIVAL TIME
+                if (fieldLower === 'arrival_time') {
+                    const arrDateVal = document.getElementById('extra_arrival_date') ? document.getElementById('extra_arrival_date').value : "";
+                    const startTime = (eventConfig.event_start_time || "00:00").padStart(5, '0');
+                    if (arrDateVal === fbStart && val > startTime) {
+                        alert("❌ Error: Arrival must be before " + eventConfig.event_start_time);
+                        this.value = ""; return;
+                    }
+                    const next = document.getElementById('wrapper_extra_departure_date');
+                    if (next) next.style.display = 'block';
+                }
 
-                        // GATE 1: ARRIVAL DATE
-                        if (fieldLower === 'arrival_date') {
-                            if (document.getElementById('diag-u-arr')) document.getElementById('diag-u-arr').innerText = val;
-                            if (fbStart && val > fbStart) {
-                                alert("❌ Error: Arrival date ("+val+") cannot be after Event Start ("+fbStart+")");
-                                this.value = ""; return;
-                            }
-                            const next = document.getElementById('wrapper_extra_arrival_time');
-                            if (next) next.style.display = 'block';
-                        }
+                // GATE 3: DEPARTURE DATE
+                if (fieldLower === 'departure_date') {
+                    if (document.getElementById('diag-u-dep')) document.getElementById('diag-u-dep').innerText = val;
+                    const arrDateVal = document.getElementById('extra_arrival_date') ? document.getElementById('extra_arrival_date').value : "";
+                    if (arrDateVal && val < arrDateVal) {
+                        alert("❌ Error: Departure cannot be before Arrival.");
+                        this.value = ""; return;
+                    }
+                    if (fbEnd && val < fbEnd) {
+                        alert("❌ Error: Departure cannot be before Event End ("+fbEnd+")");
+                        this.value = ""; return;
+                    }
+                    const next = document.getElementById('wrapper_extra_departure_time');
+                    if (next) next.style.display = 'block';
+                }
+            }
+        });
 
-                        // GATE 2: ARRIVAL TIME
-                        if (fieldLower === 'arrival_time') {
-                            const arrDateVal = document.getElementById('extra_arrival_date') ? document.getElementById('extra_arrival_date').value : "";
-                            const startTime = (eventConfig.event_start_time || "00:00").padStart(5, '0');
-                            if (arrDateVal === fbStart && val > startTime) {
-                                alert("❌ Error: Arrival must be before " + eventConfig.event_start_time);
-                                this.value = ""; return;
-                            }
-                            const next = document.getElementById('wrapper_extra_departure_date');
-                            if (next) next.style.display = 'block';
-                        }
+        container.appendChild(fieldWrapper);
 
-                        // GATE 3: DEPARTURE DATE
-                        if (fieldLower === 'departure_date') {
-                            if (document.getElementById('diag-u-dep')) document.getElementById('diag-u-dep').innerText = val;
-                            const arrDateVal = document.getElementById('extra_arrival_date') ? document.getElementById('extra_arrival_date').value : "";
-                            if (arrDateVal && val < arrDateVal) {
-                                alert("❌ Error: Departure cannot be before Arrival.");
-                                this.value = ""; return;
-                            }
-                            if (fbEnd && val < fbEnd) {
-                                alert("❌ Error: Departure cannot be before Event End ("+fbEnd+")");
-                                this.value = ""; return;
-                            }
-                            const next = document.getElementById('wrapper_extra_departure_time');
-                            if (next) next.style.display = 'block';
-                        }
-                    });
-
-                    container.appendChild(fieldWrapper);
                 }
             }
         }
