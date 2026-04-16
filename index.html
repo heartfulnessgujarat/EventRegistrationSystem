@@ -1191,9 +1191,9 @@ async function buildExtraSections(targetSectionNumber) {
                     // --- THE BRAIN TRIGGER ---
                     input.onchange = function() {
 
-handleFieldChange(this, rule); // 'rule' is the object fetched from Firebase
-};
 
+                  handleFieldChange(this, rule); // This ensures the handler knows which row of the Sheet to read
+};
 
                     fieldWrapper.appendChild(input);
                     container.appendChild(fieldWrapper);
