@@ -1191,15 +1191,17 @@ actionBtn.style.cursor = "not-allowed";
                         input.id = inputId;
                     }
 
-                    input.dataset.mandatory = isMandatory;
+                    input.dataset.mandatory = isMandatory;                  
                     if (mersTempData[inputId]) input.value = mersTempData[inputId];
-
-                    // --- THE BRAIN TRIGGER ---
-                    input.onchange = function() {
-
-
-                  handleFieldChange(this, rule); // This ensures the handler knows which row of the Sheet to read
+                  input.onchange = function() {
+    handleFieldChange(this, rule);
 };
+
+             input.oninput = function() {
+    updateButtonState(); // This makes the button check the form on every letter typed
+};
+
+                    
 
                     fieldWrapper.appendChild(input);
                     container.appendChild(fieldWrapper);
