@@ -1234,87 +1234,60 @@ async function buildExtraSections(targetSectionNumber) {
     }
 }
 
-
-
-
-/**
- * MERS UNIVERSAL FIELD HANDLER
- * Driven by: field_validation and edit_behavior columns
- */
 function handleFieldChange(inputElement, rule) {
     const val = inputElement.value;
     if (!val) return;
 
-    const fieldId = rule.field_id;
-    const validationRule = rule.field_validation;
-    const behavior = rule.edit_behavior;
+    const validationStr = rule.field_validation || "";
+    const behavior = rule.edit_behavior || "";
 
-    // --- PART A: THE VALIDATION ENGINE ---
-    // Reads your custom strings like "val <= event_start_date"
-    if (validationRule && validationRule !== "NULL") {
-        
-        // 1. Prepare common dates for comparison
-        const arrivalDate = document.getElementById('extra_arrival_date')?.value || "";
-        const eventStart = translateToISO(eventConfig.event_start_date);
-        const eventEnd = translateToISO(eventConfig.event_end_date);
+    // 1. Map your Cipher to actual Firebase Data
+    const cipherMap = {
+        'ESD': translateToISO(eventConfig.event_start_date),
+        'EST': translateToISO(eventConfig.event_start_time),
+        'EED': translateToISO(eventConfig.event_end_date),
+        'EET': translateToISO(eventConfig.event_end_time),
+        'Arr D': document.getElementById('extra_arrival_date')?.value || ""
+    };
 
-        // 2. Dynamic Logic Check
-        let isError = false;
-        let errorMsg = "";
+    // 2. Run Validation Logic
+    let isError = false;
+    let msg = "Invalid Entry";
 
-        // Check 1: Arrival <= Event Start
-        if (validationRule.includes('val <= event_start_date')) {
-            if (val > eventStart) {
-                isError = true;
-                errorMsg = `❌ Error: Date cannot be after Event Start (${eventConfig.event_start_date})`;
-            }
-        }
-
-        // Check 2: Departure >= Arrival
-        if (validationRule.includes('val >= arrival_date')) {
-            if (arrivalDate && val < arrivalDate) {
-                isError = true;
-                errorMsg = "❌ Error: Departure cannot be before Arrival Date.";
-            }
-        }
-
-        // Check 3: Departure <= Event End
-        if (validationRule.includes('val <= event_end_date')) {
-            if (val > eventEnd) {
-                isError = true;
-                errorMsg = `❌ Error: Departure cannot be after Event End (${eventConfig.event_end_date})`;
-            }
-        }
-
-        // Check 4: Time Validation (Example: "not < Event End Time")
-        if (validationRule.toLowerCase().includes('time')) {
-           // We can add specific time-string logic here if needed
-           console.log("Time validation detected for: " + fieldId);
-        }
-
-        if (isError) {
-            alert(errorMsg);
-            inputElement.value = "";
-            return; // Stop the waterfall if there is an error
-        }
+    // Dynamic Check: Does the rule (e.g., "D SHOULD BE <= ESD") match?
+    if (validationStr.includes('<= ESD') && val > cipherMap['ESD']) {
+        isError = true; msg = "Date cannot be after Event Start (" + eventConfig.event_start_date + ")";
+    } else if (validationStr.includes('>= EED') && val < cipherMap['EED']) {
+        isError = true; msg = "Date cannot be before Event End (" + eventConfig.event_end_date + ")";
+    } else if (validationStr.includes('>= Arr D') && val < cipherMap['Arr D']) {
+        isError = true; msg = "Departure cannot be before Arrival Date";
+    } else if (validationStr.includes('< EST') && val >= cipherMap['EST']) {
+        // Only check time if date is the same (Optional logic)
+        isError = true; msg = "Time must be before Event Start (" + eventConfig.event_start_time + ")";
     }
 
-    // --- PART B: THE WATERFALL TRIGGER ---
-    // Reads your "Editable after previous input" behavior
-    // We look for the NEXT field in our list and reveal it
-    const allRulesInOrder = fieldRules.filter(r => r.section_number === rule.section_number);
-    const currentIndex = allRulesInOrder.findIndex(r => r.field_id === fieldId);
-    const nextRule = allRulesInOrder[currentIndex + 1];
+    if (isError) {
+        alert("❌ " + msg);
+        inputElement.value = "";
+        return;
+    }
 
-    if (nextRule && nextRule.edit_behavior && nextRule.edit_behavior.toLowerCase().includes('previous')) {
-        const nextWrapper = document.getElementById(`wrapper_extra_${nextRule.field_id}`);
-        if (nextWrapper) {
-            nextWrapper.style.display = 'block';
-            // Smoothly scroll the new question into view
-            nextWrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // 3. The Waterfall (Show next field if behavior says "previous")
+    if (behavior.toLowerCase().includes('previous')) {
+        const allRules = fieldRules.filter(r => r.section_number === rule.section_number);
+        const currentIndex = allRules.findIndex(r => r.field_id === rule.field_id);
+        const nextRule = allRules[currentIndex + 1];
+
+        if (nextRule) {
+            const nextWrapper = document.getElementById(`wrapper_extra_${nextRule.field_id}`);
+            if (nextWrapper) {
+                nextWrapper.style.display = 'block';
+                nextWrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
         }
     }
 }
+
 
 
 
