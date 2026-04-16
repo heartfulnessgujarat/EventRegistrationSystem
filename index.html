@@ -1104,64 +1104,116 @@ async function processFinalDeletion(regId) {
     }
 }
 
+async function buildExtraSections(targetSectionNumber) {
+    if (!targetSectionNumber) targetSectionNumber = "Section2";
 
-  function buildExtraSections() {
-    const container = document.getElementById('dynamic-extra-sections');
-    if (!container) return;
-    container.innerHTML = ''; 
+    const container = document.getElementById('dynamic-sections-content');
+    const titleHeader = document.getElementById('title-Section2');
+    const actionBtn = document.getElementById('btn-next-action'); 
+    const backBtn = document.getElementById('btn-back-to-profile');
 
-    // Filter rules for Section 3 (Travel/Logistics)
-    const sectionRules = fieldRules.filter(r => r.section_number === 'Section3');
+    // 1. Save current progress so user doesn't lose data when switching sections
+    const currentInputs = document.querySelectorAll('[id^="extra_"]');
+    currentInputs.forEach(input => { if (input.value) mersTempData[input.id] = input.value; });
 
-    sectionRules.forEach(rule => {
-        const fieldId = rule.field_id;
-        const fieldWrapper = document.createElement('div');
-        fieldWrapper.className = 'form-group';
-        
-        // --- DATA-DRIVEN HIDING ---
-        // Instead of hard-coding names, we obey your "initial_state" column
-        if (rule.initial_state === "Hidden") {
-            fieldWrapper.style.display = 'none';
-        } else {
-            fieldWrapper.style.display = 'block';
+    container.innerHTML = ""; 
+
+    // 2. Identify which questions belong to this Section (Driven by Google Sheet)
+    const sectionObj = moreSections.find(s => s.section_number === targetSectionNumber);
+    
+    if (sectionObj) {
+        titleHeader.innerText = sectionObj.section_name || "Details";
+
+        for (const key of Object.keys(sectionObj)) {
+            if (key.startsWith('question') && sectionObj[key]) {
+                const fieldId = sectionObj[key];
+                const rule = fieldRules.find(r => r.field_id === fieldId);
+                
+                if (rule) {
+                    const fieldWrapper = document.createElement('div');
+                    fieldWrapper.className = 'form-group';
+                    fieldWrapper.id = `wrapper_extra_${fieldId}`; 
+                    fieldWrapper.style.marginBottom = "20px";
+                    fieldWrapper.style.textAlign = "left";
+
+                    // --- DATA-DRIVEN VISIBILITY ---
+                    // If your Google Sheet says "Hidden", we start hidden.
+                    if (rule.initial_state === "Hidden") {
+                        fieldWrapper.style.display = 'none';
+                    }
+
+                    // --- RED STAR LOGIC (Based on your Validation column) ---
+                    const isMandatory = (rule.field_validation && rule.field_validation !== "NULL");
+                    const label = document.createElement('label');
+                    label.innerHTML = `<strong>${rule.display_label || fieldId} ${isMandatory ? '<span style="color:red">*</span>' : ''}</strong>`;
+                    fieldWrapper.appendChild(label);
+
+                    let input;
+                    const inputId = `extra_${fieldId}`;
+
+                    // --- DROPDOWN VS INPUT (Data-Driven) ---
+                    if (rule.edit_behavior === 'Editable_lookup_Dropdown') {
+                        input = document.createElement('select');
+                        input.className = 'form-control';
+                        input.id = inputId;
+                        const placeholder = document.createElement('option');
+                        placeholder.text = "-- Select --"; placeholder.value = "";
+                        input.appendChild(placeholder);
+
+                        // Populate using your lookup logic
+                        if (rule.lookup_tab && rule.lookup_column) {
+                            populateLookup(input, rule.lookup_tab, rule.lookup_column);
+                        }
+                    } else {
+                        input = document.createElement('input');
+                        const fieldLower = fieldId.toLowerCase();
+                        input.type = fieldLower.includes('date') ? 'date' : (fieldLower.includes('time') ? 'time' : 'text');
+                        input.className = 'form-control';
+                        input.id = inputId;
+                    }
+
+                    input.dataset.mandatory = isMandatory;
+                    input.dataset.id = fieldId; // Stores the raw ID for the interlock
+
+                    // Restore saved data if it exists
+                    if (mersTempData[inputId]) input.value = mersTempData[inputId];
+
+                    // --- THE NEW SMART TRIGGER ---
+                    input.onchange = function() {
+                        handleFieldChange(this, rule);
+                    };
+
+                    fieldWrapper.appendChild(input);
+                    container.appendChild(fieldWrapper);
+                }
+            }
         }
-        
-        // Unique ID for the wrapper so the waterfall can find it later
-        fieldWrapper.id = 'wrapper_' + fieldId;
 
-        // Label with Red Star logic (Preserved from your original)
-        const label = document.createElement('label');
-        label.innerHTML = rule.field_label + (rule.is_required === 'TRUE' ? ' <span style="color:red;">*</span>' : '');
-        fieldWrapper.appendChild(label);
-
-        let input;
-        // Lookup Dropdown Logic (Preserved from your original)
-        if (rule.lookup_tab && rule.lookup_column) {
-            input = document.createElement('select');
-            input.className = 'form-control';
-            const defaultOpt = document.createElement('option');
-            defaultOpt.value = ""; defaultOpt.text = "Select...";
-            input.appendChild(defaultOpt);
-            // Function to populate dropdown from Firebase
-            populateDropdown(input, rule.lookup_tab, rule.lookup_column);
-        } else {
-            input = document.createElement('input');
-            input.type = rule.field_type || 'text';
-            input.className = 'form-control';
-        }
-
-        input.setAttribute('data-id', fieldId);
-        input.id = 'extra_' + fieldId;
-        
-        // --- THE UNIVERSAL CHANGE TRIGGER ---
-        input.onchange = function() {
-            handleFieldChange(this, rule);
+        // --- NAVIGATION LOGIC ---
+        actionBtn.onclick = function() {
+            if (validateSection(container)) {
+                if (targetSectionNumber === "Section2") {
+                    buildExtraSections('Section3');
+                } else {
+                    submitData();
+                }
+            }
         };
 
-        fieldWrapper.appendChild(input);
-        container.appendChild(fieldWrapper);
-    });
+        if (backBtn) {
+            backBtn.onclick = (targetSectionNumber === "Section3") 
+                ? () => buildExtraSections('Section2') 
+                : () => { 
+                    document.getElementById('Section2').style.display = 'none'; 
+                    document.getElementById('Section1').style.display = 'block'; 
+                };
+        }
+
+        actionBtn.innerText = (targetSectionNumber === "Section2") ? "PROCEED TO TRAVEL DETAILS" : "CONFIRM & REGISTER";
+    }
 }
+
+
 function showSuccessScreen() {
     // Hide the main form card
     document.getElementById('form-content').style.display = 'none';
