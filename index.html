@@ -1412,23 +1412,23 @@ function translateToISO(val) {
  * MERS BUTTON GUARD
  * Scans the current section and unlocks the button only if all visible fields are filled.
  */
-function updateButtonState() {
-    const actionBtn = document.getElementById('btn-next-action');
-    const container = document.getElementById('dynamic-sections-content');
-    if (!actionBtn || !container) return;
 
-    // Find all mandatory fields that are currently VISIBLE
-    const visibleMandatoryFields = Array.from(container.querySelectorAll('[data-mandatory="true"]'))
+
+  function updateButtonState() {
+    const actionBtn = document.getElementById('btn-next-action');
+    if (!actionBtn) return;
+
+    // Scans the entire page for mandatory fields that are NOT hidden
+    const mandatoryInputs = Array.from(document.querySelectorAll('[data-mandatory="true"]'))
         .filter(input => {
-            // Check if the input or its wrapper is hidden
-            const wrapper = input.closest('.form-group');
-            return wrapper && wrapper.style.display !== 'none';
+            // This check ensures the input is actually visible to the user right now
+            return !!(input.offsetWidth || input.offsetHeight || input.getClientRects().length);
         });
 
-    // Check if every single one of them has a value
-    const allFilled = visibleMandatoryFields.every(input => input.value.trim() !== "");
+    // Button unlocks only if every VISIBLE mandatory field is filled
+    const allFilled = mandatoryInputs.every(input => input.value.trim() !== "");
 
-    if (allFilled && visibleMandatoryFields.length > 0) {
+    if (allFilled && mandatoryInputs.length > 0) {
         actionBtn.disabled = false;
         actionBtn.style.opacity = "1";
         actionBtn.style.cursor = "pointer";
@@ -1438,8 +1438,6 @@ function updateButtonState() {
         actionBtn.style.cursor = "not-allowed";
     }
 }
-
-  
 
   
 </script>
