@@ -1244,52 +1244,48 @@ actionBtn.style.cursor = "not-allowed";
     }
 }
 
-
 function handleFieldChange(inputElement, rule) {
     const val = inputElement.value;
-    
-    // Always update button state even if empty (in case they deleted text)
-    updateButtonState();
+    updateButtonState(); // Always check the button first
     if (!val) return;
 
     const validationStr = rule.field_validation || "";
-    const behavior = rule.edit_behavior || "";
 
-    // 1. Map Cipher (ESD, EST, EED, EET) - Same logic as before
-    const cipherMap = {
-        'ESD': translateToISO(eventConfig.event_start_date),
-        'EST': translateToISO(eventConfig.event_start_time),
-        'EED': translateToISO(eventConfig.event_end_date),
-        'EET': translateToISO(eventConfig.event_end_time),
-        'Arr D': document.getElementById('extra_arrival_date')?.value || ""
-    };
+    // 1. Only run Validation if a rule actually exists (Prevents errors in Section 2)
+    if (validationStr && validationStr !== "N/A") {
+        const cipherMap = {
+            'ESD': translateToISO(eventConfig.event_start_date),
+            'EST': translateToISO(eventConfig.event_start_time),
+            'EED': translateToISO(eventConfig.event_end_date),
+            'EET': translateToISO(eventConfig.event_end_time),
+            'Arr D': document.getElementById('extra_arrival_date')?.value || ""
+        };
 
-    // 2. Validation Engine
-    let isError = false;
-    let msg = "";
+        let isError = false;
+        let msg = "";
 
-    if (validationStr.includes('<= ESD') && val > cipherMap['ESD']) {
-        isError = true; msg = "Date cannot be after Event Start (" + eventConfig.event_start_date + ")";
-    } else if (validationStr.includes('>= EED') && val < cipherMap['EED']) {
-        isError = true; msg = "Date cannot be before Event End (" + eventConfig.event_end_date + ")";
-    } else if (validationStr.includes('>= Arr D') && val < cipherMap['Arr D']) {
-        isError = true; msg = "Departure cannot be before Arrival Date";
+        if (validationStr.includes('<= ESD') && val > cipherMap['ESD']) {
+            isError = true; msg = "Date cannot be after Event Start";
+        } else if (validationStr.includes('>= EED') && val < cipherMap['EED']) {
+            isError = true; msg = "Date cannot be before Event End";
+        } else if (validationStr.includes('>= Arr D') && val < cipherMap['Arr D']) {
+            isError = true; msg = "Departure cannot be before Arrival Date";
+        }
+
+        if (isError) {
+            alert("❌ " + msg);
+            inputElement.value = "";
+            updateButtonState();
+            return;
+        }
     }
 
-    if (isError) {
-        alert("❌ " + msg);
-        inputElement.value = "";
-        updateButtonState(); // Re-lock button since field is now empty
-        return;
-    }
-
-    // 3. THE REVEAL (The Waterfall Fix)
-    // Find the next question in the CURRENT visible list
+    // 2. THE WATERFALL (Works for both Section 2 and 3)
     const currentSectionQuestions = fieldRules.filter(r => r.section_number === rule.section_number);
     const currentIndex = currentSectionQuestions.findIndex(r => r.field_id === rule.field_id);
     const nextRule = currentSectionQuestions[currentIndex + 1];
 
-    if (nextRule && nextRule.initial_state === "Hidden") {
+    if (nextRule) {
         const nextWrapper = document.getElementById(`wrapper_extra_${nextRule.field_id}`);
         if (nextWrapper) {
             nextWrapper.style.display = 'block';
@@ -1297,9 +1293,9 @@ function handleFieldChange(inputElement, rule) {
         }
     }
 
-    // Final check to see if the newly revealed field needs the button to lock
-    updateButtonState();
+    updateButtonState(); // Final check to see if the button should unlock
 }
+
 
 
   
