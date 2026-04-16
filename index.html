@@ -267,6 +267,9 @@ function blockUIWithNotice(message) {
 }
 /** --- END: GATEKEEPER HELPER FUNCTIONS --- **/
 
+
+
+  
   async function init() {
 
 console.log("%c MERS PING 1: Init sequence started. CurrentSection is: " + (typeof currentSection !== 'undefined' ? currentSection : 'UNDEFINED'), "color: orange;");
@@ -383,36 +386,11 @@ console.log("%c MERS PING 1: Init sequence started. CurrentSection is: " + (type
         document.getElementById('loading-init').innerHTML = "<h2>Error loading form. Please refresh.</h2>";
     }
 
-// --- SURGICAL ADDITION: DIAGNOSTIC BOX ---
-    // This creates a small yellow status box at the top of Section 2
-    const diag = document.createElement('div');
-    diag.id = 'mers-diagnostic-tool';
-    diag.style = "background:#fff9c4; border:2px solid #fbc02d; padding:12px; margin:10px; font-family:monospace; font-size:13px; border-radius:8px; color:#333;";
-    diag.innerHTML = `
-        <div style="font-weight:bold; border-bottom:1px solid #fbc02d; margin-bottom:5px;">MERS LIVE DIAGNOSTICS</div>
-
-<strong>Config Start:</strong> ${eventConfig.event_start_date || 'NOT FOUND'}<br>
-<strong>Config End:</strong> ${eventConfig.event_end_date || 'NOT FOUND'}<br>
-
-        
-        
-        <hr style="border:0; border-top:1px dashed #fbc02d;">
-        <strong>User Arrival:</strong> <span id="diag-u-arr">--</span><br>
-        <strong>User Departure:</strong> <span id="diag-u-dep">--</span>
-    `;
-    
-    const section2 = document.getElementById('Section2');
     if (section2) {
         section2.prepend(diag);
     }
-
-
-
-
-
     
 }
-
 
   
   function renderForm() {
