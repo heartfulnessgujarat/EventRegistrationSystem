@@ -1125,221 +1125,65 @@ async function processFinalDeletion(regId) {
         document.getElementById('processing-overlay').style.display = 'none';
     }
 }
-async function buildExtraSections(targetSectionNumber) {
-    if (!targetSectionNumber) targetSectionNumber = "Section2";
 
-    // --- MERS DIAGNOSTIC: FEED THE HUB ---
-    const fbStart = formatFirebaseDate(eventConfig.event_start_date);
-    const fbEnd = formatFirebaseDate(eventConfig.event_end_date);
-    if (document.getElementById('diag-fb-start')) document.getElementById('diag-fb-start').innerText = fbStart || "MISSING";
-    if (document.getElementById('diag-fb-end')) document.getElementById('diag-fb-end').innerText = fbEnd || "MISSING";
 
-    // --- STEP 1: SAVE CURRENT SELECTIONS ---
-    const currentInputs = document.querySelectorAll('[id^="extra_"]');
-    currentInputs.forEach(input => {
-        if (input.value) {
-            mersTempData[input.id] = input.value;
-        }
-    });
+  function buildExtraSections() {
+    const container = document.getElementById('dynamic-extra-sections');
+    if (!container) return;
+    container.innerHTML = ''; 
 
-    const container = document.getElementById('dynamic-sections-content');
-    const titleHeader = document.getElementById('title-Section2');
-    const actionBtn = document.getElementById('btn-next-action'); 
-    const backBtn = document.getElementById('btn-back-to-profile');
+    // Filter rules for Section 3 (Travel/Logistics)
+    const sectionRules = fieldRules.filter(r => r.section_number === 'Section3');
 
-    container.innerHTML = ""; 
-
-    const sectionObj = moreSections.find(s => s.section_number === targetSectionNumber);
-    
-    if (sectionObj) {
-        titleHeader.innerText = sectionObj.section_name || "Details";
-
-        for (const key of Object.keys(sectionObj)) {
-            if (key.startsWith('question') && sectionObj[key]) {
-                const fieldId = sectionObj[key];
-                const rule = fieldRules.find(r => r.field_id === fieldId);
-                
-                if (rule) {
-
-                  
-                    const fieldWrapper = document.createElement('div');
-
-// --- SURGICAL ADDITION: INITIAL HIDING ---
-// We target the specific field IDs from your Firebase rules
-const fieldsToHide = ['arrival_time', 'departure_date', 'departure_time'];
-
-if (fieldsToHide.includes(fieldId)) {
-    fieldWrapper.style.display = 'none';
-}
-
-// We give the wrapper a specific ID so our "Key" can find this "Lock"
-fieldWrapper.id = 'wrapper_extra_' + fieldId;
-
-                  
-                    fieldWrapper.className = 'form-group';
-                    fieldWrapper.id = `wrapper_extra_${fieldId}`; // CRITICAL: Added Wrapper ID for Waterfall
-                    fieldWrapper.style.marginBottom = "20px";
-                    fieldWrapper.style.textAlign = "left";
-
-                    const label = document.createElement('label');
-                    const isMandatory = rule.field_validation !== "NULL";
-                    label.innerHTML = `<strong>${rule.display_label || fieldId} ${isMandatory ? '<span style="color:red">*</span>' : ''}</strong>`;
-                    fieldWrapper.appendChild(label);
-
-                    let input;
-                    const inputId = `extra_${fieldId}`;
-
-                    if (rule.edit_behavior === 'Editable_lookup_Dropdown') {
-                        input = document.createElement('select');
-                        input.className = 'form-control';
-                        input.id = inputId;
-                        input.dataset.mandatory = isMandatory;
-                        
-                        const placeholder = document.createElement('option');
-                        placeholder.text = "-- Select --";
-                        placeholder.value = "";
-                        input.appendChild(placeholder);
-
-                        try {
-                            const tabName = rule.lookup_tab;
-                            const colName = rule.lookup_column;
-                            if (tabName && colName) {
-                                const lookupSnap = await db.ref(`masters/${tabName}`).once('value');
-                                const lookupData = lookupSnap.val();
-                                if (lookupData) {
-                                    const choices = Object.values(lookupData).map(row => row[colName]).filter(val => val);
-                                    [...new Set(choices)].forEach(choice => {
-                                        const opt = document.createElement('option');
-                                        opt.value = choice;
-                                        opt.text = choice;
-                                        input.appendChild(opt);
-                                    });
-                                }
-                            }
-                        } catch (err) { console.error("Lookup Error", err); }
-                    } else {
-                        input = document.createElement('input');
-                        const fieldLower = fieldId.toLowerCase();
-                        input.type = fieldLower.includes('date') ? 'date' : (fieldLower.includes('time') ? 'time' : 'text');
-                        input.className = 'form-control';
-                        input.id = inputId;
-                        input.dataset.mandatory = isMandatory;
-                    }
-
-                    if (mersTempData[inputId]) { 
-                        input.value = mersTempData[inputId]; 
-                    } else if (typeof originalData !== 'undefined' && originalData[inputId]) {
-                        input.value = originalData[inputId];
-                    }
-                                
-                   
-fieldWrapper.appendChild(input);
-
-        // --- MERS SECTION-SPECIFIC WATERFALL ---
-        const fieldLower = fieldId.toLowerCase();
+    sectionRules.forEach(rule => {
+        const fieldId = rule.field_id;
+        const fieldWrapper = document.createElement('div');
+        fieldWrapper.className = 'form-group';
         
-        // 1. Only apply the "Hide" logic if we are currently building SECTION 2
-        if (targetSectionNumber === "Section2") {
-            const isStep2 = fieldLower.includes('arrival_time');
-            const isStep3 = fieldLower.includes('departure_date');
-            const isStep4 = fieldLower.includes('departure_time');
-
-            if (isStep2 || isStep3 || isStep4) {
-                fieldWrapper.style.display = 'none'; 
-            }
+        // --- DATA-DRIVEN HIDING ---
+        // Instead of hard-coding names, we obey your "initial_state" column
+        if (rule.initial_state === "Hidden") {
+            fieldWrapper.style.display = 'none';
+        } else {
+            fieldWrapper.style.display = 'block';
         }
-
         
+        // Unique ID for the wrapper so the waterfall can find it later
+        fieldWrapper.id = 'wrapper_' + fieldId;
 
-// --- SURGICAL REPLACEMENT: INTERLOCK LOGIC ---
-                    input.addEventListener('change', function() {
-                        const val = this.value;
-                        if (!val) return;
+        // Label with Red Star logic (Preserved from your original)
+        const label = document.createElement('label');
+        label.innerHTML = rule.field_label + (rule.is_required === 'TRUE' ? ' <span style="color:red;">*</span>' : '');
+        fieldWrapper.appendChild(label);
 
-                        // 1. Translate Firebase dates for math
-                        // Note: Using currentEventConfig which is defined globally in your script
-                        const fbStart = translateToISO(currentEventConfig.event_start_date);
-                        const fbEnd = translateToISO(currentEventConfig.event_end_date);
-
-                        // GATE 1: ARRIVAL DATE
-                        if (fieldLower === 'arrival_date') {
-                            if (fbStart && val > fbStart) {
-                                alert("❌ Error: Arrival date (" + val + ") cannot be after Event Start (" + fbStart + ")");
-                                this.value = ""; return;
-                            }
-                            // Reveal Step 2
-                            const next = document.getElementById('wrapper_extra_arrival_time');
-                            if (next) next.style.display = 'block';
-                        }
-
-                        // GATE 2: ARRIVAL TIME -> REVEALS DEPARTURE DATE
-                        if (fieldLower === 'arrival_time') {
-                            const next = document.getElementById('wrapper_extra_departure_date');
-                            if (next) next.style.display = 'block';
-                        }
-
-                        // GATE 3: DEPARTURE DATE -> REVEALS DEPARTURE TIME
-                        if (fieldLower === 'departure_date') {
-                            const arrDateVal = document.getElementById('extra_arrival_date') ? document.getElementById('extra_arrival_date').value : "";
-                            
-                            if (arrDateVal && val < arrDateVal) {
-                                alert("❌ Error: Departure cannot be before Arrival.");
-                                this.value = ""; return;
-                            }
-                            if (fbEnd && val < fbEnd) {
-                                alert("❌ Error: Departure date (" + val + ") cannot be before Event End (" + fbEnd + ")");
-                                this.value = ""; return;
-                            }
-                            // Reveal Step 4
-                            const next = document.getElementById('wrapper_extra_departure_time');
-                            if (next) next.style.display = 'block';
-                        }
-                    });
-
-
-
-        container.appendChild(fieldWrapper);
-
-                }
-            }
+        let input;
+        // Lookup Dropdown Logic (Preserved from your original)
+        if (rule.lookup_tab && rule.lookup_column) {
+            input = document.createElement('select');
+            input.className = 'form-control';
+            const defaultOpt = document.createElement('option');
+            defaultOpt.value = ""; defaultOpt.text = "Select...";
+            input.appendChild(defaultOpt);
+            // Function to populate dropdown from Firebase
+            populateDropdown(input, rule.lookup_tab, rule.lookup_column);
+        } else {
+            input = document.createElement('input');
+            input.type = rule.field_type || 'text';
+            input.className = 'form-control';
         }
 
-        // --- STEP 3: NAVIGATION ---
-        if (backBtn) {
-            if (targetSectionNumber === "Section2") {
-                backBtn.onclick = function() { 
-                    document.getElementById('Section2').style.display = 'none';
-                    document.getElementById('Section1').style.display = 'block';
-                };
-            } else if (targetSectionNumber === "Section3") {
-                backBtn.onclick = function() { buildExtraSections('Section2'); };
-            }
-        }
-
-        actionBtn.onclick = function() {
-            const inputs = container.querySelectorAll('[data-mandatory="true"]');
-            for (let i of inputs) {
-                if (!i.value && i.parentElement.style.display !== 'none') {
-                    alert("Please fill in all required fields marked with *");
-                    i.style.border = "2px solid red";
-                    return; 
-                }
-                i.style.border = "1px solid #ced4da"; 
-            }
-
-            if (targetSectionNumber === "Section2") {
-                buildExtraSections('Section3');
-            } else {
-                const finalInputs = document.querySelectorAll('[id^="extra_"]');
-                finalInputs.forEach(input => { mersTempData[input.id] = input.value; });
-                submitData();
-            }
+        input.setAttribute('data-id', fieldId);
+        input.id = 'extra_' + fieldId;
+        
+        // --- THE UNIVERSAL CHANGE TRIGGER ---
+        input.onchange = function() {
+            handleFieldChange(this, rule);
         };
 
-        actionBtn.innerText = (targetSectionNumber === "Section2") ? "PROCEED TO TRAVEL DETAILS" : "CONFIRM & REGISTER";
-    }
+        fieldWrapper.appendChild(input);
+        container.appendChild(fieldWrapper);
+    });
 }
-
 function showSuccessScreen() {
     // Hide the main form card
     document.getElementById('form-content').style.display = 'none';
