@@ -773,19 +773,23 @@ function unlockField(id) {
     const errorMsg = fieldRules[id]?.error_msg || "Invalid Entry";
 
 
-
-// --- SECTION 3: DATE & TIME LOGIC (UPDATED WITH CORRECT NAMES) ---
+// --- SECTION 3: DATE & TIME INTERLOCKS ---
 
     // 1. Arrival Date (D SHOULD BE <= ESD)
-    if (rule && rule.includes("ESD")) { // Changed ruleString to rule
-        const isoInput = translateToISO(val); 
+    if (rule && rule.includes("ESD")) {
+        const isoInput = translateToISO(value); 
         const isoConfig = translateToISO(eventConfig.event_start_date);
         
-        if (isoInput > isoConfig) {
+        if (isoInput && isoConfig && isoInput > isoConfig) {
             const ruleObj = fieldRules.find(r => r.field_id === id);
             const errorMsg = ruleObj ? ruleObj.error_msg : "Invalid Date";
             alert("❌ " + errorMsg);
-            return false;
+            
+            // THE STOP LOGIC
+            const inputEl = document.getElementById(id);
+            if (inputEl) inputEl.value = ""; 
+            updateButtonState(); // Locks the Next button immediately
+            return false; 
         }
     }
 
@@ -796,12 +800,18 @@ function unlockField(id) {
         const isoEventStart = translateToISO(eventConfig.event_start_date);
         
         if (isoSelectedDate === isoEventStart) {
-            const isoInputTime = translateToISO(val); 
+            const isoInputTime = translateToISO(value); 
             const isoConfigTime = translateToISO(eventConfig.event_start_time);
+            
             if (isoInputTime >= isoConfigTime) {
                 const ruleObj = fieldRules.find(r => r.field_id === id);
                 const errorMsg = ruleObj ? ruleObj.error_msg : "Invalid Time";
                 alert("❌ " + errorMsg);
+                
+                // THE STOP LOGIC
+                const inputEl = document.getElementById(id);
+                if (inputEl) inputEl.value = ""; 
+                updateButtonState();
                 return false;
             }
         }
@@ -809,12 +819,15 @@ function unlockField(id) {
 
     // 3. Departure Date (D SHOULD BE >= EED)
     if (rule && rule.includes("EED")) {
-        const isoInput = translateToISO(val);
+        const isoInput = translateToISO(value);
         const isoConfig = translateToISO(eventConfig.event_end_date);
-        if (isoInput < isoConfig) {
+        if (isoInput && isoConfig && isoInput < isoConfig) {
             const ruleObj = fieldRules.find(r => r.field_id === id);
             const errorMsg = ruleObj ? ruleObj.error_msg : "Invalid Date";
             alert("❌ " + errorMsg);
+            const inputEl = document.getElementById(id);
+            if (inputEl) inputEl.value = "";
+            updateButtonState();
             return false;
         }
     }
@@ -826,18 +839,19 @@ function unlockField(id) {
         const isoEventEnd = translateToISO(eventConfig.event_end_date);
 
         if (isoSelectedDate === isoEventEnd) {
-            const isoInputTime = translateToISO(val);
+            const isoInputTime = translateToISO(value);
             const isoConfigTime = translateToISO(eventConfig.event_end_time);
             if (isoInputTime <= isoConfigTime) {
                 const ruleObj = fieldRules.find(r => r.field_id === id);
                 const errorMsg = ruleObj ? ruleObj.error_msg : "Invalid Time";
                 alert("❌ " + errorMsg);
+                const inputEl = document.getElementById(id);
+                if (inputEl) inputEl.value = "";
+                updateButtonState();
                 return false;
             }
         }
     }
-
-
 
 
 
