@@ -757,21 +757,24 @@ function unlockField(id) {
     const errorMsg = fieldRules[id]?.error_msg || "Invalid Entry";
 
 
-    // --- SECTION 3: DATE & TIME LOGIC (REPLACE THIS PART) ---
+
+// --- SECTION 3: DATE & TIME LOGIC (UPDATED WITH CORRECT NAMES) ---
 
     // 1. Arrival Date (D SHOULD BE <= ESD)
-    if (ruleString.includes("ESD")) {
+    if (rule && rule.includes("ESD")) { // Changed ruleString to rule
         const isoInput = translateToISO(val); 
         const isoConfig = translateToISO(eventConfig.event_start_date);
         
         if (isoInput > isoConfig) {
+            const ruleObj = fieldRules.find(r => r.field_id === id);
+            const errorMsg = ruleObj ? ruleObj.error_msg : "Invalid Date";
             alert("❌ " + errorMsg);
             return false;
         }
     }
 
     // 2. Arrival Time (T SHOULD BE < EST)
-    if (ruleString.includes("EST")) {
+    if (rule && rule.includes("EST")) {
         const dateEl = document.getElementById('extra_arrival_date') || document.getElementById('arrival_date');
         const isoSelectedDate = translateToISO(dateEl ? dateEl.value : "");
         const isoEventStart = translateToISO(eventConfig.event_start_date);
@@ -780,6 +783,8 @@ function unlockField(id) {
             const isoInputTime = translateToISO(val); 
             const isoConfigTime = translateToISO(eventConfig.event_start_time);
             if (isoInputTime >= isoConfigTime) {
+                const ruleObj = fieldRules.find(r => r.field_id === id);
+                const errorMsg = ruleObj ? ruleObj.error_msg : "Invalid Time";
                 alert("❌ " + errorMsg);
                 return false;
             }
@@ -787,17 +792,19 @@ function unlockField(id) {
     }
 
     // 3. Departure Date (D SHOULD BE >= EED)
-    if (ruleString.includes("EED")) {
+    if (rule && rule.includes("EED")) {
         const isoInput = translateToISO(val);
         const isoConfig = translateToISO(eventConfig.event_end_date);
         if (isoInput < isoConfig) {
+            const ruleObj = fieldRules.find(r => r.field_id === id);
+            const errorMsg = ruleObj ? ruleObj.error_msg : "Invalid Date";
             alert("❌ " + errorMsg);
             return false;
         }
     }
 
     // 4. Departure Time (T SHOULD BE > EET)
-    if (ruleString.includes("EET")) {
+    if (rule && rule.includes("EET")) {
         const dateEl = document.getElementById('extra_depart_date') || document.getElementById('depart_date');
         const isoSelectedDate = translateToISO(dateEl ? dateEl.value : "");
         const isoEventEnd = translateToISO(eventConfig.event_end_date);
@@ -806,11 +813,14 @@ function unlockField(id) {
             const isoInputTime = translateToISO(val);
             const isoConfigTime = translateToISO(eventConfig.event_end_time);
             if (isoInputTime <= isoConfigTime) {
+                const ruleObj = fieldRules.find(r => r.field_id === id);
+                const errorMsg = ruleObj ? ruleObj.error_msg : "Invalid Time";
                 alert("❌ " + errorMsg);
                 return false;
             }
         }
     }
+
 
 
 
