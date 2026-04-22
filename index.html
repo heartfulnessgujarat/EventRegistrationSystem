@@ -1468,9 +1468,8 @@ document.getElementById('btn-back-to-profile').onclick = function() {
  */
 
 
-  function translateToISO(val) {
+function translateToISO(val) {
     if (!val) return "";
-    // Clean up the value immediately to remove hidden spaces
     const str = String(val).trim();
 
     // 1. If it's already ISO (YYYY-MM-DD), return it as is
@@ -1481,7 +1480,6 @@ document.getElementById('btn-back-to-profile').onclick = function() {
         const parts = str.split('-');
         if (parts.length === 3) {
             const day = parts[0].padStart(2, '0');
-            // Force to lowercase to match our dictionary below
             const monthStr = parts[1].toLowerCase().substring(0, 3);
             const year = parts[2].length === 2 ? "20" + parts[2] : parts[2];
 
@@ -1491,11 +1489,11 @@ document.getElementById('btn-back-to-profile').onclick = function() {
             };
 
             const month = monthsMap[monthStr] || parts[1].padStart(2, '0');
-            return `${year}-${month}-${day}`;
+            return year + "-" + month + "-" + day;
         }
     }
 
-    // 3. Handle Time Logic (Ensures 8:00 becomes 08:00 for correct comparison)
+    // 3. Handle Time Logic
     if (str.includes(':')) {
         const tParts = str.split(':');
         return tParts[0].padStart(2, '0') + ":" + tParts[1].padStart(2, '0');
@@ -1503,6 +1501,78 @@ document.getElementById('btn-back-to-profile').onclick = function() {
 
     return str;
 }
+
+function validateField(id, value, rule) {
+    const rulesArray = Array.isArray(fieldRules) ? fieldRules : Object.values(fieldRules);
+    const ruleObj = rulesArray.find(r => r.field_id === id);
+    const errorMsg = ruleObj ? ruleObj.error_msg : "Invalid Entry";
+
+    if (!rule || rule === 'NULL' || value.trim() === "") {
+        return value.trim() !== "";
+    }
+
+    // 1. Arrival Date (D SHOULD BE <= ESD)
+    if (rule.includes("ESD")) {
+        const isoInput = translateToISO(value);
+        const isoConfig = translateToISO(eventConfig.event_start_date);
+        if (isoInput && isoConfig && isoInput > isoConfig) {
+            alert("❌ " + errorMsg);
+            if (document.getElementById(id)) document.getElementById(id).value = "";
+            updateButtonState();
+            return false;
+        }
+    }
+
+    // 2. Arrival Time (T SHOULD BE < EST)
+    if (rule.includes("EST")) {
+        const dateEl = document.getElementById('arrival_date');
+        const isoSelectedDate = translateToISO(dateEl ? dateEl.value : "");
+        const isoEventStart = translateToISO(eventConfig.event_start_date);
+        if (isoSelectedDate === isoEventStart) {
+            const isoInputTime = translateToISO(value);
+            const isoConfigTime = translateToISO(eventConfig.event_start_time);
+            if (isoInputTime >= isoConfigTime) {
+                alert("❌ " + errorMsg);
+                if (document.getElementById(id)) document.getElementById(id).value = "";
+                updateButtonState();
+                return false;
+            }
+        }
+    }
+
+    // 3. Departure Date (D SHOULD BE >= EED)
+    if (rule.includes("EED")) {
+        const isoInput = translateToISO(value);
+        const isoConfig = translateToISO(eventConfig.event_end_date);
+        if (isoInput && isoConfig && isoInput < isoConfig) {
+            alert("❌ " + errorMsg);
+            if (document.getElementById(id)) document.getElementById(id).value = "";
+            updateButtonState();
+            return false;
+        }
+    }
+
+    // 4. Departure Time (T SHOULD BE > EET)
+    if (rule.includes("EET")) {
+        const dateEl = document.getElementById('depart_date');
+        const isoSelectedDate = translateToISO(dateEl ? dateEl.value : "");
+        const isoEventEnd = translateToISO(eventConfig.event_end_date);
+        if (isoSelectedDate === isoEventEnd) {
+            const isoInputTime = translateToISO(value);
+            const isoConfigTime = translateToISO(eventConfig.event_end_time);
+            if (isoInputTime <= isoConfigTime) {
+                alert("❌ " + errorMsg);
+                if (document.getElementById(id)) document.getElementById(id).value = "";
+                updateButtonState();
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+  
 
 /**
  * MERS BUTTON GUARD
