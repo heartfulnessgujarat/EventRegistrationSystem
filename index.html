@@ -745,14 +745,62 @@ function unlockField(id) {
 
 
 
+  
 function validateField(id, value, rule) {
-    if (!rule || rule === 'NULL' || value.trim() === "") return value.trim() !== "";
+    // 1. Basic Check (Preserving your logic)
+    if (!rule || rule === 'NULL' || value.trim() === "") {
+        return value.trim() !== "";
+    }
+    
     const val = value.trim();
-    if (rule === 'MOB') return /^[6-9]\d{9}$/.test(val);
-    if (rule === 'PIN') return /^\d{6}$/.test(val);
-    if (rule === 'EMAIL') return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val); 
+    // Use the error message from the field rules if available, otherwise use a default
+    const errorMsg = fieldRules[id]?.error_msg || "Invalid Entry";
+
+    // --- SECTION 3: DYNAMIC VALIDATION (NEW LOGIC) ---
+    // This part only runs if the rule contains your shorthand codes
+
+    // 1. Arrival Date (D SHOULD BE <= ESD)
+    if (rule.includes("ESD")) {
+        const esd = new Date(eventConfig.event_start_date);
+        const inputDate = new Date(val);
+        if (inputDate > esd) throw errorMsg;
+    }
+
+    // 2. Arrival Time (T SHOULD BE < EST)
+    if (rule.includes("EST")) {
+        if (val >= eventConfig.event_start_time) throw errorMsg;
+    }
+
+    // 3. Departure Date (D SHOULD BE >= EED)
+    if (rule.includes("EED")) {
+        const eed = new Date(eventConfig.event_end_date);
+        const inputDate = new Date(val);
+        if (inputDate < eed) throw errorMsg;
+    }
+
+    // 4. Departure Time (T SHOULD BE > EET)
+    if (rule.includes("EET")) {
+        if (val <= eventConfig.event_end_time) throw errorMsg;
+    }
+
+    // --- SECTIONS 1 & 2: EXISTING RULES (PRESERVED) ---
+    if (rule === 'MOB') {
+        if (!/^[6-9]\d{9}$/.test(val)) throw errorMsg;
+    }
+    if (rule === 'PIN') {
+        if (!/^\d{6}$/.test(val)) throw errorMsg;
+    }
+    if (rule === 'EMAIL') {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) throw errorMsg;
+    }
+
     return true;
 }
+
+
+
+  
+
 
 
   
