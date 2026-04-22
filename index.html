@@ -1464,35 +1464,29 @@ document.getElementById('btn-back-to-profile').onclick = function() {
  */
 
 
-
-
-
-
-
-  
 function translateToISO(val) {
     if (!val) return "";
+    
+    // --- ADD THESE TWO LINES START ---
+    // If the date is already YYYY-MM-DD (starts with 4 digits), just return it!
+    if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+    // --- ADD THESE TWO LINES END ---
+
     const months = { 'Jan':'01','Feb':'02','Mar':'03','Apr':'04','May':'05','Jun':'06','Jul':'07','Aug':'08','Sep':'09','Oct':'10','Nov':'11','Dec':'12' };
 
-    // Handle Date Logic
+    // ... rest of your function stays exactly the same ...
     if (val.includes('-')) {
         const parts = val.split('-'); 
         if (parts.length === 3) {
             let day = parts[0].padStart(2, '0');
             let month = months[parts[1]] || parts[1].padStart(2, '0');
             let year = parts[2];
-            return `${year}-${month}-${day}`; // Returns YYYY-MM-DD
+            return `${year}-${month}-${day}`;
         }
     }
-    
-    // Handle Time Logic (Ensures 8:00 becomes 08:00)
-    if (val.includes(':')) {
-        const tParts = val.split(':');
-        return tParts[0].padStart(2, '0') + ":" + tParts[1].padStart(2, '0');
-    }
-
-    return val;
+    // ... rest of code ...
 }
+
 
 /**
  * MERS BUTTON GUARD
