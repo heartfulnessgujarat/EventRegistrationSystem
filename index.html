@@ -1468,37 +1468,42 @@ document.getElementById('btn-back-to-profile').onclick = function() {
  * Handles: 8:00 (Firebase) and 08:00 (HTML)
  */
 
-function translateToISO(val) {
-    if (!val || typeof val !== 'string') return ""; // Safety check
-    
+
+  function translateToISO(val) {
+    if (!val) return "";
+    // Clean up the value immediately to remove hidden spaces
+    const str = String(val).trim();
+
     // 1. If it's already ISO (YYYY-MM-DD), return it as is
-    if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
 
-    const months = { 'Jan':'01','Feb':'02','Mar':'03','Apr':'04','May':'05','Jun':'06','Jul':'07','Aug':'08','Sep':'09','Oct':'10','Nov':'11','Dec':'12' };
-
-    // 2. Handle Date Logic (DD-MMM-YYYY or DD-MM-YYYY)
-    if (val.includes('-')) {
-        const parts = val.split('-'); 
+    // 2. Handle Date Logic (D-MMM-YYYY or DD-MMM-YYYY)
+    if (str.includes('-')) {
+        const parts = str.split('-');
         if (parts.length === 3) {
-            let day = parts[0].padStart(2, '0');
-            let month = months[parts[1]] || parts[1].padStart(2, '0');
-            let year = parts[2];
-            // Ensure year is 4 digits
-            if (year.length === 2) year = "20" + year; 
+            const day = parts[0].padStart(2, '0');
+            // Force to lowercase to match our dictionary below
+            const monthStr = parts[1].toLowerCase().substring(0, 3);
+            const year = parts[2].length === 2 ? "20" + parts[2] : parts[2];
+
+            const monthsMap = {
+                jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
+                jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12'
+            };
+
+            const month = monthsMap[monthStr] || parts[1].padStart(2, '0');
             return `${year}-${month}-${day}`;
         }
     }
-    
-    // 3. Handle Time Logic
-    if (val.includes(':')) {
-        const tParts = val.split(':');
+
+    // 3. Handle Time Logic (Ensures 8:00 becomes 08:00 for correct comparison)
+    if (str.includes(':')) {
+        const tParts = str.split(':');
         return tParts[0].padStart(2, '0') + ":" + tParts[1].padStart(2, '0');
     }
 
-    return val; // Always return the original value if no rules match
+    return str;
 }
-
-
 
 /**
  * MERS BUTTON GUARD
