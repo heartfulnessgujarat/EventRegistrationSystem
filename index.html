@@ -1474,18 +1474,17 @@ function validateField(id, value, rule) {
     if (rule === 'PIN') return /^\d{6}$/.test(val);
     if (rule === 'EMAIL') return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
 
-    // --- ARRIVAL DATE (ESD) - UNTOUCHED ---
-    if (rule.includes("ESD")) {
-        const isoInput = translateToISO(val);
-        const isoConfig = translateToISO(eventConfig.event_start_date);
-        if (isoInput && isoConfig && isoInput > isoConfig) {
-            alert("❌ " + errorMsg);
-            let targetBox = document.getElementById(id) || document.getElementById('extra_' + id); 
-            if (targetBox) targetBox.value = "";
-            updateButtonState();
-            return false;
-        }
+  if (rule.includes("ESD")) {
+    const isoInput = translateToISO(val);
+    const isoConfig = translateToISO(eventConfig.event_start_date);
+    if (isoInput && isoConfig && isoInput > isoConfig) {
+        alert("❌ " + errorMsg);
+        let targetBox = document.getElementById(id); 
+        if (targetBox) targetBox.value = "";
+        updateButtonState();
+        return false;
     }
+}
 
     // --- SMART ARRIVAL TIME (T SHOULD BE <EST) ---
     if (rule.includes("T SHOULD BE <EST")) {
