@@ -1189,15 +1189,14 @@ async function processFinalDeletion(regId) {
                 if (mersTempData[inputId]) input.value = mersTempData[inputId];
 
    
-
-      if (validateField(this.id.replace('extra_', ''), this.value, rule.field_validation) === false) {
-
-      
-        return; // This STOPS the code here if there is an error
-    }
-    // Only if date is OK, run the change logic
-    handleFieldChange(this, rule);
-};
+input.onchange = function() {
+                    // Check validation using a cleaned ID (no 'extra_') to match Firebase
+                    if (validateField(this.id.replace('extra_', ''), this.value, rule.field_validation) === false) {
+                        return; // This STOPS the code and prevents jumping
+                    }
+                    // Only if valid, record the data and move to the next question
+                    handleFieldChange(this, rule);
+                };
 
               
 
