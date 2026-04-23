@@ -6,192 +6,1554 @@
   <title>Event Registration 2026</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-  <style>
+
+<style>
     body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 20px; margin: 0; }
-    .card { width: 100%; max-width: 480px; background: white; padding-bottom: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden; }
-    .header-image-container { width: 100%; overflow: hidden; display: none; border-bottom: 3px solid #1a237e; }
-    .header-image-container img { width: 100%; height: auto; display: block; }
-    .card-content { padding: 20px; }
-    h2 { color: #1a237e; text-align: center; margin-bottom: 25px; font-weight: 700; }
-    .field-container { margin-bottom: 20px; position: relative; }
-    .label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    label { font-size: 14px; font-weight: 600; color: #455a64; }
-    .edit-link { font-size: 12px; color: #1a237e; cursor: pointer; text-decoration: underline; font-weight: bold; }
-    input[type="text"] { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; box-sizing: border-box; font-size: 15px; transition: all 0.3s ease; }
-    input:disabled { background: #eeeeee; cursor: not-allowed; color: #757575; }
-    .help-text { font-size: 11px; color: #90a4ae; margin-top: 4px; }
-    .error-msg-text { color: #d32f2f; font-size: 12px; margin-top: 5px; min-height: 15px; }
-    .dropdown { position: absolute; width: 100%; background: white; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 1000; max-height: 250px; overflow-y: auto; display: none; border: 1px solid #e0e0e0; }
-    .dropdown div { padding: 12px; cursor: pointer; border-bottom: 1px solid #f5f5f5; }
-    .dropdown div:hover { background: #f0f2f5; }
-    .verify-panel { background: #f8f9fa; padding: 15px; border-radius: 10px; margin-top: 10px; border: 1px dashed #cfd8dc; }
-    .verify-btn { width: 100%; padding: 10px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; margin-bottom: 5px; }
-    .btn-group { display: flex; gap: 10px; margin-top: 25px; }
-    .primary-btn { flex: 1; padding: 14px; border: none; border-radius: 10px; background: #1a237e; color: white; font-weight: 600; cursor: pointer; font-size: 16px; }
-    .primary-btn:disabled { background: #9fa8da; cursor: not-allowed; }
-  </style>
+    
+    /* COMPACT MAIN CARD */
+    .card { 
+        width: 100%; 
+        max-width: 480px; 
+        background: white; 
+        padding: 0 0 30px 0; /* Flush top for the header image */
+        border-radius: 15px; 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
+        overflow: hidden; 
+    }
+
+    /* NEW: HEADER IMAGE CONTAINER */
+
+  .header-image-container {
+    width: 100%;
+    /* Removed max-height to let the image show fully */
+    overflow: hidden;
+    display: none; /* Stays hidden until Firebase data arrives */
+    border-bottom: 3px solid #1a237e;
+    background-color: #f5f5f5; /* Light grey while loading */
+}
+  
+      #event-header-img { width: 100%; height: 180px; object-fit: cover; display: block; }
+
+    /* FORM CONTENT PADDING */
+    #form-content { padding: 20px 30px; }
+
+    h2 { color: #1a237e; margin: 10px 0 5px 0; text-align: center; font-size: 22px; }
+    .subtitle { color: #666; font-size: 13px; text-align: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+    
+    /* COMPACT FIELDS: Reduced margins to solve the scroll issue */
+    .field-container { margin-bottom: 12px; position: relative; } 
+    .label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    label { font-weight: 700; font-size: 12px; color: #1a237e; }
+    .edit-link { font-size: 11px; color: #1a237e; cursor: pointer; font-weight: bold; text-decoration: underline; display: none; }
+    
+    input { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
+    input:disabled { background: #f8f9fa; color: #6c757d; }
+
+    .help-text { font-size: 10.5px; color: #5c6bc0; margin-top: 2px; font-style: italic; display: none; font-weight: 500; }
+    .error-msg-text { color: #d32f2f; font-size: 11px; margin-top: 3px; font-weight: bold; display: none; }
+
+    /* BUTTONS */
+    .primary-btn { width: 100%; padding: 14px; background: #1a237e; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 15px; }
+    .primary-btn:disabled { opacity: 0.5; background: #999; }
+
+    /* DROPDOWN & VERIFY PANELS */
+    .dropdown { border: 1px solid #ddd; max-height: 180px; overflow-y: auto; background: white; position: absolute; width: 100%; z-index: 9999; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 8px; }
+    .item { padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f1f1f1; font-size: 14px; }
+    .item:hover { background: #e8eaf6; }
+
+    .verify-panel { background: #fffde7; border: 1px solid #fbc02d; padding: 10px; border-radius: 8px; margin-top: 10px; display: none; }
+    .verify-btn { background: #fbc02d; color: #333; border: none; padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 12px; width: 100%; margin-bottom: 10px; }
+
+    /* COMPACT SUCCESS SCREEN CARD */
+    #success-screen { 
+        display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+        background: #f0f2f5; z-index: 9999; overflow-y: auto; padding: 20px; box-sizing: border-box; 
+    }
+    .thank-you-card { 
+        max-width: 550px; margin: 20px auto; background: #ffffff; padding: 30px; 
+        border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); border: 1px solid #e0e0e0; 
+    }
+    .thank-you-card img { max-width: 100% !important; height: auto !important; display: block; margin: 20px auto; border-radius: 10px; }
+
+    #processing-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 10000; text-align: center; padding-top: 25vh; }
+    .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #1a237e; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+#mers-diag-box {
+    background: #fff9c4;
+    border: 2px solid #fbc02d;
+    padding: 10px;
+    margin-bottom: 20px;
+    font-family: monospace;
+    font-size: 12px;
+    color: #333;
+    display: none; /* We will show it only in Section 2 */
+}
+
+
+
+
+  
+</style>  
+
+  
 </head>
 <body>
 
-<div class="card">
-  <div id="header-img-container" class="header-image-container">
-    <img id="event-header-img" src="" alt="Event Header">
-  </div>
-  <div class="card-content">
-    <h2 id="event-title">Loading Event...</h2>
+<div class="card" id="app">
+  <div id="loading-init"><h2>Loading registration form...</h2></div>
+
+
+  <div id="form-content" style="display:none;">
+    <div id="header-img-cont" class="header-image-container">
+        <img id="event-header-img" src="" alt="Event Banner">
+    </div>
+    
+    <h2 id="title"></h2>
+
+  
+        <p class="subtitle" id="subtitle"></p>
+<div id="Section1">
+    
     <div id="dynamic-fields"></div>
-    <div id="extra-sections-container" style="display:none;"></div>
-    <div id="btns-start" class="btn-group" style="display:none;">
-      <button class="primary-btn" onclick="startRegistration()">Begin Registration</button>
+
+    
+    
+  
+  
+<div id="btns-start" style="display:none; flex-direction:column; gap:10px; padding: 20px;">
+        <button id="btn-register" class="primary-btn" disabled onclick="proceedToLogistics()">DETAILS ARE OKAY, CLICK HERE TO PROCEED FURTHER</button>
+        
+        <button class="primary-btn" style="background:#455a64;" onclick="enableEditMode()">I WANT TO EDIT DETAILS</button>
     </div>
-    <div id="btns-submit" class="btn-group" style="display:none;">
-      <button class="primary-btn" id="final-submit-btn" onclick="submitRegistration()">Confirm & Register</button>
-    </div>
+
+    <button id="btn-master-update" class="primary-btn" style="display:none; margin: 0 20px 20px 20px;" disabled onclick="proceedToLogistics()">I HAVE UPDATED DETAILS, CLICK HERE TO PROCEED FURTHER</button>
+
+
+
+  
   </div>
+
+  <div id="Section2" style="display: none; padding: 0 20px 20px 20px;">
+
+<div id="mers-diag-box" style="background: #fff9c4; border: 2px solid #fbc02d; padding: 10px; margin-bottom: 20px; font-family: monospace; font-size: 12px; color: #333;">
+    <strong>DIAGNOSTIC TOOL:</strong><br>
+    FIREBASE START: <span id="diag-fb-start">?</span><br>
+    FIREBASE END: <span id="diag-fb-end">?</span><br>
+    <hr style="border: 0; border-top: 1px solid #fbc02d;">
+    USER ARRI DATE: <span id="diag-u-arr">?</span><br>
+    USER DEPT DATE: <span id="diag-u-dep">?</span>
+</div>
+
+
+
+
+    
+    <h3 id="title-Section2" style="color: #1a237e; text-align: center; font-size: 18px; margin-bottom: 15px;"></h3>
+    
+    <div id="dynamic-sections-content"></div>
+
+    <div id="btns-section2" style="margin-top: 20px; display: flex; gap: 10px;">
+        <button id="btn-back-to-profile" class="primary-btn" style="flex: 1; background: #6c757d; margin-top:0;">
+            BACK
+        </button>
+
+<button id="btn-next-action" class="primary-btn" style="flex: 2; margin-top:0;" onclick="handleSectionNavigation()">
+    PROCEED
+</button>
+      
+      
+    </div>
+</div>  
+<div id="extra-sections-container" style="display: none; padding: 0 20px 20px 20px;">
+    <div id="dynamic-sections-content">
+        </div>
+    
+    <div style="margin-top: 20px; display: flex; gap: 10px;">
+        <button id="btn-back-to-profile" class="btn btn-secondary" style="flex: 1; background: #6c757d;">Back</button>
+        <button id="btn-final-submit" class="btn" style="flex: 2;">Confirm All & Register</button>
+    </div>
+</div>
+   
+  
+<div id="success-screen">
+  
+    <div id="success-content" class="thank-you-card"></div>
+</div>
+  
+    
+<div id="processing-overlay">
+    <div class="spinner"></div>
+    <h2 style="font-family: sans-serif; color: #1a237e;">Processing your registration...</h2>
+    <p style="color: #666;">Kindly do not close this window.</p>
 </div>
 
 <script>
-  // PASTE YOUR CONFIG HERE
-  const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    databaseURL: "https://YOUR_PROJECT.firebaseio.com",
-    projectId: "YOUR_PROJECT",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "YOUR_ID",
-    appId: "YOUR_APP_ID"
-  };
 
-  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+function formatFirebaseDate(fbDate) {
+    if (!fbDate) return "";
+    try {
+        // This handles "1-Mar-2026" by splitting at the dashes
+        const parts = fbDate.split('-');
+        if (parts.length !== 3) return "";
+        
+        const day = parts[0].padStart(2, '0');
+        const monthStr = parts[1];
+        const year = parts[2];
+        
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const monthIndex = months.indexOf(monthStr);
+        if (monthIndex === -1) return "";
+        
+        const month = String(monthIndex + 1).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    } catch (e) {
+        console.error("Date Translation Error:", e);
+        return "";
+    }
+}
+
+
+  let verificationAttempts = { email: 0, mobile: 0 };
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyPbae3F_Vm2q25LWZF1G59O0V2XRrokeqxNkLvZetTKl19HM4QubILy17nPe65Q-L-zw/exec";
+  const firebaseConfig = { databaseURL: "https://ferrari-reg-2026-default-rtdb.asia-southeast1.firebasedatabase.app" };
+  
+  firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
+  const eventId = (new URLSearchParams(window.location.search).get('id') || 'EVT001').toUpperCase();
+  
+  let mersTempData = {};
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const eventId = urlParams.get('id') || 'EVT001';
+  
+  let fieldRules = [], masterData = [], eventConfig = {}, moreSections = [];
+ 
+  let originalData = {}; 
+  let verificationStates = { email: false, mobile: false };
 
-  let fieldRules = [];
-  let moreSections = [];
-  let participants = [];
-  let originalData = {};
-  let eventConfig = {};
+/** --- START: GATEKEEPER HELPER FUNCTIONS --- **/
+function getISTDate() {
+  const now = new Date();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + istOffset);
+  istTime.setHours(0, 0, 0, 0); 
+  return istTime;
+}
 
+function parseCustomDate(dateStr) {
+  if (!dateStr || typeof dateStr !== 'string' || dateStr.trim() === "") return null;
+  const months = {
+    "Jan": 0, "Feb": 1, "Mar": 2, "Apr": 3, "May": 4, "Jun": 5,
+    "Jul": 6, "Aug": 7, "Sep": 8, "Oct": 9, "Nov": 10, "Dec": 11
+  };
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return null;
+  const day = parseInt(parts[0], 10);
+  const month = months[parts[1]];
+  const year = parseInt(parts[2], 10);
+  if (isNaN(day) || month === undefined || isNaN(year)) return null;
+  return new Date(year, month, day);
+}
+
+function blockUIWithNotice(message) {
+  document.body.innerHTML = `
+    <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f8f9fa; font-family: sans-serif;">
+      <div style="text-align: center; padding: 40px; border-radius: 12px; background: white; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 90%;">
+        <div style="font-size: 50px; margin-bottom: 20px;">🗓️</div>
+        <h2 style="color: #333; margin-bottom: 15px;">Registration Notice</h2>
+        <p style="font-size: 18px; color: #555; line-height: 1.5;">${message}</p>
+      </div>
+    </div>`;
+  throw new Error("Registration Locked: " + message);
+}
+/** --- END: GATEKEEPER HELPER FUNCTIONS --- **/
+
+
+
+  
   async function init() {
-    db.ref(`events/${eventId}/config`).once('value', snapshot => {
-      eventConfig = snapshot.val() || {};
-      document.getElementById('event-title').innerText = eventConfig.title || "Event Registration";
-      if (eventConfig.header_image_url) {
-        document.getElementById('event-header-img').src = eventConfig.header_image_url;
-        document.getElementById('header-img-container').style.display = 'block';
+
+console.log("%c MERS PING 1: Init sequence started. CurrentSection is: " + (typeof currentSection !== 'undefined' ? currentSection : 'UNDEFINED'), "color: orange;");
+
+    
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const mode = (urlParams.get('mode') || 'new').toLowerCase();
+        const regId = urlParams.get('regId');
+
+        // 1. Fetch Config from Firebase
+        const configSnap = await db.ref('config/eventConfig').once('value');
+        const allConfigs = configSnap.val() || {};
+        eventConfig = allConfigs[eventId];
+        
+        if (!eventConfig) {
+            document.getElementById('loading-init').innerHTML = "<h2>Event Not Found</h2>";
+            return;
+        }
+
+        // 2. DATE CHECK (Gatekeeper Tier 1)
+        const today = getISTDate();
+        const startDate = parseCustomDate(eventConfig.reg_start_date);
+        const endDate = parseCustomDate(eventConfig.reg_end_date);
+
+        if (startDate && endDate) {
+            if (today < startDate || today > endDate) {
+                blockUIWithNotice(eventConfig.reg_close_msg || "Registration is currently closed.");
+                return; 
+            }
+        }
+
+        // 3. CAPACITY CHECK (Gatekeeper Tier 2)
+        if (mode === 'new') {
+            const counterSnap = await db.ref('counters/' + eventId).once('value');
+            const currentCount = Number(counterSnap.val() || 0); 
+            const maxCapacity = Number(eventConfig.hall_capacity || 0);
+
+            if (maxCapacity > 0 && currentCount >= maxCapacity) {
+                blockUIWithNotice(eventConfig.hall_capacity_full_msg || "Hall Capacity is full.");
+                return; 
+            }
+        }
+
+        // 4. LOAD UI COMPONENTS
+        const [thankSnap, bannerSnap] = await Promise.all([
+            db.ref('htmlStorage/' + eventId + '/thank').once('value'),
+            db.ref('htmlStorage/' + eventId + '/banner').once('value')
+        ]);
+
+        eventConfig.final_html = thankSnap.val() || "<h2>Registration Successful!</h2>";
+        const bannerHtml = bannerSnap.val(); 
+
+        document.getElementById('title').innerHTML = eventConfig.title || "Registration";
+
+        const container = document.getElementById('header-img-cont');
+        if (bannerHtml && container) {
+            container.innerHTML = bannerHtml;
+            container.style.display = 'block';
+        } else if (container) {
+            container.style.display = 'none';
+        }
+      
+        document.getElementById('subtitle').innerHTML = eventConfig.subtitle || "";
+        
+        // --- MERS: DATA BRIDGE ---
+        
+        // 1. Load Field Rules (Filtering for this specific Event ID)
+        try {
+            const rulesSnap = await db.ref('config/fieldRules').once('value');
+            const allRules = rulesSnap.val() || {};
+            fieldRules = Object.values(allRules).filter(r => String(r.event_id).toUpperCase() === eventId);
+            console.log("MERS: Field Rules Loaded:", fieldRules.length);
+        } catch (ruleErr) {
+            console.error("MERS: Field Rules fetch error:", ruleErr);
+            fieldRules = [];
+        }
+
+        // 2. Load More Sections (Correcting path to camelCase 'moreSections')
+        try {
+            const sectionsSnap = await db.ref('config/moreSections').once('value');
+            if (sectionsSnap.exists()) {
+                const allSections = sectionsSnap.val() || {};
+                moreSections = Object.values(allSections);
+                console.log("MERS: moreSections Loaded from Firebase:", moreSections.length);
+            } else {
+                console.warn("MERS: No data found at 'config/moreSections'.");
+                moreSections = [];
+            }
+        } catch (secErr) {
+            console.error("MERS: moreSections fetch error:", secErr);
+            moreSections = [];
+        }
+
+        // --- END MERS DATA BRIDGE ---
+        
+        // --- ROUTING LOGIC ---
+        if (mode === 'edit' || mode === 'delete') {
+            if (regId) {
+                loadExistingData(regId, mode); 
+            } else {
+                alert("Invalid Link: Registration ID missing.");
+                location.href = window.location.pathname + "?id=" + eventId;
+            }
+        } else {
+            // Normal New Registration
+            renderForm();
+            document.getElementById('loading-init').style.display = 'none';
+            document.getElementById('form-content').style.display = 'block';
+        }
+        
+    } catch (e) { 
+        console.error("Initialization Error:", e);
+        document.getElementById('loading-init').innerHTML = "<h2>Error loading form. Please refresh.</h2>";
+    }
+
+  //  if (section2) {
+   //     section2.prepend(diag);
+  //  }
+    
+}
+
+  
+  function renderForm() {
+  const container = document.getElementById('dynamic-fields');
+  container.innerHTML = '';
+  
+  fieldRules.forEach(r => {
+    
+    // --- MERS SURGERY START: Bulletproof Section Filter ---
+    // 1. Convert the section value to a clean string
+    const secValue = r.section_number ? String(r.section_number).trim() : "";
+    
+    // 2. LOGIC: If a field is NOT explicitly Section1, skip it.
+    // This will catch "Section2", "Section3", and even blank values.
+    if (secValue !== "Section1") {
+      return; 
+    }
+    // --- MERS SURGERY END ---
+
+    const div = document.createElement('div');
+    div.id = `container_${fieldId}`;
+    div.className = 'field-container';
+   // div.id = `cont-${r.field_id}`;
+    div.style.display = (r.initial_state === 'Hidden') ? 'none' : 'block';
+    const needsEditLink = ['Editable', 'Editable_Verify', 'Editable_Lookup'].includes(r.edit_behavior);
+    
+    div.innerHTML = `
+      <div class="label-row">
+        <label>${r.display_label || r.field_id}</label>
+        ${needsEditLink ? `<span class="edit-link" id="edit-link-${r.field_id}" style="display:none;" onclick="unlockField('${r.field_id}')">Edit</span>` : ''}
+      </div>
+      <input type="text" id="inp-${r.field_id}" oninput="onInputChange('${r.field_id}', this.value)" disabled autocomplete="off">
+      <div class="help-text" id="help-${r.field_id}">${r.field_help_text || ''}</div>
+      <div class="error-msg-text" id="err-${r.field_id}"></div>
+      <div class="dropdown" id="res-${r.field_id}"></div>
+      <div id="vmsg-${r.field_id}" style="font-size:13px; margin-top:5px; font-weight:bold; display:none;"></div>
+      ${(r.field_id === 'email' || r.field_id === 'mobile') ? `
+        <div class="verify-panel" id="panel-${r.field_id}">
+          
+          ${r.field_id === 'email' ? `
+            <button type="button" class="verify-btn" id="vcheck-email" 
+              style="background:#455a64; color:white; margin-bottom:10px;" 
+              onclick="manualFormatCheck()">Check Email Format</button>
+          ` : ''}
+
+          <button class="verify-btn" id="vbtn-${r.field_id}" 
+            style="display: ${r.field_id === 'email' ? 'none' : 'block'};" 
+            onclick="sendCode('${r.field_id}')"></button>
+          
+          <div id="box-${r.field_id}" style="display:none;">
+            <input type="text" placeholder="Enter 6-digit code" id="code-${r.field_id}" oninput="verifyCodeInput('${r.field_id}', this.value)">
+            <div id="resend-container-${r.field_id}" style="margin-top:8px;"></div>
+          </div>
+        </div>
+      ` : ''}
+    `;
+    container.appendChild(div);
+    if (r.field_id === 'full_name') {
+      div.style.display = 'block';
+      document.getElementById('inp-full_name').disabled = false;
+    }
+  });
+}
+
+
+ 
+  async function onInputChange(fId, val) {
+  if (fId === 'full_name' || fId === 'centre') handleSearch(fId, val);
+  checkAllValidations();
+}
+
+
+
+  
+function renderDropdown(div, list, type) {
+  div.innerHTML = '';
+  
+  if (list.length > 0) {
+    div.style.display = 'block';
+    
+    list.forEach(item => {
+      const d = document.createElement('div');
+      d.className = 'item'; 
+      
+      // 1. SURGICAL FIX: Display the correct text based on type
+      // If it's a 'loc' object, show the 'centre' property.
+      // If it's a name string, show the string.
+      const displayValue = (type === 'loc') ? (item.centre || item) : item;
+      d.textContent = displayValue; 
+      
+      d.onclick = () => {
+        if (type === 'loc') {
+          // 2. THE CHAIN REACTION: 
+          // We already have the full object (item) from handleSearch!
+          // No need to search masterData again. Just pass it directly.
+          selectLocation(item); 
+          
+        } else {
+          // This remains the same for the initial Name search
+          const person = masterData.find(x => {
+            const name = x.full_name || x['Full Name'] || "";
+            return String(name).trim() === item;
+          });
+          if (person) {
+            selectParticipant(person); 
+          }
+        }
+        div.style.display = 'none';
+      };
+      div.appendChild(d);
+    });
+  } else { 
+    div.style.display = 'none'; 
+  }
+}
+
+
+async function handleSearch(fId, val) {
+  const resDiv = document.getElementById(`res-${fId}`);
+  if (val.length < 3) { resDiv.style.display = 'none'; return; }
+  
+  const rule = fieldRules.find(r => r.field_id === fId);
+  const lookupTab = rule ? rule.lookup_tab : "Master_Internal_DB"; // Fallback to Master if rule is loading
+
+  /** * THE "SCENARIO B" FIX: 
+   * During an Email Edit, masterData.length is exactly 1 (the user's record).
+   * We force a fetch if we are searching a lookup field like 'centre'
+   * to ensure the system "wakes up" and sees the whole database.
+   */
+  if (lookupTab && (masterData.length <= 1 || fId === 'centre')) { 
+
+// OLD LINE: const snap = await db.ref(lookupTab).once('value');
+// NEW SURGICAL UPDATE:
+const snap = await db.ref('masters/' + lookupTab).once('value');
+    
+    
+    
+    const raw = snap.val() || {};
+    masterData = Array.isArray(raw) ? raw : Object.values(raw);
+  }
+
+  const searchVal = val.toLowerCase();
+
+  // --- FULL NAME SEARCH LOGIC ---
+  if (fId === 'full_name') {
+    const allMatches = masterData
+      .filter(x => {
+        const n = x.full_name || x['Full Name'] || "";
+        return String(n).toLowerCase().includes(searchVal);
+      })
+      .map(x => String(x.full_name || x['Full Name'] || "").trim());
+
+    const uniqueNames = [...new Set(allMatches)];
+    renderDropdown(resDiv, uniqueNames.slice(0, 8), 'name');
+
+  // --- CENTRE SEARCH LOGIC ---
+  } else if (fId === 'centre') {
+    const matchedObjects = masterData.filter(x => {
+      // Direct property access as per your verified column titles
+      const c = x.centre || x['Centre'] || ""; 
+      return String(c).toLowerCase().includes(searchVal);
+    });
+
+    // UNIQUE: Ensure cities like "Navsari" only appear once in the dropdown
+    const uniqueMap = new Map();
+    matchedObjects.forEach(item => {
+      const cityName = String(item.centre || item['Centre'] || "").trim();
+      if (cityName && !uniqueMap.has(cityName.toLowerCase())) {
+        uniqueMap.set(cityName.toLowerCase(), item);
       }
     });
 
-    db.ref(`events/${eventId}/field_rules`).once('value', snap => {
-      fieldRules = Object.values(snap.val() || {});
-      renderForm();
-    });
-
-    db.ref(`events/${eventId}/more_sections`).once('value', snap => {
-      moreSections = Object.values(snap.val() || {});
-      buildExtraSections();
-    });
-
-    db.ref('participants').once('value', snap => {
-      participants = Object.values(snap.val() || {});
-    });
+    const finalUniqueList = Array.from(uniqueMap.values());
+    renderDropdown(resDiv, finalUniqueList.slice(0, 8), 'loc');
   }
+}
 
-  function renderForm() {
-    const container = document.getElementById('dynamic-fields');
-    container.innerHTML = '';
-    fieldRules.forEach(r => {
-      if (String(r.section_number).trim() !== "Section1") return;
 
-      const div = document.createElement('div');
-      div.id = `container_${r.field_id}`;
-      div.className = 'field-container';
-      div.style.display = (r.initial_state === 'Hidden') ? 'none' : 'block';
-      
-      const needsEditLink = ['Editable', 'Editable_Verify', 'Editable_Lookup'].includes(r.edit_behavior);
-      
-      div.innerHTML = `
-        <div class="label-row">
-          <label>${r.display_label || r.field_id}</label>
-          ${needsEditLink ? `<span class="edit-link" id="edit-link-${r.field_id}" style="display:none;" onclick="unlockField('${r.field_id}')">Edit</span>` : ''}
-        </div>
-        <input type="text" id="inp-${r.field_id}" oninput="onInputChange('${r.field_id}', this.value)" disabled autocomplete="off">
-        <div class="help-text">${r.field_help_text || ''}</div>
-        <div class="error-msg-text" id="err-${r.field_id}"></div>
-        <div class="dropdown" id="res-${r.field_id}"></div>
-        ${(r.field_id === 'email' || r.field_id === 'mobile') ? `
-          <div class="verify-panel" id="panel-${r.field_id}">
-            <button type="button" class="verify-btn" onclick="sendCode('${r.field_id}')">Send Code</button>
-            <div id="box-${r.field_id}" style="display:none;">
-              <input type="text" placeholder="6-digit code" id="code-${r.field_id}">
-            </div>
-          </div>
-        ` : ''}
-      `;
-      container.appendChild(div);
-      if (r.field_id === 'full_name') document.getElementById('inp-full_name').disabled = false;
-    });
-  }
 
   function selectParticipant(p) {
     fieldRules.forEach(r => {
       const el = document.getElementById(`inp-${r.field_id}`);
-      const cont = document.getElementById(`container_${r.field_id}`);
+      const cont = document.getElementById(`cont-${r.field_id}`);
+      const editLink = document.getElementById(`edit-link-${r.field_id}`);
       if (el) {
-        el.value = p[r.field_id] || p[r.field_id.replace('_', ' ')] || "";
-        originalData[r.field_id] = el.value;
-        if (cont) cont.style.display = (r.initial_state === 'Hidden') ? 'none' : 'block';
+        const masterValue = p[r.field_id] || p[r.field_id.replace('_',' ')] || "";
+        el.value = masterValue;
+        originalData[r.field_id] = masterValue;
+        cont.style.display = (r.initial_state === 'Hidden') ? 'none' : 'block';
         el.disabled = true;
+        if (editLink) editLink.style.display = 'none';
       }
     });
     document.getElementById('res-full_name').style.display = 'none';
     document.getElementById('btns-start').style.display = 'flex';
     document.getElementById('inp-full_name').disabled = true;
+    checkAllValidations();
   }
 
-  function startRegistration() {
+
+function selectLocation(l) {
+  if (!l) return;
+
+  // 1. Update the Centre field itself
+  const centreInp = document.getElementById('inp-centre');
+  if (centreInp) {
+    centreInp.value = l.centre || l.Centre || "";
+  }
+
+  // 2. DYNAMIC VLOOKUP: Look at Field_Rules instead of a hard-coded list
+  // We find all fields that are set to 'Locked' and have a lookup_tab
+  const dependentFields = fieldRules.filter(r => r.edit_behavior === 'Locked');
+
+  dependentFields.forEach(rule => {
+    const fId = rule.field_id;
+    const el = document.getElementById(`inp-${fId}`);
+    
+    if (el) {
+      // Get the value from the Master Database object (l) 
+      // using the field_id as the key (e.g., l['state'])
+      const newValue = l[fId] || l[fId.charAt(0).toUpperCase() + fId.slice(1)] || '';
+      el.value = newValue;
+    }
+  });
+
+  // 3. UI Cleanup
+  const resDiv = document.getElementById('res-centre');
+  if (resDiv) resDiv.style.display = 'none';
+
+  // 4. Final Validation
+  checkAllValidations();
+}
+
+
+  
+function enableEditMode() {
     document.getElementById('btns-start').style.display = 'none';
-    document.getElementById('extra-sections-container').style.display = 'block';
-    document.getElementById('btns-submit').style.display = 'flex';
-  }
-
-  function buildExtraSections() {
-    const container = document.getElementById('extra-sections-container');
-    container.innerHTML = '';
-    moreSections.forEach(field => {
-      const div = document.createElement('div');
-      div.id = `wrapper_${field.field_id}`;
-      div.className = 'field-container';
-      div.innerHTML = `
-        <label>${field.display_label}</label>
-        <input type="text" class="extra-input" id="${field.field_id}" oninput="handleExtraInput('${field.field_id}')">
-        <div class="error-msg-text" id="err_${field.field_id}"></div>
-      `;
-      container.appendChild(div);
+    document.getElementById('btn-master-update').style.display = 'block';
+    
+    fieldRules.forEach(r => {
+        const editLink = document.getElementById(`edit-link-${r.field_id}`);
+        const helpEl = document.getElementById(`help-${r.field_id}`);
+        const canBeEdited = ['Editable', 'Editable_Verify', 'Editable_Lookup'].includes(r.edit_behavior);
+        
+        // Only show the edit link if it's editable AND NOT the full_name field
+        if (editLink && canBeEdited && r.field_id !== 'full_name') {
+            editLink.style.display = 'inline';
+        }
+        
+        if (helpEl && helpEl.innerText.trim() !== "") {
+            helpEl.style.display = 'block';
+        }
     });
+}
+
+function unlockField(id) {
+  // 1. HARD GUARD: Never unlock the full_name
+  if (id === 'full_name') {
+    alert("Full Name is locked and cannot be changed.");
+    return; 
   }
 
-  function onInputChange(id, val) {
-    if (id === 'full_name') showFullNameDropdown(val);
+  const inp = document.getElementById(`inp-${id}`);
+  const editLink = document.getElementById(`edit-link-${id}`);
+  
+  // 2. Standard Unlock Logic
+  inp.disabled = false;
+  inp.focus();
+  if (editLink) editLink.style.display = 'none';
+
+  // 3. CENTRE SEARCH FIX: Re-bind search logic AND refresh master list
+  if (id === 'centre') {
+    inp.setAttribute("oninput", "handleSearch('centre', this.value)");
+    masterData = []; // <--- THIS IS THE ONLY ADDITION: Forces a fresh fetch from Firebase
   }
 
-  function showFullNameDropdown(val) {
-    const resDiv = document.getElementById('res-full_name');
-    if (!val || val.length < 2) { resDiv.style.display = 'none'; return; }
-    const matches = participants.filter(p => p.full_name.toLowerCase().includes(val.toLowerCase())).slice(0, 5);
-    resDiv.innerHTML = '';
-    matches.forEach(p => {
-      const d = document.createElement('div');
-      d.innerText = p.full_name;
-      d.onclick = () => selectParticipant(p);
-      resDiv.appendChild(d);
+  // 4. Existing Email Verification Logic (Preserved)
+  if (id === 'email') {
+    const checkBtn = document.getElementById('vcheck-email');
+    if (checkBtn) checkBtn.style.display = 'block';
+    const vBtn = document.getElementById('vbtn-email');
+    if (vBtn) vBtn.style.display = 'none';
+    const msg = document.getElementById('vmsg-email');
+    if (msg) msg.style.display = 'none';
+  }
+}
+ 
+    
+  function sendCode(type) {
+    verificationAttempts[type] = 0;
+    const msg = document.getElementById(`vmsg-${type}`);
+    if (msg) msg.style.display = "none";
+    const targetEmail = (type === 'email') ? document.getElementById('inp-email').value : originalData['email'];
+    const btn = document.getElementById(`vbtn-${type}`);
+    btn.disabled = true;
+    btn.innerText = "Sending Code...";
+    fetch(`${SCRIPT_URL}?action=sendVerificationCode&email=${encodeURIComponent(targetEmail)}&eventId=${eventId}`, { mode: 'no-cors' });
+    setTimeout(() => {
+      document.getElementById(`panel-${type}`).style.backgroundColor = "#e3f2fd";
+      btn.style.display = "none";
+      document.getElementById(`box-${type}`).style.display = "block";
+      const codeInp = document.getElementById(`code-${type}`);
+      if (codeInp) { codeInp.value = ""; codeInp.disabled = false; }
+      startResendTimer(type);
+    }, 1500);
+  }
+
+  function startResendTimer(type) {
+    const container = document.getElementById(`resend-container-${type}`);
+    let seconds = 30;
+    const interval = setInterval(() => {
+      seconds--;
+      if (seconds > 0) { container.innerHTML = `<span class="timer-text">Resend in ${seconds}s</span>`; } 
+      else { clearInterval(interval); container.innerHTML = `<span class="resend-link" onclick="resendCode('${type}')">Resend Code</span>`; }
+    }, 1000);
+  }
+
+  function resendCode(type) {
+    document.getElementById(`box-${type}`).style.display = "none";
+    document.getElementById(`vbtn-${type}`).style.display = "block";
+    sendCode(type);
+  }
+
+  async function verifyCodeInput(type, code) {
+    if (code.length === 6) {
+      const emailKey = ((type === 'email') ? document.getElementById('inp-email').value : originalData['email']).replace(/[.#$[\]]/g, "_");
+      const snap = await db.ref("verificationCodes/" + emailKey).once('value');
+      const data = snap.val();
+      const msg = document.getElementById(`vmsg-${type}`);
+      const panel = document.getElementById(`panel-${type}`);
+      const codeInp = document.getElementById(`code-${type}`);
+      if (data && data.code === code && (new Date().getTime() - data.timestamp < 300000)) {
+        msg.innerText = "Verified ✅"; msg.style.color = "#2e7d32"; msg.style.display = "block";
+        if (panel) panel.style.display = "none";
+        document.getElementById(`inp-${type}`).disabled = true;
+        verificationStates[type] = true;
+        verificationAttempts[type] = 0;
+        checkAllValidations();
+      } else {
+        verificationAttempts[type]++;
+        if (verificationAttempts[type] >= 3) {
+          msg.innerText = "Too many failed attempts."; msg.style.color = "#d32f2f"; msg.style.display = "block";
+          codeInp.disabled = true; codeInp.value = "LOCKED";
+        } else {
+          msg.innerText = `Invalid Code. Attempt ${verificationAttempts[type]} of 3.`;
+          msg.style.color = "#d32f2f"; msg.style.display = "block";
+          setTimeout(() => { codeInp.value = ""; codeInp.focus(); }, 1000);
+        }
+        verificationStates[type] = false;
+      }
+    }
+  }
+
+
+
+function checkAllValidations() {
+    let allValid = true;
+    fieldRules.forEach(r => {
+      const input = document.getElementById(`inp-${r.field_id}`);
+      const errDiv = document.getElementById(`err-${r.field_id}`);
+      if (input) {
+        let isValid = validateField(r.field_id, input.value, r.field_validation);
+        let isChanged = input.value !== (originalData[r.field_id] || "");
+        
+        if (!isValid && input.value.trim() !== "") {
+          input.style.border = '2px solid red';
+          if (errDiv) { errDiv.innerText = r.error_msg || "Invalid input"; errDiv.style.display = 'block'; }
+          allValid = false;
+        } else {
+          input.style.border = '1px solid #ced4da';
+          if (errDiv) errDiv.style.display = 'none';
+        }
+
+        if (r.field_id === 'email' || r.field_id === 'mobile') {
+          const panel = document.getElementById(`panel-${r.field_id}`);
+          const vBtn = document.getElementById(`vbtn-${r.field_id}`);
+          const msg = document.getElementById(`vmsg-${r.field_id}`);
+
+          if (verificationStates[r.field_id]) {
+            if (msg) msg.style.display = 'block'; 
+            if (panel) panel.style.display = 'none';
+          } 
+          else if (isValid && isChanged) {
+            vBtn.innerText = `Click here to send Verification Code to ${input.value}`;
+            panel.style.display = 'block';
+            if (msg) msg.style.display = 'none';
+            allValid = false;
+          } 
+          else {
+            if (panel) panel.style.display = 'none';
+            if (!isChanged && msg) msg.style.display = 'none';
+          }
+        }
+        
+        if (input.value.trim() === "" && r.initial_state === 'Visible') allValid = false;
+      }
     });
-    resDiv.style.display = matches.length ? 'block' : 'none';
+
+    const masterBtn = document.getElementById('btn-master-update');
+    const regBtn = document.getElementById('btn-register');
+    if (masterBtn) masterBtn.disabled = !allValid;
+    if (regBtn) regBtn.disabled = !allValid;
   }
 
-  window.onload = init;
+
+// 1. THE PAGE TURNER: Moves between Section 1, 2, and 3
+async function handleSectionNavigation() {
+
+  console.log("%c MERS PING 3: handleSectionNavigation() was just called!", "color: blue; font-weight: bold;");
+    try {
+        if (typeof currentSection === 'undefined') window.currentSection = 1;
+        
+        document.getElementById('app').style.display = 'none';
+        document.getElementById('processing-overlay').style.display = 'block';
+
+        if (window.currentSection === 1) {
+            window.currentSection = 2;
+            await buildExtraSections(2); 
+        } else if (window.currentSection === 2) {
+            window.currentSection = 3;
+            await buildExtraSections(3);
+        }
+
+        document.getElementById('processing-overlay').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    } catch (error) {
+        console.error("MERS Navigation Error:", error);
+        document.getElementById('processing-overlay').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+    }
+}
+
+// 2. THE SACRED ENGINE: The April 10th logic, now firing at the very end
+
+
+  async function submitData() {
+    console.log("%c [DIAGNOSTIC] submitData started! ", "background: #222; color: #bada55; font-size: 14px;");
+
+    // --- THE SACRED ENGINE ---
+    // We removed the 'Guard' because buildExtraSections() only calls this 
+    // function when the user is truly on the final step.
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const mode = (urlParams.get('mode') || 'new').toLowerCase();
+        const existingRegId = urlParams.get('regId');
+
+        // UI LOCK
+        document.getElementById('processing-overlay').style.display = 'block';
+
+        let finalRegId = existingRegId;
+        let finalTimestamp = originalData.timestamp || "";
+        let statusMsg = "CONFIRMED";
+
+        // --- ID & CAPACITY LOGIC ---
+        if (mode === 'new') {
+            const capacityLimit = parseInt(eventConfig.hall_capacity || "0");
+            const counterRef = db.ref('counters/' + eventId);
+            const transactionResult = await counterRef.transaction((current) => {
+                if (capacityLimit > 0 && (current || 0) >= capacityLimit) return; 
+                return (current || 0) + 1;
+            });
+
+            if (!transactionResult.committed) {
+                alert(eventConfig.hall_capacity_full_msg || "Registration is full.");
+                location.reload();
+                return;
+            }
+
+            const currentCount = transactionResult.snapshot.val();
+            const now = new Date();
+            const istNow = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+            const dd = String(istNow.getUTCDate()).padStart(2, '0');
+            const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+            const yyyy = istNow.getUTCFullYear();
+            
+            finalTimestamp = `${dd}-${String(istNow.getUTCMonth() + 1).padStart(2, '0')}-${yyyy} ${String(istNow.getUTCHours()).padStart(2, '0')}:${String(istNow.getUTCMinutes()).padStart(2, '0')}:${String(istNow.getUTCSeconds()).padStart(2, '0')}`;
+            const hhmmssms = istNow.getUTCHours().toString().padStart(2, '0') + 
+                             istNow.getUTCMinutes().toString().padStart(2, '0') + 
+                             istNow.getUTCSeconds().toString().padStart(2, '0') + 
+                             istNow.getUTCMilliseconds().toString().padStart(3, '0');
+
+            finalRegId = `${eventId}-REG-${dd}-${months[istNow.getUTCMonth()]}-${yyyy}-${hhmmssms}-${String(currentCount).padStart(3, '0')}`;
+        } else {
+            statusMsg = "EDITED ON " + new Date().toLocaleString();
+        }
+
+        // --- THE MERS MERGE ---
+        const formData = {
+            ...originalData,
+            ...mersTempData,
+            registration_id: finalRegId,
+            timestamp: finalTimestamp,
+            registration_status: statusMsg,
+            email_sent: (mode === 'new') ? "No" : (originalData.email_sent || "No"),
+            event_id: eventId
+        };
+
+        // SAVE & EMAIL
+        await db.ref('registrations/' + finalRegId).set(formData);
+        console.log("[DIAGNOSTIC] Firebase Save successful. ID: " + finalRegId);
+
+        const scriptUrl = "https://script.google.com/macros/s/AKfycbyPbae3F_Vm2q25LWZF1G59O0V2XRrokeqxNkLvZetTKl19HM4QubILy17nPe65Q-L-zw/exec"; 
+        fetch(`${scriptUrl}?action=sendEmail&regId=${finalRegId}&eventId=${eventId}`)
+            .then(() => console.log("[DIAGNOSTIC] Email trigger sent."))
+            .catch(err => console.error("[DIAGNOSTIC] Email failed:", err));
+
+        // --- FINAL UI SWAP (The Clean Sweep) ---
+        console.log("[DIAGNOSTIC] Starting Final UI Swap...");
+
+        // Hide dynamic content and standard sections
+        const dynamicContent = document.getElementById('dynamic-sections-content');
+        const s1 = document.getElementById('Section1');
+        const s2 = document.getElementById('Section2');
+        
+        if (dynamicContent) dynamicContent.innerHTML = ""; // Clear questions
+        if (s1) s1.style.display = 'none';
+        if (s2) s2.style.display = 'none';
+        
+        // Hide the banner/header/buttons to clear the stage
+        const header = document.querySelector('.event-header');
+        const actionBtn = document.getElementById('btn-next-action');
+        const backBtn = document.getElementById('btn-back-to-profile');
+        
+        if (header) header.style.display = 'none';
+        if (actionBtn) actionBtn.style.display = 'none';
+        if (backBtn) backBtn.style.display = 'none';
+
+        // CRITICAL: Ensure main app wrapper is visible
+        document.getElementById('app').style.display = 'block';
+
+        // Reveal Success Screen
+        const successDiv = document.getElementById('success-screen');
+        const contentDiv = document.getElementById('success-content');
+        
+        if (contentDiv) {
+            contentDiv.innerHTML = eventConfig.final_html || "<h2>Registration Successful!</h2>";
+        }
+
+        if (successDiv) {
+            successDiv.style.display = 'block';
+            console.log("[DIAGNOSTIC] Success screen displayed.");
+        }
+
+        document.getElementById('processing-overlay').style.display = 'none';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        console.log("[DIAGNOSTIC] Finish line reached successfully.");
+
+    } catch (error) {
+        console.error("[DIAGNOSTIC CRASH]:", error);
+        document.getElementById('processing-overlay').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+    }
+}
+  
+function manualFormatCheck() {
+  const emailInput = document.getElementById('inp-email');
+  const emailVal = emailInput.value.trim(); 
+  const vBtn = document.getElementById('vbtn-email');
+  const checkBtn = document.getElementById('vcheck-email');
+  const msg = document.getElementById('vmsg-email');
+
+  const strictRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,6}$/;
+
+  if (strictRegex.test(emailVal)) {
+    checkBtn.style.display = 'none';
+    vBtn.style.display = 'block';
+    vBtn.innerText = `Format accepted, click here to send verification code to ${emailVal}`;
+    emailInput.style.border = '1px solid #ced4da';
+    if (msg) {
+      msg.innerText = "Format Accepted ✅";
+      msg.style.color = "#2e7d32";
+      msg.style.display = "block";
+    }
+  } else {
+    let errorNote = "Please check for typos or extra characters.";
+    if (!emailVal.includes("@")) errorNote = "Missing '@' symbol.";
+    else if (!emailVal.includes(".")) errorNote = "Missing a dot (e.g., .com).";
+    else if (/\s/.test(emailVal)) errorNote = "Spaces are not allowed within the email.";
+
+    alert("❌ FORMAT ISSUE\n\n" + errorNote);
+    vBtn.style.display = 'none';
+    emailInput.style.border = '2px solid red';
+    emailInput.focus();
+  }
+}
+
+/** --- NEW: EDIT & DELETE LOGIC ENGINE --- **/
+
+
+
+
+
+  
+
+async function loadExistingData(regId, mode) {
+    try {
+        const snap = await db.ref('registrations/' + regId).once('value');
+        const data = snap.val();
+
+        if (!data) {
+            alert("Registration not found. It may have been deleted already.");
+            location.href = window.location.pathname + "?id=" + eventId;
+            return;
+        }
+
+        originalData = data;
+
+        if (mode === 'edit') {
+            renderForm(); 
+            fieldRules.forEach(r => {
+                const el = document.getElementById(`inp-${r.field_id}`);
+                if (el && data[r.field_id]) {
+                    el.value = data[r.field_id];
+                    
+                    // --- NEW: FORCE DISABLE FULL NAME REGARDLESS OF RULES ---
+                    if (r.field_id === 'full_name') {
+                        el.disabled = true; 
+                    }
+                }
+            });
+            document.getElementById('loading-init').style.display = 'none';
+            document.getElementById('form-content').style.display = 'block';
+            enableEditMode(); 
+
+        } else if (mode === 'delete') {
+            document.getElementById('loading-init').style.display = 'none';
+            const formContent = document.getElementById('form-content');
+            formContent.style.display = 'block';
+            document.getElementById('dynamic-fields').style.display = 'none';
+            document.getElementById('subtitle').style.display = 'none';
+            
+            const regDate = data.timestamp ? data.timestamp.split(' ')[0] : 'N/A';
+            
+            formContent.innerHTML += `
+                <div id="delete-confirmation-card" style="background: #fff3f3; border: 2px solid #d32f2f; padding: 20px; border-radius: 12px; text-align: center; margin-top: 20px;">
+                    <h3 style="color: #d32f2f; margin-top: 0;">Confirm Deletion</h3>
+                    <p style="font-size: 14px; color: #333; line-height: 1.6;">
+                        <strong>Name:</strong> ${data.full_name}<br>
+                        <strong>Reg ID:</strong> ${regId}<br>
+                        <strong>Date:</strong> ${regDate}
+                    </p>
+                    <p style="font-weight: bold; color: #1a237e;">Do you want to delete your registration?</p>
+                    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+                        <button class="primary-btn" style="background: #d32f2f;" onclick="processFinalDeletion('${regId}')">Yes, please delete</button>
+                        <button class="primary-btn" style="background: #455a64;" onclick="cancelDeletionAction()">No, I do not want to delete</button>
+                    </div>
+                </div>
+            `;
+        }
+    } catch (e) {
+        console.error("Load Error:", e);
+    }
+}
+
+
+
+
+function cancelDeletionAction() {
+    document.getElementById('delete-confirmation-card').style.display = 'none';
+    document.getElementById('success-content').innerHTML = `
+        <div style="text-align:center;">
+            <h2>Excellent Choice!</h2>
+            <p>Your registration remains active. Thank you for staying with us.</p>
+        </div>`;
+    document.getElementById('success-screen').style.display = 'block';
+}
+
+async function processFinalDeletion(regId) {
+    try {
+        document.getElementById('processing-overlay').style.display = 'block';
+
+        // 1. THE COUNTER TRANSACTION (-1)
+        const counterRef = db.ref('counters/' + eventId);
+        await counterRef.transaction((current) => {
+            return (current || 1) - 1; 
+        });
+
+        // 2. THE SOFT DELETE (Update Status)
+        await db.ref('registrations/' + regId).update({
+            registration_status: "CANCELLED",
+            cancelled_at: new Date().toLocaleString()
+        });
+
+        // 3. SUCCESS MESSAGE
+        document.getElementById('processing-overlay').style.display = 'none';
+        document.getElementById('success-content').innerHTML = `
+            <div style="text-align:center;">
+                <h2 style="color: #d32f2f;">Registration Deleted</h2>
+                <p>Your registration (ID: ${regId}) has been successfully removed.</p>
+                <p>The seat has been released for others.</p>
+            </div>`;
+        document.getElementById('success-screen').style.display = 'block';
+
+    } catch (error) {
+        alert("Deletion failed. Please try again.");
+        document.getElementById('processing-overlay').style.display = 'none';
+    }
+}
+
+  async function buildExtraSections(targetSectionNumber) {
+    if (!targetSectionNumber) targetSectionNumber = "Section2";
+
+    const container = document.getElementById('dynamic-sections-content');
+    const titleHeader = document.getElementById('title-Section2');
+    const actionBtn = document.getElementById('btn-next-action'); 
+    const backBtn = document.getElementById('btn-back-to-profile');
+
+    // 1. Save current progress
+
+    const currentInputs = container.querySelectorAll('input, select');
+   
+    currentInputs.forEach(input => { if (input.value) mersTempData[input.id] = input.value; });
+
+    container.innerHTML = ""; 
+
+    // --- INITIAL BUTTON LOCK ---
+    actionBtn.disabled = true;
+    actionBtn.style.opacity = "0.5";
+    actionBtn.style.cursor = "not-allowed";
+
+    // 2. Identify the Section (Section 2, Section 3, etc.)
+    const sectionObj = moreSections.find(s => s.section_number === targetSectionNumber);
+    
+    if (sectionObj) {
+        titleHeader.innerText = sectionObj.section_name || "Details";
+
+        // We use a regular for loop to handle the async/await lookups properly
+        const questionKeys = Object.keys(sectionObj).filter(key => key.startsWith('question') && sectionObj[key]);
+        
+        for (const key of questionKeys) {
+            const fieldId = sectionObj[key];
+            const rule = fieldRules.find(r => r.field_id === fieldId);
+            
+            if (rule) {
+                const fieldWrapper = document.createElement('div');
+                fieldWrapper.className = 'form-group';
+
+              
+            
+
+              fieldWrapper.id = `wrapper_${fieldId}`;
+                fieldWrapper.style.marginBottom = "20px";
+                fieldWrapper.style.textAlign = "left";
+
+                // --- WATERFALL VISIBILITY ---
+                if (rule.initial_state === "Hidden") {
+                    fieldWrapper.style.display = 'none';
+                } else {
+                    fieldWrapper.style.display = 'block';
+                }
+
+                // --- MANDATORY STAR LOGIC ---
+                const isMandatory = (rule.field_validation && rule.field_validation !== "NULL" && rule.field_validation !== "N/A");
+                const label = document.createElement('label');
+                label.innerHTML = `<strong>${rule.display_label || fieldId} ${isMandatory ? '<span style="color:red">*</span>' : ''}</strong>`;
+                fieldWrapper.appendChild(label);
+
+                let input;
+
+                const inputId = fieldId;
+
+              
+            
+
+                // --- INPUT GENERATION ---
+                if (rule.edit_behavior === 'Editable_lookup_Dropdown') {
+                    input = document.createElement('select');
+                    input.className = 'form-control';
+                    input.id = inputId;
+                    const placeholder = document.createElement('option');
+                    placeholder.text = "-- Select --"; placeholder.value = "";
+                    input.appendChild(placeholder);
+
+
+
+
+
+                  
+                    if (rule.lookup_tab && rule.lookup_column) {
+                        try {
+                            const lookupSnap = await db.ref(`masters/${rule.lookup_tab}`).once('value');
+                            const lookupData = lookupSnap.val();
+                            if (lookupData) {
+                                const choices = Object.values(lookupData).map(row => row[rule.lookup_column]).filter(v => v);
+                                [...new Set(choices)].forEach(choice => {
+                                    const opt = document.createElement('option');
+                                    opt.value = choice; opt.text = choice;
+                                    input.appendChild(opt);
+                                });
+                            }
+                        } catch (e) { console.error("Lookup Error", e); }
+                    }
+                } else {
+                    input = document.createElement('input');
+                    const fieldLower = fieldId.toLowerCase();
+                    input.type = fieldLower.includes('date') ? 'date' : (fieldLower.includes('time') ? 'time' : 'text');
+                    input.className = 'form-control';
+                    input.id = inputId;
+                }
+
+                // --- ATTRIBUTES & LISTENERS ---
+
+                
+                input.dataset.mandatory = isMandatory;                  
+                if (mersTempData[inputId]) input.value = mersTempData[inputId];
+
+  input.onchange = function() {
+    // Validation now uses the clean ID directly
+    if (validateField(this.id, this.value, rule.field_validation) === false) {
+        return; // This STOPS the code and prevents jumping
+    }
+    // Only if valid, record the data and move to the next question
+    handleFieldChange(this, rule);
+};
+
+              
+
+              //  input.onchange = function() {
+              //      handleFieldChange(this, rule);
+            //    };
+
+                input.oninput = function() {
+                    updateButtonState(); 
+                };
+
+                fieldWrapper.appendChild(input);
+                container.appendChild(fieldWrapper);
+            }
+        }
+
+        // --- NAVIGATION LOGIC ---
+        actionBtn.onclick = function() {
+            if (targetSectionNumber === "Section2") {
+                buildExtraSections('Section3');
+            } else {
+           
+
+              const finalInputs = container.querySelectorAll('input, select');
+                finalInputs.forEach(input => { mersTempData[input.id] = input.value; });
+                submitData();
+            }
+        };
+
+        if (backBtn) {
+            backBtn.onclick = (targetSectionNumber === "Section3") 
+                ? () => buildExtraSections('Section2') 
+                : () => { 
+                    document.getElementById('Section2').style.display = 'none'; 
+                    document.getElementById('Section1').style.display = 'block'; 
+                };
+        }
+
+        actionBtn.innerText = (targetSectionNumber === "Section2") ? "PROCEED TO TRAVEL DETAILS" : "CONFIRM & REGISTER";
+
+        // --- THE SECTION 2 SPECIAL KICK ---
+        // We wait 800ms to allow VLOOKUP/Firebase data to populate 
+        // before checking if the button should be unlocked.
+        setTimeout(() => {
+            updateButtonState();
+        }, 800);
+    }
+}
+
+async function handleFieldChange(inputElement, rule) {
+    const val = inputElement.value;
+    const fId = rule.field_id;
+    const section = rule.section_number; 
+
+    updateButtonState(); 
+    if (!val) return;
+
+    try {
+        // Run the validation
+        validateField(fId, val, rule.field_validation);
+    } catch (err) {
+        // If it fails (Section 3), alert and stop
+        alert("❌ " + err);
+        inputElement.value = ""; 
+        updateButtonState();
+        return; 
+    }
+
+    // --- WATERFALL (Section 3 One-by-One) ---
+    // This finds the next question in the current section and reveals it
+    const currentSectionQuestions = fieldRules.filter(r => r.section_number === section);
+    const currentIndex = currentSectionQuestions.findIndex(r => r.field_id === fId);
+    const nextRule = currentSectionQuestions[currentIndex + 1];
+
+  if (nextRule) {
+    const nextWrapper = document.getElementById(`wrapper_${nextRule.field_id}`);
+    if (nextWrapper) {
+        nextWrapper.style.display = 'block';
+        nextWrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
+    // --- SECTION 1 & 2 SPECIAL BEHAVIOR ---
+    if (rule.edit_behavior === 'Editable_Verify') {
+        // This keeps your Mobile/Email verification working as before
+        if (typeof handleVerification === "function") {
+            handleVerification(fId, val);
+        }
+    }
+
+    updateButtonState();
+}
+
+  
+
+  
+function showSuccessScreen() {
+    // Hide the main form card
+    document.getElementById('form-content').style.display = 'none';
+    
+    // Show the success overlay/screen
+    const successDiv = document.getElementById('success-screen');
+    if (successDiv) {
+        successDiv.style.display = 'block';
+        
+        // Scroll to top so they see the message
+        window.scrollTo(0, 0);
+        
+        // If you have a personalized message logic, it triggers here
+        console.log("MERS: Success screen visible.");
+    }
+}
+
+
+  
+  // MERS: Transition from Section 1 (Profile) to Section 2 (Logistics)
+
+function proceedToLogistics() {
+    console.log("MERS: Transitioning to Section 2...");
+
+    // 1. Hide the entire Section1 Room (Profile, Buttons, Search results)
+    const s1 = document.getElementById('Section1');
+    if (s1) s1.style.display = 'none';
+
+    // 2. Show the entire Section2 Room (Logistics, Back Button, Title)
+    const s2 = document.getElementById('Section2');
+    if (s2) s2.style.display = 'block';
+
+    // 3. Smooth scroll to the top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // 4. Trigger the dynamic builder (driven by more_sections)
+    if (typeof buildExtraSections === "function") {
+        buildExtraSections();
+    } else {
+        console.warn("MERS: buildExtraSections function not defined yet.");
+    }
+}
+
+// MERS: Back Button Logic
+document.getElementById('btn-back-to-profile').onclick = function() {
+    // 1. Hide the Section2 Room
+    document.getElementById('Section2').style.display = 'none';
+    
+    // 2. Show the Section1 Room (Everything returns exactly as it was)
+    document.getElementById('Section1').style.display = 'block';
+    
+    // 3. Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+    
+  init();
+
+// ... existing code ...
+
+// MERS: Back Button Logic
+document.getElementById('btn-back-to-profile').onclick = function() {
+    console.log("MERS: Returning to Section 1...");
+    
+    // 1. Hide the Section2 Room
+    document.getElementById('Section2').style.display = 'none';
+    
+    // 2. Show the Section1 Room (Everything remains exactly as the user left it)
+    document.getElementById('Section1').style.display = 'block';
+    
+    // 3. Smooth scroll back to the top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+// ... existing code (like init(); ) ...
+
+
+  /**
+ * MERS SMART TRANSLATOR
+ * Handles: 1-Mar-2026 (Firebase) and 2026-03-01 (HTML)
+ * Handles: 8:00 (Firebase) and 08:00 (HTML)
+ */
+
+  function updateButtonState() {
+    const actionBtn = document.getElementById('btn-next-action');
+    if (!actionBtn) return;
+
+// --- EMERGENCY BYPASS START ---
+    // If the button text says "PROCEED", unlock it automatically so we can test Section 3
+    if (actionBtn.innerText.includes("PROCEED")) {
+        actionBtn.disabled = false;
+        actionBtn.style.opacity = "1";
+        actionBtn.style.cursor = "pointer";
+        return; // Exit the function here so it doesn't try to lock it again
+    }
+    // --- EMERGENCY BYPASS END ---
+
+
+
+
+    
+    // 1. Get ALL inputs in the dynamic area
+    const container = document.getElementById('dynamic-sections-content');
+    if (!container) return;
+
+    const inputs = Array.from(container.querySelectorAll('input, select, textarea'));
+
+    // 2. Filter for ones that are BOTH mandatory AND visible
+    const visibleMandatory = inputs.filter(i => {
+        const isMandatory = i.getAttribute('data-mandatory') === 'true';
+        // Improved visibility check:
+        const isVisible = i.type !== 'hidden' && i.style.display !== 'none' && i.closest('.form-group')?.style.display !== 'none';
+        return isMandatory && isVisible;
+    });
+
+    // 3. Logic: If there are visible mandatory fields, are they all filled?
+    const allFilled = visibleMandatory.length > 0 && visibleMandatory.every(i => i.value.trim() !== "");
+
+    if (allFilled) {
+        actionBtn.disabled = false;
+        actionBtn.style.opacity = "1";
+        actionBtn.style.cursor = "pointer";
+        actionBtn.classList.add('btn-primary'); // Ensures it looks active
+    } else {
+        actionBtn.disabled = true;
+        actionBtn.style.opacity = "0.5";
+        actionBtn.style.cursor = "not-allowed";
+        actionBtn.classList.remove('btn-primary');
+    }
+}
+
+
+
+  function translateToISO(val) {
+    if (!val) return "";
+    const str = String(val).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+    if (str.includes('-')) {
+        const parts = str.split('-');
+        if (parts.length === 3) {
+            const day = parts[0].padStart(2, '0');
+            const monthStr = parts[1].toLowerCase().substring(0, 3);
+            const year = parts[2].length === 2 ? "20" + parts[2] : parts[2];
+            const monthsMap = {
+                jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
+                jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12'
+            };
+            const month = monthsMap[monthStr] || parts[1].padStart(2, '0');
+            return year + "-" + month + "-" + day;
+        }
+    }
+    if (str.includes(':')) {
+        const tParts = str.split(':');
+        return tParts[0].padStart(2, '0') + ":" + tParts[1].padStart(2, '0');
+    }
+    return str;
+}
+
+function validateField(id, value, rule) {
+    const val = value ? value.trim() : "";
+    const rulesArray = Array.isArray(fieldRules) ? fieldRules : Object.values(fieldRules);
+    const ruleObj = rulesArray.find(r => r.field_id === id);
+    const errorMsg = ruleObj ? ruleObj.error_msg : "Invalid Entry";
+
+    if (!rule || rule === 'NULL' || val === "") {
+        return val !== "";
+    }
+
+    if (rule === 'MOB') return /^[6-9]\d{9}$/.test(val);
+    if (rule === 'PIN') return /^\d{6}$/.test(val);
+    if (rule === 'EMAIL') return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+
+  if (rule.includes("ESD")) {
+    const isoInput = translateToISO(val);
+    const isoConfig = translateToISO(eventConfig.event_start_date);
+    if (isoInput && isoConfig && isoInput > isoConfig) {
+        alert("❌ " + errorMsg);
+        let targetBox = document.getElementById(id); 
+        if (targetBox) targetBox.value = "";
+        updateButtonState();
+        return false;
+    }
+}
+
+  // --- SMART ARRIVAL TIME (T SHOULD BE <EST) ---
+if (rule.includes("T SHOULD BE <EST")) {
+    // We now look ONLY for the clean ID 'arrival_date'
+    const dateEl = document.getElementById('arrival_date');
+    const userArrivalDate = dateEl ? dateEl.value : "";
+    
+    if (userArrivalDate === eventConfig.event_start_date) {
+        const isoInputTime = translateToISO(val);
+        const isoConfigTime = translateToISO(eventConfig.event_start_time);
+        
+        if (isoInputTime < isoConfigTime) {
+            alert("❌ " + errorMsg);
+            // We now look ONLY for the clean ID
+            let targetBox = document.getElementById(id); 
+            if (targetBox) targetBox.value = "";
+            updateButtonState();
+            return false;
+        }
+    }
+}
+
+  // --- DEPARTURE DATE (EED) - UNTOUCHED ---
+if (rule.includes("EED")) {
+    const isoInput = translateToISO(val);
+    const isoConfig = translateToISO(eventConfig.event_end_date);
+    if (isoInput && isoConfig && isoInput < isoConfig) {
+        alert("❌ " + errorMsg);
+        // Cleaned: looking only for the direct ID
+        let targetBox = document.getElementById(id); 
+        if (targetBox) targetBox.value = "";
+        updateButtonState();
+        return false;
+    }
+}
+
+
+  // --- SMART DEPARTURE TIME (T SHOULD BE >EET) ---
+if (rule.includes("T SHOULD BE >EET")) {
+    // Looking only for the clean ID 'depart_date'
+    const dateEl = document.getElementById('depart_date');
+    const userDepartDate = dateEl ? dateEl.value : "";
+
+    if (userDepartDate === eventConfig.event_end_date) {
+        const isoInputTime = translateToISO(val);
+        const isoConfigTime = translateToISO(eventConfig.event_end_time);
+
+        if (isoInputTime > isoConfigTime) {
+            alert("❌ " + errorMsg);
+            // Looking only for the clean ID
+            let targetBox = document.getElementById(id); 
+            if (targetBox) targetBox.value = "";
+            updateButtonState();
+            return false;
+        }
+    }
+}
+
+    return true;
+}
+window.onload = init;
+
+
+
+
+
+  
+
+  
 </script>
 </body>
 </html>
