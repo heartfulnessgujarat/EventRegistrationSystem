@@ -1507,19 +1507,19 @@ if (rule.includes("T SHOULD BE <EST")) {
     }
 }
 
-  
-    // --- DEPARTURE DATE (EED) - UNTOUCHED ---
-    if (rule.includes("EED")) {
-        const isoInput = translateToISO(val);
-        const isoConfig = translateToISO(eventConfig.event_end_date);
-        if (isoInput && isoConfig && isoInput < isoConfig) {
-            alert("❌ " + errorMsg);
-            let targetBox = document.getElementById(id) || document.getElementById('extra_' + id); 
-            if (targetBox) targetBox.value = "";
-            updateButtonState();
-            return false;
-        }
+  // --- DEPARTURE DATE (EED) - UNTOUCHED ---
+if (rule.includes("EED")) {
+    const isoInput = translateToISO(val);
+    const isoConfig = translateToISO(eventConfig.event_end_date);
+    if (isoInput && isoConfig && isoInput < isoConfig) {
+        alert("❌ " + errorMsg);
+        // Cleaned: looking only for the direct ID
+        let targetBox = document.getElementById(id); 
+        if (targetBox) targetBox.value = "";
+        updateButtonState();
+        return false;
     }
+}
 
     // --- SMART DEPARTURE TIME (T SHOULD BE >EET) ---
     if (rule.includes("T SHOULD BE >EET")) {
