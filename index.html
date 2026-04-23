@@ -411,8 +411,9 @@ console.log("%c MERS PING 1: Init sequence started. CurrentSection is: " + (type
     // --- MERS SURGERY END ---
 
     const div = document.createElement('div');
+    div.id = `container_${fieldId}`;
     div.className = 'field-container';
-    div.id = `cont-${r.field_id}`;
+   // div.id = `cont-${r.field_id}`;
     div.style.display = (r.initial_state === 'Hidden') ? 'none' : 'block';
     const needsEditLink = ['Editable', 'Editable_Verify', 'Editable_Lookup'].includes(r.edit_behavior);
     
@@ -1144,7 +1145,11 @@ async function processFinalDeletion(regId) {
                 fieldWrapper.appendChild(label);
 
                 let input;
-                const inputId = `extra_${fieldId}`;
+
+                const inputId = fieldId;
+
+              
+            //    const inputId = `extra_${fieldId}`;
 
                 // --- INPUT GENERATION ---
                 if (rule.edit_behavior === 'Editable_lookup_Dropdown') {
