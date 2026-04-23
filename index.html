@@ -1188,8 +1188,7 @@ async function processFinalDeletion(regId) {
                 input.dataset.mandatory = isMandatory;                  
                 if (mersTempData[inputId]) input.value = mersTempData[inputId];
 
-  
-    if (validateField(this.id, this.value, rule.field_validation) === false) {
+   
 
       if (validateField(this.id.replace('extra_', ''), this.value, rule.field_validation) === false) {
 
