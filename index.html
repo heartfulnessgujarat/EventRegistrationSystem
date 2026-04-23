@@ -1,152 +1,197 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Event Registration 2026</title>
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-<!-- ... [Keep your existing styles exactly as they are] ... -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Event Registration 2026</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 20px; margin: 0; }
+    .card { width: 100%; max-width: 480px; background: white; padding-bottom: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden; }
+    .header-image-container { width: 100%; overflow: hidden; display: none; border-bottom: 3px solid #1a237e; }
+    .header-image-container img { width: 100%; height: auto; display: block; }
+    .card-content { padding: 20px; }
+    h2 { color: #1a237e; text-align: center; margin-bottom: 25px; font-weight: 700; }
+    .field-container { margin-bottom: 20px; position: relative; }
+    .label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    label { font-size: 14px; font-weight: 600; color: #455a64; }
+    .edit-link { font-size: 12px; color: #1a237e; cursor: pointer; text-decoration: underline; font-weight: bold; }
+    input[type="text"] { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; box-sizing: border-box; font-size: 15px; transition: all 0.3s ease; }
+    input:disabled { background: #eeeeee; cursor: not-allowed; color: #757575; }
+    .help-text { font-size: 11px; color: #90a4ae; margin-top: 4px; }
+    .error-msg-text { color: #d32f2f; font-size: 12px; margin-top: 5px; min-height: 15px; }
+    .dropdown { position: absolute; width: 100%; background: white; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 1000; max-height: 250px; overflow-y: auto; display: none; border: 1px solid #e0e0e0; }
+    .dropdown div { padding: 12px; cursor: pointer; border-bottom: 1px solid #f5f5f5; }
+    .dropdown div:hover { background: #f0f2f5; }
+    .verify-panel { background: #f8f9fa; padding: 15px; border-radius: 10px; margin-top: 10px; border: 1px dashed #cfd8dc; }
+    .verify-btn { width: 100%; padding: 10px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; margin-bottom: 5px; }
+    .btn-group { display: flex; gap: 10px; margin-top: 25px; }
+    .primary-btn { flex: 1; padding: 14px; border: none; border-radius: 10px; background: #1a237e; color: white; font-weight: 600; cursor: pointer; font-size: 16px; }
+    .primary-btn:disabled { background: #9fa8da; cursor: not-allowed; }
+  </style>
 </head>
 <body>
-<!-- ... [Keep your existing HTML structure exactly as it is] ... -->
+
+<div class="card">
+  <div id="header-img-container" class="header-image-container">
+    <img id="event-header-img" src="" alt="Event Header">
+  </div>
+  <div class="card-content">
+    <h2 id="event-title">Loading Event...</h2>
+    <div id="dynamic-fields"></div>
+    <div id="extra-sections-container" style="display:none;"></div>
+    <div id="btns-start" class="btn-group" style="display:none;">
+      <button class="primary-btn" onclick="startRegistration()">Begin Registration</button>
+    </div>
+    <div id="btns-submit" class="btn-group" style="display:none;">
+      <button class="primary-btn" id="final-submit-btn" onclick="submitRegistration()">Confirm & Register</button>
+    </div>
+  </div>
+</div>
 
 <script>
-// --- [Keep your Firebase Config and global variables exactly as they are] ---
+  // PASTE YOUR CONFIG HERE
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT.firebaseio.com",
+    projectId: "YOUR_PROJECT",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_ID",
+    appId: "YOUR_APP_ID"
+  };
 
-// I am providing the fixed versions of the three functions that were
-// causing the "ReferenceError" and "TypeError" in your console.
+  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
 
-/**
+  const urlParams = new URLSearchParams(window.location.search);
+  const eventId = urlParams.get('id') || 'EVT001';
 
-FIXED RENDERFORM
+  let fieldRules = [];
+  let moreSections = [];
+  let participants = [];
+  let originalData = {};
+  let eventConfig = {};
 
-This builds the Section 1 UI.
-*/
-function renderForm() {
-const container = document.getElementById('dynamic-fields');
-container.innerHTML = '';
+  async function init() {
+    db.ref(`events/${eventId}/config`).once('value', snapshot => {
+      eventConfig = snapshot.val() || {};
+      document.getElementById('event-title').innerText = eventConfig.title || "Event Registration";
+      if (eventConfig.header_image_url) {
+        document.getElementById('event-header-img').src = eventConfig.header_image_url;
+        document.getElementById('header-img-container').style.display = 'block';
+      }
+    });
 
-fieldRules.forEach(r => {
-const secValue = r.section_number ? String(r.section_number).trim() : "";
-if (secValue !== "Section1") return;
+    db.ref(`events/${eventId}/field_rules`).once('value', snap => {
+      fieldRules = Object.values(snap.val() || {});
+      renderForm();
+    });
 
- const div = document.createElement(&#39;div&#39;);
- // FIXED: Used r.field_id (not fieldId)
- div.id = `container_${r.field_id}`;
- div.className = &#39;field-container&#39;;
- div.style.display = (r.initial_state === &#39;Hidden&#39;) ? &#39;none&#39; : &#39;block&#39;;
+    db.ref(`events/${eventId}/more_sections`).once('value', snap => {
+      moreSections = Object.values(snap.val() || {});
+      buildExtraSections();
+    });
 
- const needsEditLink = [&#39;Editable&#39;, &#39;Editable_Verify&#39;, &#39;Editable_Lookup&#39;].includes(r.edit_behavior);
+    db.ref('participants').once('value', snap => {
+      participants = Object.values(snap.val() || {});
+    });
+  }
 
- div.innerHTML = `
-     &lt;div class=&quot;label-row&quot;&gt;
-         &lt;label&gt;${r.display_label || r.field_id}&lt;/label&gt;
-         ${needsEditLink ? `&lt;span class=&quot;edit-link&quot; id=&quot;edit-link-${r.field_id}&quot; style=&quot;display:none;&quot; onclick=&quot;unlockField(&#39;${r.field_id}&#39;)&quot;&gt;Edit&lt;/span&gt;` : &#39;&#39;}
-     &lt;/div&gt;
-     &lt;input type=&quot;text&quot; id=&quot;inp-${r.field_id}&quot; oninput=&quot;onInputChange(&#39;${r.field_id}&#39;, this.value)&quot; disabled autocomplete=&quot;off&quot;&gt;
-     &lt;div class=&quot;help-text&quot; id=&quot;help-${r.field_id}&quot;&gt;${r.field_help_text || &#39;&#39;}&lt;/div&gt;
-     &lt;div class=&quot;error-msg-text&quot; id=&quot;err-${r.field_id}&quot;&gt;&lt;/div&gt;
-     &lt;div class=&quot;dropdown&quot; id=&quot;res-${r.field_id}&quot;&gt;&lt;/div&gt;
-     &lt;div id=&quot;vmsg-${r.field_id}&quot; style=&quot;font-size:13px; margin-top:5px; font-weight:bold; display:none;&quot;&gt;&lt;/div&gt;
-     ${(r.field_id === &#39;email&#39; || r.field_id === &#39;mobile&#39;) ? `
-         &lt;div class=&quot;verify-panel&quot; id=&quot;panel-${r.field_id}&quot;&gt;
-             ${r.field_id === &#39;email&#39; ? `&lt;button type=&quot;button&quot; class=&quot;verify-btn&quot; onclick=&quot;manualFormatCheck()&quot;&gt;Check Email Format&lt;/button&gt;` : &#39;&#39;}
-             &lt;button class=&quot;verify-btn&quot; id=&quot;vbtn-${r.field_id}&quot; onclick=&quot;sendCode(&#39;${r.field_id}&#39;)&quot;&gt;&lt;/button&gt;
-             &lt;div id=&quot;box-${r.field_id}&quot; style=&quot;display:none;&quot;&gt;
-                 &lt;input type=&quot;text&quot; placeholder=&quot;Enter 6-digit code&quot; id=&quot;code-${r.field_id}&quot; oninput=&quot;verifyCodeInput(&#39;${r.field_id}&#39;, this.value)&quot;&gt;
-             &lt;/div&gt;
-         &lt;/div&gt;
-     ` : &#39;&#39;}
- `;
- container.appendChild(div);
+  function renderForm() {
+    const container = document.getElementById('dynamic-fields');
+    container.innerHTML = '';
+    fieldRules.forEach(r => {
+      if (String(r.section_number).trim() !== "Section1") return;
 
- if (r.field_id === &#39;full_name&#39;) {
-     div.style.display = &#39;block&#39;;
-     document.getElementById(&#39;inp-full_name&#39;).disabled = false;
- }
+      const div = document.createElement('div');
+      div.id = `container_${r.field_id}`;
+      div.className = 'field-container';
+      div.style.display = (r.initial_state === 'Hidden') ? 'none' : 'block';
+      
+      const needsEditLink = ['Editable', 'Editable_Verify', 'Editable_Lookup'].includes(r.edit_behavior);
+      
+      div.innerHTML = `
+        <div class="label-row">
+          <label>${r.display_label || r.field_id}</label>
+          ${needsEditLink ? `<span class="edit-link" id="edit-link-${r.field_id}" style="display:none;" onclick="unlockField('${r.field_id}')">Edit</span>` : ''}
+        </div>
+        <input type="text" id="inp-${r.field_id}" oninput="onInputChange('${r.field_id}', this.value)" disabled autocomplete="off">
+        <div class="help-text">${r.field_help_text || ''}</div>
+        <div class="error-msg-text" id="err-${r.field_id}"></div>
+        <div class="dropdown" id="res-${r.field_id}"></div>
+        ${(r.field_id === 'email' || r.field_id === 'mobile') ? `
+          <div class="verify-panel" id="panel-${r.field_id}">
+            <button type="button" class="verify-btn" onclick="sendCode('${r.field_id}')">Send Code</button>
+            <div id="box-${r.field_id}" style="display:none;">
+              <input type="text" placeholder="6-digit code" id="code-${r.field_id}">
+            </div>
+          </div>
+        ` : ''}
+      `;
+      container.appendChild(div);
+      if (r.field_id === 'full_name') document.getElementById('inp-full_name').disabled = false;
+    });
+  }
 
+  function selectParticipant(p) {
+    fieldRules.forEach(r => {
+      const el = document.getElementById(`inp-${r.field_id}`);
+      const cont = document.getElementById(`container_${r.field_id}`);
+      if (el) {
+        el.value = p[r.field_id] || p[r.field_id.replace('_', ' ')] || "";
+        originalData[r.field_id] = el.value;
+        if (cont) cont.style.display = (r.initial_state === 'Hidden') ? 'none' : 'block';
+        el.disabled = true;
+      }
+    });
+    document.getElementById('res-full_name').style.display = 'none';
+    document.getElementById('btns-start').style.display = 'flex';
+    document.getElementById('inp-full_name').disabled = true;
+  }
 
-});
-}
+  function startRegistration() {
+    document.getElementById('btns-start').style.display = 'none';
+    document.getElementById('extra-sections-container').style.display = 'block';
+    document.getElementById('btns-submit').style.display = 'flex';
+  }
 
-/**
+  function buildExtraSections() {
+    const container = document.getElementById('extra-sections-container');
+    container.innerHTML = '';
+    moreSections.forEach(field => {
+      const div = document.createElement('div');
+      div.id = `wrapper_${field.field_id}`;
+      div.className = 'field-container';
+      div.innerHTML = `
+        <label>${field.display_label}</label>
+        <input type="text" class="extra-input" id="${field.field_id}" oninput="handleExtraInput('${field.field_id}')">
+        <div class="error-msg-text" id="err_${field.field_id}"></div>
+      `;
+      container.appendChild(div);
+    });
+  }
 
-FIXED SELECTPARTICIPANT
+  function onInputChange(id, val) {
+    if (id === 'full_name') showFullNameDropdown(val);
+  }
 
-This runs when you click a name in the dropdown.
-*/
-function selectParticipant(p) {
-fieldRules.forEach(r => {
-// FIXED: Removed 'extra_' from search logic
-const el = document.getElementById(inp-${r.field_id});
-const cont = document.getElementById(container_${r.field_id});
-const editLink = document.getElementById(edit-link-${r.field_id});
+  function showFullNameDropdown(val) {
+    const resDiv = document.getElementById('res-full_name');
+    if (!val || val.length < 2) { resDiv.style.display = 'none'; return; }
+    const matches = participants.filter(p => p.full_name.toLowerCase().includes(val.toLowerCase())).slice(0, 5);
+    resDiv.innerHTML = '';
+    matches.forEach(p => {
+      const d = document.createElement('div');
+      d.innerText = p.full_name;
+      d.onclick = () => selectParticipant(p);
+      resDiv.appendChild(d);
+    });
+    resDiv.style.display = matches.length ? 'block' : 'none';
+  }
 
- if (el) {
-     const masterValue = p[r.field_id] || p[r.field_id.replace(&#39;_&#39;, &#39; &#39;)] || &quot;&quot;;
-     el.value = masterValue;
-
-     // FIXED: Removed &#39;extra_&#39; from data storage
-     originalData[r.field_id] = masterValue;
-
-     // SAFETY: Check if container exists before setting style
-     if (cont) {
-         cont.style.display = (r.initial_state === &#39;Hidden&#39;) ? &#39;none&#39; : &#39;block&#39;;
-     }
-     el.disabled = true;
-     if (editLink) editLink.style.display = &#39;none&#39;;
- }
-
-
-});
-
-// Close the dropdown and show start buttons
-if(document.getElementById('res-full_name')) document.getElementById('res-full_name').style.display = 'none';
-if(document.getElementById('btns-start')) document.getElementById('btns-start').style.display = 'flex';
-if(document.getElementById('inp-full_name')) document.getElementById('inp-full_name').disabled = true;
-
-checkAllValidations();
-}
-
-/**
-
-FIXED BUILDEXTRASECTIONS
-
-This builds the Section 3 fields.
-*/
-function buildExtraSections() {
-const container = document.getElementById('extra-sections-container');
-container.innerHTML = '';
-
-moreSections.forEach(field => {
-const fieldId = field.field_id; // Clean ID
-const wrapper = document.createElement('div');
-
- // FIXED: Using consistent wrapper_ naming
- wrapper.id = `wrapper_${fieldId}`;
- wrapper.className = &#39;extra-field-wrapper&#39;;
-
- // Logical visibility
- const isDependent = !!field.parent_field;
- wrapper.style.display = isDependent ? &#39;none&#39; : &#39;block&#39;;
-
- wrapper.innerHTML = `
-     &lt;label class=&quot;extra-label&quot;&gt;${field.display_label}&lt;/label&gt;
-     &lt;input type=&quot;text&quot; class=&quot;extra-input&quot; id=&quot;${fieldId}&quot; 
-            placeholder=&quot;${field.placeholder || &#39;&#39;}&quot;
-            oninput=&quot;handleExtraInput(&#39;${fieldId}&#39;)&quot;&gt;
-     &lt;div class=&quot;extra-error&quot; id=&quot;err_${fieldId}&quot;&gt;&lt;/div&gt;
- `;
- container.appendChild(wrapper);
-
-
-});
-}
-
-// ... [Keep the rest of your script, especially handleExtraInput and validations] ...
+  window.onload = init;
 </script>
-
 </body>
 </html>
