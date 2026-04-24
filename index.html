@@ -878,6 +878,20 @@ async function handleSectionNavigation() {
             statusMsg = "EDITED ON " + new Date().toLocaleString();
         }
 
+// --- FINAL SWEEP OF SECTION 1 (PROFILE) ---
+        // This ensures any edits made in Section 1 are captured before the final save.
+        const profileInputs = document.querySelectorAll('#Section1 input, #Section1 select');
+        let updatedProfileData = {};
+        profileInputs.forEach(input => {
+            if (input.id) {
+                // If the ID starts with 'extra_', we strip it to match our database keys
+                let key = input.id.replace('extra_', '');
+                updatedProfileData[key] = input.value;
+            }
+        });
+
+  
+  
         // --- THE MERS MERGE ---
         const formData = {
             ...originalData,
