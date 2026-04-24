@@ -912,11 +912,34 @@ async function handleSectionNavigation() {
         await db.ref('registrations/' + finalRegId).set(formData);
         console.log("[DIAGNOSTIC] Firebase Save successful. ID: " + finalRegId);
 
-        const scriptUrl = "https://script.google.com/macros/s/AKfycbyPbae3F_Vm2q25LWZF1G59O0V2XRrokeqxNkLvZetTKl19HM4QubILy17nPe65Q-L-zw/exec"; 
-        fetch(`${scriptUrl}?action=sendEmail&regId=${finalRegId}&eventId=${eventId}`)
-            .then(() => console.log("[DIAGNOSTIC] Email trigger sent."))
-            .catch(err => console.error("[DIAGNOSTIC] Email failed:", err));
 
+
+      
+        const scriptUrl = "https://script.google.com/macros/s/AKfycbyPbae3F_Vm2q25LWZF1G59O0V2XRrokeqxNkLvZetTKl19HM4QubILy17nPe65Q-L-zw/exec"; 
+
+console.log("[DIAGNOSTIC] Attempting to hit Script URL...");
+        fetch(`${scriptUrl}?action=sendEmail&regId=${finalRegId}&eventId=${eventId}`)
+            .then(response => {
+                console.log("[DIAGNOSTIC] Response Status:", response.status);
+                return response.text();
+            })
+            .then(text => console.log("[DIAGNOSTIC] Server says:", text))
+            .catch(err => console.error("[DIAGNOSTIC] FETCH CRASHED:", err));
+
+
+      
+
+      
+      
+    //  fetch(`${scriptUrl}?action=sendEmail&regId=${finalRegId}&eventId=${eventId}`)       
+      //      .then(() => console.log("[DIAGNOSTIC] Email trigger sent."))
+        //    .catch(err => console.error("[DIAGNOSTIC] Email failed:", err));
+
+
+
+
+      
+      
         // --- FINAL UI SWAP (The Clean Sweep) ---
         console.log("[DIAGNOSTIC] Starting Final UI Swap...");
 
