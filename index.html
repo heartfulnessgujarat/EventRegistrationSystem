@@ -921,16 +921,28 @@ async function handleSectionNavigation() {
 const snapShotVal = originalData ? encodeURIComponent(JSON.stringify(originalData)) : "";
 
 // --- INSERTED BLOCK START ---
-if (originalData) {
+
+      if (originalData) {
     Object.keys(originalData).forEach(key => {
         const inputEl = document.getElementById(`inp-${key}`);
         if (inputEl) {
-            // This captures what is ON THE SCREEN right now (e.g., 396445)
-            originalData[key] = inputEl.value; 
+            // DIAGNOSTIC TEST: We are forcing the system to see if it can write 999999
+            if (key === 'pincode') {
+                originalData[key] = "999999"; 
+                console.log("DIAGNOSTIC: Found inp-pincode! Forcing 999999 to memory.");
+            } else {
+                originalData[key] = inputEl.value;
+            }
+        } else {
+            // This will tell us if the code is looking for the wrong ID
+            if (key === 'pincode') {
+                console.log("DIAGNOSTIC: Could NOT find any element with id='inp-pincode'");
+            }
         }
     });
 }
-// --- INSERTED BLOCK END ---
+      
+      // --- INSERTED BLOCK END ---
 
 
 
