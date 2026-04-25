@@ -907,14 +907,19 @@ async function handleSectionNavigation() {
         await db.ref('registrations/' + finalRegId).set(formData);
         console.log("[DIAGNOSTIC] Firebase Save successful. ID: " + finalRegId);
 
-        const scriptUrl = "https://script.google.com/macros/s/AKfycbwp4MDVnJ-t4mNQfibGejycLCvOui0NXGAww014sGbAx-FstEeAVSGy3qKuJ4tpwNLqJQ/exec"; 
-
-      // https://script.google.com/macros/s/AKfycbwp4MDVnJ-t4mNQfibGejycLCvOui0NXGAww014sGbAx-FstEeAVSGy3qKuJ4tpwNLqJQ/exec 
-
+     //   const scriptUrl = "https://script.google.com/macros/s/AKfycbwp4MDVnJ-t4mNQfibGejycLCvOui0NXGAww014sGbAx-FstEeAVSGy3qKuJ4tpwNLqJQ/exec";
       
-        fetch(`${scriptUrl}?action=sendEmail&regId=${finalRegId}&eventId=${eventId}`)
-            .then(() => console.log("[DIAGNOSTIC] Email trigger sent."))
-            .catch(err => console.error("[DIAGNOSTIC] Email failed:", err));
+          const scriptUrl = "https://script.google.com/macros/s/AKfycbwp4MDVnJ-t4mNQfibGejycLCvOui0NXGAww014sGbAx-FstEeAVSGy3qKuJ4tpwNLqJQ/exec"; 
+
+        // --- MERS SURGICAL BRIDGE ---
+        // We pull the snapshot from the hidden field and encode it for the URL
+        const snapshotInput = document.getElementById('userSnapshot');
+        const snapShotVal = snapshotInput ? encodeURIComponent(snapshotInput.value) : "";
+        
+        fetch(`${scriptUrl}?action=sendEmail&regId=${finalRegId}&eventId=${eventId}&snapshot=${snapShotVal}`)
+            .then(() => console.log("[DIAGNOSTIC] Email trigger & Surgical Snapshot sent."))
+            .catch(err => console.error("[DIAGNOSTIC] Surgical update failed:", err));
+     
 
         // --- FINAL UI SWAP (The Clean Sweep) ---
         console.log("[DIAGNOSTIC] Starting Final UI Swap...");
