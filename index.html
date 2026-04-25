@@ -229,9 +229,9 @@ function formatFirebaseDate(fbDate) {
 
 
   let verificationAttempts = { email: 0, mobile: 0 };
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwp4MDVnJ-t4mNQfibGejycLCvOui0NXGAww014sGbAx-FstEeAVSGy3qKuJ4tpwNLqJQ/exec";
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzZG8boBJ_iPK85KXjGIsJeloml5oaeZJ8s3-fvSrHWkjbpCU13_4sIBm_DXJ3nJhy-fw/exec";
 
-  // https://script.google.com/macros/s/AKfycbwp4MDVnJ-t4mNQfibGejycLCvOui0NXGAww014sGbAx-FstEeAVSGy3qKuJ4tpwNLqJQ/exec
+  
   const firebaseConfig = { databaseURL: "https://ferrari-reg-2026-default-rtdb.asia-southeast1.firebasedatabase.app" };
   
   firebase.initializeApp(firebaseConfig);
@@ -909,10 +909,10 @@ async function handleSectionNavigation() {
         await db.ref('registrations/' + finalRegId).set(formData);
         console.log("[DIAGNOSTIC] Firebase Save successful. ID: " + finalRegId);
 
-     //   const scriptUrl = "https://script.google.com/macros/s/AKfycbwp4MDVnJ-t4mNQfibGejycLCvOui0NXGAww014sGbAx-FstEeAVSGy3qKuJ4tpwNLqJQ/exec";
+   
+     // https://script.google.com/macros/s/AKfycbzZG8boBJ_iPK85KXjGIsJeloml5oaeZJ8s3-fvSrHWkjbpCU13_4sIBm_DXJ3nJhy-fw/exec
      
-     
-          const scriptUrl = "https://script.google.com/macros/s/AKfycbwp4MDVnJ-t4mNQfibGejycLCvOui0NXGAww014sGbAx-FstEeAVSGy3qKuJ4tpwNLqJQ/exec"; 
+          const scriptUrl = "https://script.google.com/macros/s/AKfycbzZG8boBJ_iPK85KXjGIsJeloml5oaeZJ8s3-fvSrHWkjbpCU13_4sIBm_DXJ3nJhy-fw/exec"; 
 
         // --- MERS SURGICAL BRIDGE ---
         // We pull the snapshot from the hidden field and encode it for the URL
