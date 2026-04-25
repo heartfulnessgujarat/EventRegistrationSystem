@@ -840,11 +840,13 @@ async function handleSectionNavigation() {
 
   async function submitData() {
 
-const snapShotVal = originalData ? encodeURIComponent(JSON.stringify(originalData)) : "";
-
+console.log("%c [DIAGNOSTIC] submitData started! ", "background: #222; color: #bada55; font-size: 14px;");
 
     
-    console.log("%c [DIAGNOSTIC] submitData started! ", "background: #222; color: #bada55; font-size: 14px;");
+const snapShotVal = originalData ? encodeURIComponent(JSON.stringify(originalData)) : "";
+
+  
+    
 
     // --- THE SACRED ENGINE ---
     // We removed the 'Guard' because buildExtraSections() only calls this 
