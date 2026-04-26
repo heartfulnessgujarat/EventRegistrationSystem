@@ -930,7 +930,10 @@ const snapShotVal = originalData ? encodeURIComponent(JSON.stringify(originalDat
 
 
 
-
+// --- THE DIRECT PUSH TO MASTER ---
+        await db.ref('masters/' + formData.mobile).update(masterUpdateData);
+        
+        console.log("[DIAGNOSTIC] Master Firebase Direct Update Successful!");
 
 
 
