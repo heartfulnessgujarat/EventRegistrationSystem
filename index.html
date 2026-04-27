@@ -1510,49 +1510,46 @@ document.getElementById('btn-back-to-profile').onclick = function() {
  * Handles: 8:00 (Firebase) and 08:00 (HTML)
  */
 
-function updateButtonState() {
+
+
+  function updateButtonState() {
     console.log("%c MERS DIAG: updateButtonState triggered ", "background: #222; color: #bada55");
     const actionBtn = document.getElementById('btn-next-action');
     if (!actionBtn) return;
 
-    // 1. DYNAMIC SCAN: Find all section containers
-    const allSections = document.querySelectorAll('.form-section');
-    const currentIdx = (window.currentSection || 1) - 1; 
-    
-    // Use 'let' so we can re-assign if the first attempt fails (fixes the crash)
-    let activeSection = allSections[currentIdx];
-
-    if (!activeSection) {
-        console.warn("DIAG: Index-based scan failed. Trying visibility-based fallback...");
-        activeSection = document.querySelector('.form-section:not([style*="display: none"])');
-    }
-
-    if (!activeSection) {
-        console.error("DIAG: No active section found. The logic cannot proceed.");
-        return;
-    }
-
-    // 2. FETCH SECTION NAME FROM THE DATA (No Hard-Coding)
+    // 1. SCAN ALL INPUTS (No Section Class Required)
+    const allInputs = document.querySelectorAll('input, select, textarea');
     const rulesArray = Array.isArray(fieldRules) ? fieldRules : Object.values(fieldRules);
     
-    // Find the first field in this section that exists in our rulebook
-    const visibleInputs = activeSection.querySelectorAll('input, select, textarea');
     let dynamicSectionName = "";
-    
-    for (let input of visibleInputs) {
-        const cleanId = input.id.replace('extra_', '');
-        const rule = rulesArray.find(r => r.field_id === cleanId);
-        if (rule) {
-            dynamicSectionName = rule.section_number;
-            break; 
+    let activeInputsInRules = [];
+
+    // Identify which section we are currently dealing with based on visible fields
+    allInputs.forEach(input => {
+        const group = input.closest('.input-group');
+        if (group && group.style.display !== 'none') {
+            const cleanId = input.id.replace('extra_', '');
+            const rule = rulesArray.find(r => r.field_id === cleanId);
+            if (rule) {
+                activeInputsInRules.push({ element: input, rule: rule });
+                if (!dynamicSectionName) dynamicSectionName = rule.section_number;
+            }
+        }
+    });
+
+    if (!dynamicSectionName) {
+        // Fallback for Section 1 (Profile) which has no extra rules
+        console.log("DIAG: No dynamic rules found on screen. Checking Section 1.");
+        const currentNum = window.currentSection || 1;
+        if (currentNum === 1) {
+            actionBtn.disabled = false;
+            actionBtn.style.opacity = "1";
+            actionBtn.innerText = "PROCEED TO SELECTION";
+            return;
         }
     }
 
-    if (!dynamicSectionName) {
-        console.warn("DIAG: Section name not found. Defaulting check.");
-    }
-
-    // 3. VALIDATE RULES FOR THIS SECTION
+    // 2. VALIDATE ONLY THE RULES FOR THE DETECTED SECTION
     const sectionRules = rulesArray.filter(r => r.section_number === dynamicSectionName);
     let totalVisibleRequired = 0;
     let totalFilled = 0;
@@ -1566,56 +1563,39 @@ function updateButtonState() {
             
             if (isVisible) {
                 totalVisibleRequired++;
-                if (el.value.trim() !== "") {
-                    totalFilled++;
-                }
+                if (el.value.trim() !== "") totalFilled++;
             }
-            diagData.push({ 
-                Field: rule.field_id, 
-                Visible: isVisible, 
-                Value: el.value.trim() 
-            });
+            diagData.push({ Field: rule.field_id, Visible: isVisible, Value: el.value.trim() });
         }
     });
 
-    // PRINT THE X-RAY TABLE
     console.log(`--- MERS X-RAY: [${dynamicSectionName}] ---`);
     console.table(diagData);
 
-    // 4. DYNAMIC BUTTON TEXT
+    // 3. DYNAMIC BUTTON TEXT & UNLOCK
     const isSection3 = dynamicSectionName && dynamicSectionName.toLowerCase().includes("3");
     const lastRule = sectionRules[sectionRules.length - 1];
     const lastEl = lastRule ? (document.getElementById(lastRule.field_id) || document.getElementById('extra_' + lastRule.field_id)) : null;
-    const isLastVisible = lastEl && lastEl.closest('.input-group') && lastEl.closest('.input-group').style.display !== 'none';
+    const isLastVisible = lastEl && lastEl.closest('.input-group')?.style.display !== 'none';
 
     if (isSection3 && isLastVisible) {
         actionBtn.innerText = "CONFIRM & REGISTER";
+    } else if (dynamicSectionName.toLowerCase().includes("2")) {
+        actionBtn.innerText = "PROCEED TO TRAVEL DETAILS";
     } else {
-        const currentNum = window.currentSection || 1;
-        if (currentNum === 1) actionBtn.innerText = "PROCEED TO SELECTION";
-        else if (currentNum === 2) actionBtn.innerText = "PROCEED TO TRAVEL DETAILS";
-        else actionBtn.innerText = "PROCEED";
+        actionBtn.innerText = "PROCEED";
     }
 
-    // 5. THE UNLOCK
     if (totalVisibleRequired > 0 && totalFilled === totalVisibleRequired) {
         actionBtn.disabled = false;
         actionBtn.style.opacity = "1";
         actionBtn.style.cursor = "pointer";
-    } else if (totalVisibleRequired === 0 && (window.currentSection || 1) === 1) {
-        // Special case for Profile Section
-        actionBtn.disabled = false;
-        actionBtn.style.opacity = "1";
     } else {
         actionBtn.disabled = true;
         actionBtn.style.opacity = "0.5";
         actionBtn.style.cursor = "not-allowed";
     }
 }
-
-
-
-
 
 
 /**
