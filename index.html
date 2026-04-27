@@ -1514,116 +1514,112 @@ function updateButtonState() {
     const actionBtn = document.getElementById('btn-next-action');
     if (!actionBtn) return;
 
-    // 1. Get all fields currently visible in the active form area
     const currentSectionEl = document.querySelector('.form-section:not([style*="display: none"])');
     if (!currentSectionEl) return;
     
-    // Get all input/select elements in this section
     const visibleInputs = currentSectionEl.querySelectorAll('input, select, textarea');
-    if (visibleInputs.length === 0) return;
+    if (visibleInputs.length === 0) {
+        console.warn("MERS DIAG: No inputs found in current section HTML.");
+        return;
+    }
 
-    // 2. FETCH THE SECTION NAME DYNAMICALLY
-    // We look at the first field we see and ask Firebase: "What section do you say this belongs to?"
     const firstFieldId = visibleInputs[0].id.replace('extra_', '');
     const rulesArray = Array.isArray(fieldRules) ? fieldRules : Object.values(fieldRules);
     const sampleRule = rulesArray.find(r => r.field_id === firstFieldId);
     
-    if (!sampleRule) return;
-    const dynamicSectionName = sampleRule.section_number; // This picks up "Section2", "SectionA", etc.
+    if (!sampleRule) {
+        console.error("MERS DIAG: Could not find Firebase rule for field: " + firstFieldId);
+        return;
+    }
 
-    // 3. Filter all rules that match this exact Section Name
+    const dynamicSectionName = sampleRule.section_number;
     const sectionRules = rulesArray.filter(r => r.section_number === dynamicSectionName);
 
+    let diagData = []; // For the X-Ray table
     let totalVisibleRequired = 0;
     let totalFilled = 0;
 
     sectionRules.forEach(rule => {
         const el = document.getElementById(rule.field_id) || document.getElementById('extra_' + rule.field_id);
-        if (el) {
-            const group = el.closest('.input-group');
-            // We only care about fields that are currently visible to the user
-            const isVisible = group && group.style.display !== 'none';
+        const group = el ? el.closest('.input-group') : null;
+        const isVisible = group && group.style.display !== 'none';
+        const val = el ? el.value.trim() : "N/A";
 
-            if (isVisible) {
-                totalVisibleRequired++;
-                if (el.value.trim() !== "") {
-                    totalFilled++;
-                }
-            }
+        if (isVisible) {
+            totalVisibleRequired++;
+            if (val !== "") totalFilled++;
         }
+
+        // Add to our diagnostic report
+        diagData.push({
+            Field: rule.field_id,
+            Visible: isVisible,
+            Value: val,
+            Required: isVisible ? "YES" : "NO"
+        });
     });
 
-    // 4. Update Button Text & Identity
-    // Check if the very last rule of this dynamic section is visible and filled
+    // PRINT THE X-RAY REPORT
+    console.log(`--- MERS X-RAY: ${dynamicSectionName} ---`);
+    console.table(diagData);
+    console.log(`Summary: Visible Required (${totalVisibleRequired}) | Total Filled (${totalFilled})`);
+
+    // --- Button Text Logic ---
     const lastRule = sectionRules[sectionRules.length - 1];
     const lastEl = document.getElementById(lastRule.field_id) || document.getElementById('extra_' + lastRule.field_id);
     const isLastVisible = lastEl && lastEl.closest('.input-group') && lastEl.closest('.input-group').style.display !== 'none';
 
-    // If we are in the final section (Part 3) and at the last question
     if (dynamicSectionName.includes("3") && isLastVisible) {
         actionBtn.innerText = "CONFIRM & REGISTER";
     } else {
-        // Dynamic labels based on your section names
         if (dynamicSectionName.includes("1")) actionBtn.innerText = "PROCEED TO SELECTION";
         else if (dynamicSectionName.includes("2")) actionBtn.innerText = "PROCEED TO TRAVEL DETAILS";
         else actionBtn.innerText = "PROCEED";
     }
 
-    // 5. Enable/Disable Logic
+    // Unlock logic
     if (totalVisibleRequired > 0 && totalFilled === totalVisibleRequired) {
         actionBtn.disabled = false;
         actionBtn.style.opacity = "1";
-        actionBtn.style.cursor = "pointer";
     } else {
         actionBtn.disabled = true;
         actionBtn.style.opacity = "0.5";
-        actionBtn.style.cursor = "not-allowed";
     }
 }
+
+
+
 
 /**
  * REVISED: Dynamic Waterfall Reflow
  * This function follows the EXACT spelling in your Firebase/Google Sheet.
  * @param {string} sectionName - Pass the exact value from your Sheet (e.g., "Section3")
  */
-function reflowSectionSequence(sectionName) {
-    console.log("MERS: Reflowing sequence for section: " + sectionName);
+
+  function reflowSectionSequence(sectionName) {
+    console.log("%c MERS REFLOW: Starting " + sectionName, "color: orange; font-weight: bold;");
     
     const rulesArray = Array.isArray(fieldRules) ? fieldRules : Object.values(fieldRules);
-    
-    // Filter using exact match to your "section_number" column
     const sectionRules = rulesArray.filter(r => r.section_number === sectionName);
 
     sectionRules.forEach((rule, index) => {
         const currentEl = document.getElementById(rule.field_id) || document.getElementById('extra_' + rule.field_id);
         
-        // If current field exists and has a value...
         if (currentEl && currentEl.value.trim() !== "") {
-            
-            // Look for the next rule in this specific section's sequence
             const nextRule = sectionRules[index + 1];
-            
-            // If the next rule exists and is meant to be shown sequentially...
             if (nextRule && nextRule.edit_behavior && nextRule.edit_behavior.includes("after previous input")) {
-                const nextFieldId = nextRule.field_id;
-                const nextEl = document.getElementById(nextFieldId) || document.getElementById('extra_' + nextFieldId);
-                
-                if (nextEl) {
-                    const nextGroup = nextEl.closest('.input-group');
-                    if (nextGroup) {
-                        // Reveal the field
-                        nextGroup.style.display = 'block';
-                    }
+                console.log(`MERS REFLOW: Unhiding ${nextRule.field_id} because ${rule.field_id} has value.`);
+                const nextEl = document.getElementById(nextRule.field_id) || document.getElementById('extra_' + nextRule.field_id);
+                if (nextEl && nextEl.closest('.input-group')) {
+                    nextEl.closest('.input-group').style.display = 'block';
                 }
             }
         }
     });
-
-    // Final Step: Tell the button to re-evaluate now that fields are visible
     updateButtonState();
 }
 
-
+  
 
 
 
