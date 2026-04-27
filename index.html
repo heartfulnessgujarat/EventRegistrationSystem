@@ -808,32 +808,42 @@ function checkAllValidations() {
     if (regBtn) regBtn.disabled = !allValid;
   }
 
-
 // 1. THE PAGE TURNER: Moves between Section 1, 2, and 3
 async function handleSectionNavigation() {
     console.log("%c MERS PING 3: handleSectionNavigation() was just called!", "color: blue; font-weight: bold;");
     try {
         if (typeof currentSection === 'undefined') window.currentSection = 1;
+        
+        // UI Transition: Show loader
         document.getElementById('app').style.display = 'none';
         document.getElementById('processing-overlay').style.display = 'block';
 
         if (window.currentSection === 1) {
+            // Move to Section 2
             window.currentSection = 2;
             await buildExtraSections(2);
+            // Ensure button state is calculated based on Section 2 visibility
+            updateButtonState(); 
+
         } else if (window.currentSection === 2) {
+            // Move to Section 3
             window.currentSection = 3;
             await buildExtraSections(3);
             
-            // --- NEW: WATERFALL REFLOW TRIGGER ---
-            // This ensures that if the user previously filled answers in Section 3, 
-            // they are automatically unhidden when returning from Section 2.
+            // --- WATERFALL REFLOW TRIGGER ---
+            // Recovers visibility of previously answered questions in Section 3
             if (typeof reflowSectionSequence === "function") {
                 reflowSectionSequence(3);
+            } else {
+                updateButtonState();
             }
         }
         
+        // UI Transition: Hide loader
         document.getElementById('processing-overlay').style.display = 'none';
         document.getElementById('app').style.display = 'block';
+        
+        // Reset scroll position for the new section
         window.scrollTo({ top: 0, behavior: 'smooth' });
         
     } catch (error) {
@@ -842,8 +852,6 @@ async function handleSectionNavigation() {
         document.getElementById('app').style.display = 'block';
     }
 }
-
-
 
 
   
