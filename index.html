@@ -1510,98 +1510,88 @@ document.getElementById('btn-back-to-profile').onclick = function() {
  * Handles: 8:00 (Firebase) and 08:00 (HTML)
  */
 
-
-
 function updateButtonState() {
     console.log("%c MERS DIAG: updateButtonState triggered ", "background: #222; color: #bada55");
     const actionBtn = document.getElementById('btn-next-action');
     if (!actionBtn) return;
 
-    // 1. MASTER TRUTH: Use the current section number from your global state
-    const currentNum = window.currentSection || 1;
-    const activeSection = document.getElementById('section-' + currentNum);
-    
+    // 1. DYNAMIC SCAN: Find all section containers
+    const allSections = document.querySelectorAll('.form-section');
+    const currentIdx = (window.currentSection || 1) - 1; // 0-based index
+    const activeSection = allSections[currentIdx];
+
     if (!activeSection) {
-        console.warn("DIAG: Container 'section-" + currentNum + "' not found in DOM yet.");
+        console.warn("DIAG: Could not find .form-section at index: " + currentIdx);
+        // Fallback: Just look for the first one that isn't hidden
+        activeSection = document.querySelector('.form-section:not([style*="display: none"])');
+    }
+
+    if (!activeSection) {
+        console.error("DIAG: No active section found. Check your HTML class names.");
         return;
     }
 
-    // 2. FETCH SECTION NAME FROM RULES (Zero Hard-Coding)
-    // We look for any "extra_" field inside this container to identify the Section Name
-    const extraFields = activeSection.querySelectorAll('[id^="extra_"]');
+    // 2. FETCH SECTION NAME FROM THE FIRST INPUT IN THIS CONTAINER
     const rulesArray = Array.isArray(fieldRules) ? fieldRules : Object.values(fieldRules);
+    const firstInput = activeSection.querySelector('input, select, textarea');
     
     let dynamicSectionName = "";
-    if (extraFields.length > 0) {
-        const sampleId = extraFields[0].id.replace('extra_', '');
-        const sampleRule = rulesArray.find(r => r.field_id === sampleId);
-        if (sampleRule) dynamicSectionName = sampleRule.section_number;
+    if (firstInput) {
+        const cleanId = firstInput.id.replace('extra_', '');
+        const rule = rulesArray.find(r => r.field_id === cleanId);
+        if (rule) dynamicSectionName = rule.section_number;
     }
 
-    // Fallback: If no extra fields, it's Section 1 (Profile)
-    if (!dynamicSectionName) {
-        console.log("DIAG: No extra rules found. Assuming Profile/Section 1 context.");
-        dynamicSectionName = "Section1"; 
-    }
-
-    // 3. FILTER & VALIDATE
+    // 3. VALIDATE RULES
     const sectionRules = rulesArray.filter(r => r.section_number === dynamicSectionName);
-    let diagData = []; 
     let totalVisibleRequired = 0;
     let totalFilled = 0;
+    let diagData = [];
 
     sectionRules.forEach(rule => {
         const el = document.getElementById(rule.field_id) || document.getElementById('extra_' + rule.field_id);
         if (el) {
             const group = el.closest('.input-group');
-            // Field is "Required" if its group isn't hidden by your waterfall logic
             const isVisible = group && group.style.display !== 'none';
-
             if (isVisible) {
                 totalVisibleRequired++;
-                if (el.value.trim() !== "") {
-                    totalFilled++;
-                }
+                if (el.value.trim() !== "") totalFilled++;
             }
-
-            diagData.push({
-                FieldID: rule.field_id,
-                Visible: isVisible,
-                Value: el.value.trim()
-            });
+            diagData.push({ Field: rule.field_id, Visible: isVisible, Value: el.value.trim() });
         }
     });
 
     console.log(`--- MERS X-RAY: [${dynamicSectionName}] ---`);
     console.table(diagData);
 
-    // 4. DYNAMIC BUTTON TEXT
+    // 4. BUTTON TEXT (No hard-coding section names)
+    const isSection3 = dynamicSectionName && dynamicSectionName.toLowerCase().includes("3");
     const lastRule = sectionRules[sectionRules.length - 1];
     const isLastVisible = lastRule && (document.getElementById('extra_' + lastRule.field_id)?.closest('.input-group')?.style.display !== 'none');
 
-    if (dynamicSectionName.toLowerCase().includes("3") && isLastVisible) {
+    if (isSection3 && isLastVisible) {
         actionBtn.innerText = "CONFIRM & REGISTER";
-    } else if (dynamicSectionName.toLowerCase().includes("2")) {
-        actionBtn.innerText = "PROCEED TO TRAVEL DETAILS";
     } else {
-        actionBtn.innerText = "PROCEED TO SELECTION";
+        // Fallback to the standard transition labels
+        const currentNum = window.currentSection || 1;
+        if (currentNum === 1) actionBtn.innerText = "PROCEED TO SELECTION";
+        else if (currentNum === 2) actionBtn.innerText = "PROCEED TO TRAVEL DETAILS";
+        else actionBtn.innerText = "PROCEED";
     }
 
     // 5. THE UNLOCK
     if (totalVisibleRequired > 0 && totalFilled === totalVisibleRequired) {
         actionBtn.disabled = false;
         actionBtn.style.opacity = "1";
-        actionBtn.style.cursor = "pointer";
-    } else if (totalVisibleRequired === 0 && currentNum === 1) {
-        // Safe unlock for Section 1 if no extra rules exist yet
+    } else if (totalVisibleRequired === 0 && (window.currentSection || 1) === 1) {
         actionBtn.disabled = false;
         actionBtn.style.opacity = "1";
     } else {
         actionBtn.disabled = true;
         actionBtn.style.opacity = "0.5";
-        actionBtn.style.cursor = "not-allowed";
     }
 }
+
 
 
 
