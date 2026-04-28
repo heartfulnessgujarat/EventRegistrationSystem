@@ -1067,19 +1067,13 @@ function manualFormatCheck() {
 /** --- NEW: EDIT & DELETE LOGIC ENGINE --- **/
 
 
-
-
-
-  
-
 async function loadExistingData(regId, mode) {
     try {
+        console.log("MERS: Fetching data for RegID: " + regId);
         const snap = await db.ref('registrations/' + regId).once('value');
         const data = snap.val();
 
-
-
-        // --- ADD THE SURGICAL SNAPSHOT HERE ---
+        // --- 1. SURGICAL SNAPSHOT CAPTURE ---
         if (data) {
             const snapshotData = {
                 "mobile": data.mobile || "",
@@ -1089,56 +1083,74 @@ async function loadExistingData(regId, mode) {
                 "district": data.district || "",
                 "centre": data.centre || ""
             };
-            document.getElementById('userSnapshot').value = JSON.stringify(snapshotData);
-            console.log("MERS: Surgical Snapshot Captured.");
+            const snapshotEl = document.getElementById('userSnapshot');
+            if (snapshotEl) {
+                snapshotEl.value = JSON.stringify(snapshotData);
+                console.log("MERS: Surgical Snapshot Captured.");
+            }
         }
-        // --- END SNAPSHOT ---
 
         if (!data) {
-            // ... rest of your existing code ...
-
             alert("Registration not found. It may have been deleted already.");
             location.href = window.location.pathname + "?id=" + eventId;
             return;
         }
 
-        originalData = data;
-
-// --- ADD THIS HERE ---
-// This freezes the OLD data before the user ever types a single number.
-profileSnapshotForScript = encodeURIComponent(JSON.stringify(data));
-
-    // ... rest of your code
-
-
-
-
-
-      
+        // --- 2. PREPARE GLOBAL DATA ---
+        originalData = data; 
+        // This freezes the OLD data before the user ever types a single number.
+        profileSnapshotForScript = encodeURIComponent(JSON.stringify(data));
 
         if (mode === 'edit') {
+            // A. Draw Section 1 (Profile)
             renderForm(); 
+
+            // B. HYBRID DATA FILL (Surgical Fix)
             fieldRules.forEach(r => {
-                const el = document.getElementById(`inp-${r.field_id}`);
-                if (el && data[r.field_id]) {
-                    el.value = data[r.field_id];
+                // Look for ID with any prefix: 'inp-', 'extra_', or no prefix
+                const el = document.getElementById(`inp-${r.field_id}`) || 
+                           document.getElementById(`extra_${r.field_id}`) || 
+                           document.getElementById(r.field_id);
+
+                if (el) {
+                    // Only set value if the element exists on screen
+                    if (data[r.field_id]) {
+                        el.value = data[r.field_id];
+                        console.log(`MERS: Filled ${r.field_id} (Value: ${data[r.field_id]})`);
+                    }
                     
-                    // --- NEW: FORCE DISABLE FULL NAME REGARDLESS OF RULES ---
+                    // Force Disable Full Name during Edit
                     if (r.field_id === 'full_name') {
                         el.disabled = true; 
                     }
+                } else {
+                    // This prevents the null-value crash by skipping fields not yet built (Sect 2/3)
+                    console.log(`MERS: Field [${r.field_id}] not on screen yet. Will fill during transition.`);
                 }
             });
-            document.getElementById('loading-init').style.display = 'none';
-            document.getElementById('form-content').style.display = 'block';
+
+            // C. HIDE LOADING SCREEN & SHOW FORM
+            const loadingEl = document.getElementById('loading-init');
+            const formContent = document.getElementById('form-content');
+            
+            if (loadingEl) loadingEl.style.display = 'none';
+            if (formContent) formContent.style.display = 'block';
+
+            // D. Enable Edit Mode
             enableEditMode(); 
 
         } else if (mode === 'delete') {
-            document.getElementById('loading-init').style.display = 'none';
+            // Delete logic remains untouched as it was working
+            const loadingEl = document.getElementById('loading-init');
+            if (loadingEl) loadingEl.style.display = 'none';
+
             const formContent = document.getElementById('form-content');
             formContent.style.display = 'block';
-            document.getElementById('dynamic-fields').style.display = 'none';
-            document.getElementById('subtitle').style.display = 'none';
+            
+            const dynFields = document.getElementById('dynamic-fields');
+            const subtitle = document.getElementById('subtitle');
+            if (dynFields) dynFields.style.display = 'none';
+            if (subtitle) subtitle.style.display = 'none';
             
             const regDate = data.timestamp ? data.timestamp.split(' ')[0] : 'N/A';
             
@@ -1159,11 +1171,15 @@ profileSnapshotForScript = encodeURIComponent(JSON.stringify(data));
             `;
         }
     } catch (e) {
-        console.error("Load Error:", e);
+        console.error("MERS Load Error:", e);
+        // Ensure screen is cleared even on error so user isn't stuck
+        const loadingEl = document.getElementById('loading-init');
+        if (loadingEl) loadingEl.style.display = 'none';
     }
 }
 
 
+  
 
 
 function cancelDeletionAction() {
