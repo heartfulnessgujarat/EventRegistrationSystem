@@ -1177,33 +1177,57 @@ async function processFinalDeletion(regId) {
 }
 
 
+
   function buildExtraSections(sectionId) {
-    const sectionData = moreSections.find(s => s.section_id === sectionId);
-    if (!sectionData) return;
-
-    const container = document.getElementById('dynamic-sections-content');
-    container.innerHTML = ""; // Clear previous
+    console.log("MERS: Attempting to build section: " + sectionId);
     
-    // Set Title
-    document.getElementById('title-Section2').innerText = sectionData.section_title || "Additional Details";
+    // 1. FIND THE SECTION DATA
+    // We try to find by ID, but if that fails, we take the FIRST section in the list
+    let sectionData = moreSections.find(s => s.section_id === sectionId);
+    
+    if (!sectionData && moreSections.length > 0) {
+        console.warn("MERS: ID '" + sectionId + "' not found. Falling back to first available section.");
+        sectionData = moreSections[0]; 
+    }
 
+    if (!sectionData || !sectionData.fields) {
+        console.error("MERS CRITICAL: No Section Data or Fields found!");
+        return;
+    }
+
+    // 2. PREPARE THE CONTAINER
+    const container = document.getElementById('dynamic-sections-content');
+    if (!container) {
+        console.error("MERS: 'dynamic-sections-content' div missing from HTML!");
+        return;
+    }
+    container.innerHTML = ""; 
+
+    // 3. SET TITLE
+    const titleEl = document.getElementById('title-Section2');
+    if (titleEl) {
+        titleEl.innerText = sectionData.section_title || "Additional Details";
+    }
+
+    // 4. BUILD THE FIELDS
     sectionData.fields.forEach(fieldId => {
         const rule = fieldRules.find(r => r.field_id === fieldId);
-        if (!rule) return;
+        if (!rule) {
+            console.warn("MERS: No rule found for field: " + fieldId);
+            return;
+        }
 
         const fieldWrapper = document.createElement('div');
         fieldWrapper.className = "input-group";
         
-        // Create Label
         const label = document.createElement('label');
         label.innerText = rule.display_name;
         fieldWrapper.appendChild(label);
 
-        // Create Select/Input
         let input;
         if (rule.field_type === "dropdown") {
             input = document.createElement('select');
-            const options = rule.validation_rule.split(',');
+            const options = rule.validation_rule ? rule.validation_rule.split(',') : ["Select"];
             options.forEach(opt => {
                 const o = document.createElement('option');
                 o.value = opt.trim();
@@ -1218,26 +1242,26 @@ async function processFinalDeletion(regId) {
         input.id = `extra_${fieldId}`;
         input.className = "mers-input";
 
-        // --- THE SURGICAL FIX START ---
-        // Check if we are in Edit Mode and have an existing answer
+        // RESTORE OLD VALUE IF IT EXISTS
         if (originalData && originalData[fieldId]) {
             input.value = originalData[fieldId];
-            console.log(`MERS: Restored Section 2 value for [${fieldId}]: ${originalData[fieldId]}`);
+            console.log("MERS: Restored value for " + fieldId);
         }
-        // --- THE SURGICAL FIX END ---
 
-        input.onchange = () => updateButtonState();
+        input.onchange = () => { if(typeof updateButtonState === 'function') updateButtonState(); };
         fieldWrapper.appendChild(input);
         container.appendChild(fieldWrapper);
     });
 
-    // Show Section 2, Hide Section 1
-    document.getElementById('Section1').style.display = 'none';
-    document.getElementById('Section2').style.display = 'block';
+    // 5. SWITCH VIEWS
+    const s1 = document.getElementById('Section1');
+    const s2 = document.getElementById('Section2');
+    if (s1) s1.style.display = 'none';
+    if (s2) s2.style.display = 'block';
     
-    // Ensure button state is evaluated for the new fields
-    updateButtonState();
+    if(typeof updateButtonState === 'function') updateButtonState();
 }
+
   
   async function oldbuildExtraSections(targetSectionNumber) {
     if (!targetSectionNumber) targetSectionNumber = "Section2";
