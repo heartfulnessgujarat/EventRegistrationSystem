@@ -1064,7 +1064,68 @@ function manualFormatCheck() {
   }
 }
 
-  async function loadExistingData(regId, mode) {
+
+async function loadExistingData(regId, mode) {
+    try {
+        const snap = await db.ref('registrations/' + regId).once('value');
+        const data = snap.val();
+
+        if (!data) {
+            alert("Registration not found.");
+            return;
+        }
+
+        // GLOBAL STORAGE: This is the 'Memory' for the Parallel Path
+        originalData = data;
+        profileSnapshotForScript = encodeURIComponent(JSON.stringify(data));
+
+        if (mode === 'edit') {
+            // 1. Draw Section 1 (This uses your existing renderForm engine)
+            renderForm(); 
+
+            // 2. FILL DATA & LOCK (Initial "Polite" State)
+            fieldRules.forEach(r => {
+                const el = document.getElementById(`inp-${r.field_id}`);
+                if (el && data[r.field_id]) {
+                    el.value = data[r.field_id];
+                    // We keep them disabled initially so the "Tiny Edit" buttons 
+                    // handle the unlocking exactly like your original system.
+                    if (r.field_id === 'full_name' || r.field_id === 'mobile' || r.field_id === 'email') {
+                        el.disabled = true; 
+                    }
+                }
+            });
+
+            // 3. UI OVERRIDE: Force the "Ideal" Confirmation View
+            document.getElementById('loading-init').style.display = 'none';
+            document.getElementById('form-content').style.display = 'block';
+
+            // Show the container that has the "DETAILS ARE OKAY" button
+            const startBtnsContainer = document.getElementById('btns-start');
+            if (startBtnsContainer) {
+                startBtnsContainer.style.display = 'flex';
+            }
+
+            // UNLOCK THE "PROCEED" BUTTON IMMEDIATELY
+            const regBtn = document.getElementById('btn-register');
+            if (regBtn) {
+                regBtn.disabled = false;
+                regBtn.style.opacity = "1";
+                regBtn.style.cursor = "pointer";
+                regBtn.innerText = "DETAILS ARE OKAY, CLICK HERE TO PROCEED FURTHER";
+            }
+            
+            // Ensure the "I WANT TO EDIT" button is also visible and working
+            // This button will call your original enableEditMode() logic
+        }
+    } catch (e) {
+        console.error("MERS Entry Error:", e);
+    }
+}
+
+
+  
+  async function oldloadExistingData(regId, mode) {
     console.log("--- MERS DIAGNOSTIC START ---");
     try {
         // 1. Check Database Connection
