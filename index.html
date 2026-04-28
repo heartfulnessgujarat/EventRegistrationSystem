@@ -1624,24 +1624,14 @@ function showSuccessScreen() {
     }
 }
 
-
-
-
-
-
-
-  
-
-
-
-
-  
-  
-  // MERS: Transition from Section 1 (Profile) to Section 2 (Logistics)
+// ==========================================
+// 1. SECTION TRANSITION LOGIC (CONSOLIDATED)
+// ==========================================
 
 function proceedToLogistics() {
     console.log("MERS: Transitioning to Section 2...");
 
+    // UI Transitions
     const s1 = document.getElementById('Section1');
     if (s1) s1.style.display = 'none';
 
@@ -1650,51 +1640,34 @@ function proceedToLogistics() {
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    // Back to the original single-path builder
+    // Trigger the STABLE builder
+    // Note: We use buildExtraSections here to ensure fresh registrations work 100%
     if (typeof buildExtraSections === "function") {
         buildExtraSections('Section2');
+    } else {
+        console.warn("MERS: buildExtraSections function not defined yet.");
     }
 }
 
-  
-// MERS: Back Button Logic
-document.getElementById('btn-back-to-profile').onclick = function() {
-    // 1. Hide the Section2 Room
-    document.getElementById('Section2').style.display = 'none';
-    
-    // 2. Show the Section1 Room (Everything returns exactly as it was)
-    document.getElementById('Section1').style.display = 'block';
-    
-    // 3. Scroll to top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-};
-    
-  init();
+// Back Button Logic (Only ONE definition needed)
+const backBtn = document.getElementById('btn-back-to-profile');
+if (backBtn) {
+    backBtn.onclick = function() {
+        console.log("MERS: Returning to Section 1...");
+        document.getElementById('Section2').style.display = 'none';
+        document.getElementById('Section1').style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+}
 
-// ... existing code ...
+// ==========================================
+// 2. SYSTEM INITIALIZATION
+// ==========================================
 
-// MERS: Back Button Logic
-document.getElementById('btn-back-to-profile').onclick = function() {
-    console.log("MERS: Returning to Section 1...");
-    
-    // 1. Hide the Section2 Room
-    document.getElementById('Section2').style.display = 'none';
-    
-    // 2. Show the Section1 Room (Everything remains exactly as the user left it)
-    document.getElementById('Section1').style.display = 'block';
-    
-    // 3. Smooth scroll back to the top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-};
-
-// ... existing code (like init(); ) ...
+// Ensure this is called only once at the end of your logic definitions
 
 
-  /**
- * MERS SMART TRANSLATOR
- * Handles: 1-Mar-2026 (Firebase) and 2026-03-01 (HTML)
- * Handles: 8:00 (Firebase) and 08:00 (HTML)
- */
+
 
 
 function updateButtonState() {
@@ -1951,17 +1924,12 @@ function validateField(id, value, rule) {
         }
     }
 
-
-
-  
+ 
     return true;
-}
-
-  // window.onload = init;
+} 
 
 
-
-
+init();
 
   
 
