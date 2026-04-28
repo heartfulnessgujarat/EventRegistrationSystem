@@ -1246,7 +1246,6 @@ function buildExtraSections(sectionId) {
 }
 
 
-
 async function buildExtraSections(targetSectionNumber) {
     if (!targetSectionNumber) targetSectionNumber = "Section2";
 
@@ -1255,15 +1254,12 @@ async function buildExtraSections(targetSectionNumber) {
     const actionBtn = document.getElementById('btn-next-action'); 
     const backBtn = document.getElementById('btn-back-to-profile');
 
-    // --- 1. SAVE CURRENT PROGRESS ---
+    // --- 1. SYNC DATA ---
     if (targetSectionNumber === "Section2") {
-        console.log("MERS: Transitioning 1 -> 2. Capturing Profile Edits...");
         if (originalData) {
             Object.keys(originalData).forEach(key => {
                 const inputEl = document.getElementById(`inp-${key}`);
-                if (inputEl) {
-                    originalData[key] = inputEl.value;
-                }
+                if (inputEl) originalData[key] = inputEl.value;
             });
         }
     }
@@ -1273,17 +1269,13 @@ async function buildExtraSections(targetSectionNumber) {
 
     container.innerHTML = ""; 
 
-    // --- INITIAL BUTTON LOCK ---
     actionBtn.disabled = true;
     actionBtn.style.opacity = "0.5";
-    actionBtn.style.cursor = "not-allowed";
 
-    // 2. Identify the Section
     const sectionObj = moreSections.find(s => s.section_number === targetSectionNumber);
     
     if (sectionObj) {
         titleHeader.innerText = sectionObj.section_name || "Details";
-
         const questionKeys = Object.keys(sectionObj).filter(key => key.startsWith('question') && sectionObj[key]);
         
         for (const key of questionKeys) {
@@ -1296,8 +1288,6 @@ async function buildExtraSections(targetSectionNumber) {
                 fieldWrapper.id = `wrapper_extra_${fieldId}`; 
                 fieldWrapper.style.marginBottom = "20px";
                 fieldWrapper.style.textAlign = "left";
-
-                // --- WATERFALL VISIBILITY ---
                 fieldWrapper.style.display = (rule.initial_state === "Hidden") ? 'none' : 'block';
 
                 const isMandatory = (rule.field_validation && rule.field_validation !== "NULL" && rule.field_validation !== "N/A");
@@ -1306,9 +1296,8 @@ async function buildExtraSections(targetSectionNumber) {
                 fieldWrapper.appendChild(label);
 
                 let input;
-                const inputId = `extra_${fieldId}`;
+                const inputId = `extra_${fieldId}`; // Keeping your mandatory prefix
 
-                // --- INPUT GENERATION ---
                 if (rule.edit_behavior === 'Editable_lookup_Dropdown') {
                     input = document.createElement('select');
                     input.className = 'form-control';
@@ -1339,35 +1328,32 @@ async function buildExtraSections(targetSectionNumber) {
                     input.id = inputId;
                 }
 
-                // --- THE CRITICAL "PARALLEL PATH" MEMORY INJECTION ---
-                // 1. Check if we have data from an Edit Link (originalData)
-                if (typeof originalData !== 'undefined' && originalData && originalData[fieldId] !== undefined) {
-                    input.value = originalData[fieldId];
-                } 
-                // 2. Otherwise check if we have data from a "Back Button" click (mersTempData)
-                else if (mersTempData[inputId]) {
+                // --- SMART PRE-FILL BRIDGE ---
+                // This checks the database for "gender" OR "extra_gender"
+                if (originalData) {
+                    if (originalData[fieldId] !== undefined) {
+                        input.value = originalData[fieldId];
+                    } else if (originalData[inputId] !== undefined) {
+                        input.value = originalData[inputId];
+                    }
+                } else if (mersTempData[inputId]) {
                     input.value = mersTempData[inputId];
                 }
 
                 input.dataset.mandatory = isMandatory;                  
                 
                 input.onchange = function() {
-                    if (validateField(this.id.replace('extra_', ''), this.value, rule.field_validation) === false) {
-                        return; 
-                    }
+                    if (validateField(this.id.replace('extra_', ''), this.value, rule.field_validation) === false) return;
                     handleFieldChange(this, rule);
                 };
 
-                input.oninput = function() {
-                    updateButtonState(); 
-                };
+                input.oninput = function() { updateButtonState(); };
 
                 fieldWrapper.appendChild(input);
                 container.appendChild(fieldWrapper);
             }
         }
 
-        // --- NAVIGATION LOGIC ---
         actionBtn.onclick = function() {
             if (targetSectionNumber === "Section2") {
                 buildExtraSections('Section3');
@@ -1384,18 +1370,13 @@ async function buildExtraSections(targetSectionNumber) {
                 : () => { 
                     document.getElementById('Section2').style.display = 'none';  
                     document.getElementById('Section1').style.display = 'block';  
-                   };
+                };
         }
 
         actionBtn.innerText = (targetSectionNumber === "Section2") ? "PROCEED TO TRAVEL DETAILS" : "CONFIRM & REGISTER";
-
-        // --- AUTOMATIC UNLOCK ---
-        setTimeout(() => {
-            updateButtonState();
-        }, 800);
+        setTimeout(() => { updateButtonState(); }, 800);
     }
 }
-
  
   
 async function handleFieldChange(inputElement, rule) {
