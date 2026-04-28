@@ -1169,22 +1169,19 @@ async function processFinalDeletion(regId) {
 }
 
 function buildExtraSections(sectionId) {
-    console.log("MERS: Safety Build for: " + sectionId);
+    console.log("MERS: Building Section with Memory Check for: " + sectionId);
     
     // 1. DATA SAFETY CHECK
     if (!moreSections || moreSections.length === 0) {
-        console.error("MERS: No sections loaded. Retrying in 500ms...");
+        console.error("MERS: No sections loaded. Retrying...");
         setTimeout(() => buildExtraSections(sectionId), 500);
         return;
     }
 
     const sectionData = moreSections.find(s => s.section_id === sectionId);
-    if (!sectionData || !sectionData.fields) {
-        console.error("MERS: Section " + sectionId + " not found.");
-        return;
-    }
+    if (!sectionData || !sectionData.fields) return;
 
-    // 2. CLEAN & BUILD
+    // 2. CLEAN & PREPARE CONTAINER
     const container = document.getElementById('dynamic-sections-content');
     if (!container) return;
     container.innerHTML = ""; 
@@ -1192,6 +1189,7 @@ function buildExtraSections(sectionId) {
     const titleEl = document.getElementById('title-Section2');
     if (titleEl) titleEl.innerText = sectionData.section_title || "";
 
+    // 3. LOOP THROUGH FIELDS AND INJECT DATA
     sectionData.fields.forEach(fieldId => {
         const rule = fieldRules.find(r => r.field_id === fieldId);
         if (!rule) return;
@@ -1206,11 +1204,11 @@ function buildExtraSections(sectionId) {
         let input;
         if (rule.field_type === "dropdown") {
             input = document.createElement('select');
-            // Adding a blank option at the top for fresh registrations
-            const firstOption = document.createElement('option');
-            firstOption.text = "-- Select --";
-            firstOption.value = "";
-            input.appendChild(firstOption);
+            // Standard placeholder
+            const placeholder = document.createElement('option');
+            placeholder.text = "-- Select --";
+            placeholder.value = "";
+            input.appendChild(placeholder);
 
             const options = rule.validation_rule ? rule.validation_rule.split(',') : [];
             options.forEach(opt => {
@@ -1227,11 +1225,11 @@ function buildExtraSections(sectionId) {
         input.id = `extra_${fieldId}`;
         input.className = "mers-input";
 
-        // --- THE PRE-FILL MEMORY LOGIC ---
-        // We check if originalData exists and has a value for this field
+        // --- THE CRITICAL MEMORY CHECK ---
+        // Look inside originalData for this specific fieldId
         if (typeof originalData !== 'undefined' && originalData && originalData[fieldId] !== undefined) {
             input.value = originalData[fieldId];
-            console.log(`MERS: Restored ${fieldId} -> ${originalData[fieldId]}`);
+            console.log(`MERS: Successfully pre-filled ${fieldId} with value: ${originalData[fieldId]}`);
         }
 
         input.onchange = () => { if(typeof updateButtonState === 'function') updateButtonState(); };
@@ -1239,91 +1237,17 @@ function buildExtraSections(sectionId) {
         container.appendChild(fieldWrapper);
     });
 
-    // 3. SHOW SCREEN & RE-EVALUATE BUTTONS
+    // 4. UI TRANSITION
     document.getElementById('Section1').style.display = 'none';
     document.getElementById('Section2').style.display = 'block';
     
-    // This is vital: it checks if all pre-filled fields are valid so the PROCEED button turns blue immediately
+    // Check if the pre-filled data makes the section valid immediately
     if(typeof updateButtonState === 'function') updateButtonState();
 }
-function buildExtraSectionsForEdit(sectionId) {
-    console.log("MERS: Parallel Edit Path active for: " + sectionId);
-    
-    // SAFETY CHECK: If moreSections or fieldRules haven't loaded yet, wait 300ms and try again
-    if (!moreSections || moreSections.length === 0 || fieldRules.length === 0) {
-        console.warn("MERS: Data not ready, retrying build in 300ms...");
-        setTimeout(() => buildExtraSectionsForEdit(sectionId), 300);
-        return;
-    }
-
-    const sectionData = moreSections.find(s => s.section_id === sectionId);
-    if (!sectionData || !sectionData.fields) {
-        console.error("MERS: Section data not found for " + sectionId);
-        return;
-    }
-
-    const container = document.getElementById('dynamic-sections-content');
-    if (!container) return;
-    container.innerHTML = ""; 
-
-    // FORCE TITLE DISPLAY
-    const titleEl = document.getElementById('title-Section2');
-    if (titleEl) {
-        titleEl.innerText = sectionData.section_title || "Additional Details";
-        titleEl.style.display = "block"; // Ensure it isn't hidden
-    }
-
-    sectionData.fields.forEach(fieldId => {
-        const rule = fieldRules.find(r => r.field_id === fieldId);
-        if (!rule) return;
-
-        const fieldWrapper = document.createElement('div');
-        fieldWrapper.className = "input-group";
-        
-        const label = document.createElement('label');
-        label.innerText = rule.display_name;
-        fieldWrapper.appendChild(label);
-
-        let input;
-        if (rule.field_type === "dropdown") {
-            input = document.createElement('select');
-            const options = rule.validation_rule ? rule.validation_rule.split(',') : [];
-            options.forEach(opt => {
-                const o = document.createElement('option');
-                o.value = opt.trim();
-                o.text = opt.trim();
-                input.appendChild(o);
-            });
-        } else {
-            input = document.createElement('input');
-            input.type = "text";
-        }
-
-        input.id = `extra_${fieldId}`;
-        input.className = "mers-input";
-
-        // RESTORE VALUE FROM MEMORY
-        if (typeof originalData !== 'undefined' && originalData && originalData[fieldId] !== undefined) {
-            input.value = originalData[fieldId];
-        }
-
-        input.onchange = () => { if(typeof updateButtonState === 'function') updateButtonState(); };
-        fieldWrapper.appendChild(input);
-        container.appendChild(fieldWrapper);
-    });
-
-    // Final UI Check
-    document.getElementById('Section1').style.display = 'none';
-    document.getElementById('Section2').style.display = 'block';
-    
-    if (typeof updateButtonState === 'function') updateButtonState(); 
-}
-  
 
 
- 
-  
-  async function buildExtraSections(targetSectionNumber) {
+
+async function buildExtraSections(targetSectionNumber) {
     if (!targetSectionNumber) targetSectionNumber = "Section2";
 
     const container = document.getElementById('dynamic-sections-content');
@@ -1331,28 +1255,21 @@ function buildExtraSectionsForEdit(sectionId) {
     const actionBtn = document.getElementById('btn-next-action'); 
     const backBtn = document.getElementById('btn-back-to-profile');
 
-
-// --- 1. SAVE CURRENT PROGRESS (ENHANCED) ---
-    
-    // A. Capture Section 1 Profile Data (The Pincode fix)
-    // Only do this when we are transitioning FROM Section 1 TO Section 2
+    // --- 1. SAVE CURRENT PROGRESS ---
     if (targetSectionNumber === "Section2") {
         console.log("MERS: Transitioning 1 -> 2. Capturing Profile Edits...");
         if (originalData) {
             Object.keys(originalData).forEach(key => {
                 const inputEl = document.getElementById(`inp-${key}`);
                 if (inputEl) {
-                    // This captures 396445 into the originalData variable
                     originalData[key] = inputEl.value;
                 }
             });
         }
     }
 
-    // B. Capture Section 2/3 Registration Data (Existing Logic)
     const currentInputs = document.querySelectorAll('[id^="extra_"]');
     currentInputs.forEach(input => { if (input.value) mersTempData[input.id] = input.value; });
-
 
     container.innerHTML = ""; 
 
@@ -1361,13 +1278,12 @@ function buildExtraSectionsForEdit(sectionId) {
     actionBtn.style.opacity = "0.5";
     actionBtn.style.cursor = "not-allowed";
 
-    // 2. Identify the Section (Section 2, Section 3, etc.)
+    // 2. Identify the Section
     const sectionObj = moreSections.find(s => s.section_number === targetSectionNumber);
     
     if (sectionObj) {
         titleHeader.innerText = sectionObj.section_name || "Details";
 
-        // We use a regular for loop to handle the async/await lookups properly
         const questionKeys = Object.keys(sectionObj).filter(key => key.startsWith('question') && sectionObj[key]);
         
         for (const key of questionKeys) {
@@ -1382,13 +1298,8 @@ function buildExtraSectionsForEdit(sectionId) {
                 fieldWrapper.style.textAlign = "left";
 
                 // --- WATERFALL VISIBILITY ---
-                if (rule.initial_state === "Hidden") {
-                    fieldWrapper.style.display = 'none';
-                } else {
-                    fieldWrapper.style.display = 'block';
-                }
+                fieldWrapper.style.display = (rule.initial_state === "Hidden") ? 'none' : 'block';
 
-                // --- MANDATORY STAR LOGIC ---
                 const isMandatory = (rule.field_validation && rule.field_validation !== "NULL" && rule.field_validation !== "N/A");
                 const label = document.createElement('label');
                 label.innerHTML = `<strong>${rule.display_label || fieldId} ${isMandatory ? '<span style="color:red">*</span>' : ''}</strong>`;
@@ -1406,11 +1317,6 @@ function buildExtraSectionsForEdit(sectionId) {
                     placeholder.text = "-- Select --"; placeholder.value = "";
                     input.appendChild(placeholder);
 
-
-
-
-
-                  
                     if (rule.lookup_tab && rule.lookup_column) {
                         try {
                             const lookupSnap = await db.ref(`masters/${rule.lookup_tab}`).once('value');
@@ -1433,27 +1339,24 @@ function buildExtraSectionsForEdit(sectionId) {
                     input.id = inputId;
                 }
 
-                // --- ATTRIBUTES & LISTENERS ---
+                // --- THE CRITICAL "PARALLEL PATH" MEMORY INJECTION ---
+                // 1. Check if we have data from an Edit Link (originalData)
+                if (typeof originalData !== 'undefined' && originalData && originalData[fieldId] !== undefined) {
+                    input.value = originalData[fieldId];
+                } 
+                // 2. Otherwise check if we have data from a "Back Button" click (mersTempData)
+                else if (mersTempData[inputId]) {
+                    input.value = mersTempData[inputId];
+                }
 
-                
                 input.dataset.mandatory = isMandatory;                  
-                if (mersTempData[inputId]) input.value = mersTempData[inputId];
-
-   
-input.onchange = function() {
-                    // Check validation using a cleaned ID (no 'extra_') to match Firebase
+                
+                input.onchange = function() {
                     if (validateField(this.id.replace('extra_', ''), this.value, rule.field_validation) === false) {
-                        return; // This STOPS the code and prevents jumping
+                        return; 
                     }
-                    // Only if valid, record the data and move to the next question
                     handleFieldChange(this, rule);
                 };
-
-              
-
-              //  input.onchange = function() {
-              //      handleFieldChange(this, rule);
-            //    };
 
                 input.oninput = function() {
                     updateButtonState(); 
@@ -1479,23 +1382,22 @@ input.onchange = function() {
             backBtn.onclick = (targetSectionNumber === "Section3") 
                 ? () => buildExtraSections('Section2') 
                 : () => { 
-                    document.getElementById('Section2').style.display = 'none'; 
-                  
-                    document.getElementById('Section1').style.display = 'block'; 
+                    document.getElementById('Section2').style.display = 'none';  
+                    document.getElementById('Section1').style.display = 'block';  
                    };
         }
 
         actionBtn.innerText = (targetSectionNumber === "Section2") ? "PROCEED TO TRAVEL DETAILS" : "CONFIRM & REGISTER";
 
-        // --- THE SECTION 2 SPECIAL KICK ---
-        // We wait 800ms to allow VLOOKUP/Firebase data to populate 
-        // before checking if the button should be unlocked.
+        // --- AUTOMATIC UNLOCK ---
         setTimeout(() => {
             updateButtonState();
         }, 800);
     }
 }
 
+ 
+  
 async function handleFieldChange(inputElement, rule) {
     const val = inputElement.value;
     const fId = rule.field_id;
