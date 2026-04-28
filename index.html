@@ -1176,46 +1176,33 @@ async function processFinalDeletion(regId) {
     }
 }
 
-
-
-  function buildExtraSections(sectionId) {
-    console.log("MERS: Attempting to build section: " + sectionId);
+function buildExtraSections(sectionId) {
+    console.log("MERS: Safety Build for: " + sectionId);
     
-    // 1. FIND THE SECTION DATA
-    // We try to find by ID, but if that fails, we take the FIRST section in the list
-    let sectionData = moreSections.find(s => s.section_id === sectionId);
-    
-    if (!sectionData && moreSections.length > 0) {
-        console.warn("MERS: ID '" + sectionId + "' not found. Falling back to first available section.");
-        sectionData = moreSections[0]; 
+    // 1. DATA SAFETY CHECK
+    if (!moreSections || moreSections.length === 0) {
+        console.error("MERS: No sections loaded. Retrying in 500ms...");
+        setTimeout(() => buildExtraSections(sectionId), 500);
+        return;
     }
 
+    const sectionData = moreSections.find(s => s.section_id === sectionId);
     if (!sectionData || !sectionData.fields) {
-        console.error("MERS CRITICAL: No Section Data or Fields found!");
+        console.error("MERS: Section " + sectionId + " not found.");
         return;
     }
 
-    // 2. PREPARE THE CONTAINER
+    // 2. CLEAN & BUILD
     const container = document.getElementById('dynamic-sections-content');
-    if (!container) {
-        console.error("MERS: 'dynamic-sections-content' div missing from HTML!");
-        return;
-    }
+    if (!container) return;
     container.innerHTML = ""; 
 
-    // 3. SET TITLE
     const titleEl = document.getElementById('title-Section2');
-    if (titleEl) {
-        titleEl.innerText = sectionData.section_title || "Additional Details";
-    }
+    if (titleEl) titleEl.innerText = sectionData.section_title || "";
 
-    // 4. BUILD THE FIELDS
     sectionData.fields.forEach(fieldId => {
         const rule = fieldRules.find(r => r.field_id === fieldId);
-        if (!rule) {
-            console.warn("MERS: No rule found for field: " + fieldId);
-            return;
-        }
+        if (!rule) return;
 
         const fieldWrapper = document.createElement('div');
         fieldWrapper.className = "input-group";
@@ -1227,7 +1214,7 @@ async function processFinalDeletion(regId) {
         let input;
         if (rule.field_type === "dropdown") {
             input = document.createElement('select');
-            const options = rule.validation_rule ? rule.validation_rule.split(',') : ["Select"];
+            const options = rule.validation_rule ? rule.validation_rule.split(',') : [];
             options.forEach(opt => {
                 const o = document.createElement('option');
                 o.value = opt.trim();
@@ -1242,10 +1229,9 @@ async function processFinalDeletion(regId) {
         input.id = `extra_${fieldId}`;
         input.className = "mers-input";
 
-        // RESTORE OLD VALUE IF IT EXISTS
+        // RESTORE OLD VALUE (Only if it exists)
         if (originalData && originalData[fieldId]) {
             input.value = originalData[fieldId];
-            console.log("MERS: Restored value for " + fieldId);
         }
 
         input.onchange = () => { if(typeof updateButtonState === 'function') updateButtonState(); };
@@ -1253,17 +1239,18 @@ async function processFinalDeletion(regId) {
         container.appendChild(fieldWrapper);
     });
 
-    // 5. SWITCH VIEWS
-    const s1 = document.getElementById('Section1');
-    const s2 = document.getElementById('Section2');
-    if (s1) s1.style.display = 'none';
-    if (s2) s2.style.display = 'block';
-    
+    // 3. SHOW SCREEN
+    document.getElementById('Section1').style.display = 'none';
+    document.getElementById('Section2').style.display = 'block';
     if(typeof updateButtonState === 'function') updateButtonState();
 }
 
+
   
-  async function oldbuildExtraSections(targetSectionNumber) {
+
+ 
+  
+  async function buildExtraSections(targetSectionNumber) {
     if (!targetSectionNumber) targetSectionNumber = "Section2";
 
     const container = document.getElementById('dynamic-sections-content');
