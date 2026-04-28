@@ -1064,28 +1064,15 @@ function manualFormatCheck() {
   }
 }
 
+
 async function loadExistingData(regId, mode) {
     try {
-        console.log("MERS: Fetching data for RegID: " + regId);
+        console.log("MERS: Fetching data for " + regId);
         const snap = await db.ref('registrations/' + regId).once('value');
         const data = snap.val();
 
-        if (data) {
-            const snapshotData = {
-                "mobile": data.mobile || "",
-                "email": data.email || "",
-                "pincode": data.pincode || "",
-                "zone": data.zone || "",
-                "district": data.district || "",
-                "centre": data.centre || ""
-            };
-            const snapshotEl = document.getElementById('userSnapshot');
-            if (snapshotEl) snapshotEl.value = JSON.stringify(snapshotData);
-        }
-
         if (!data) {
             alert("Registration not found.");
-            location.href = window.location.pathname + "?id=" + eventId;
             return;
         }
 
@@ -1093,52 +1080,44 @@ async function loadExistingData(regId, mode) {
         profileSnapshotForScript = encodeURIComponent(JSON.stringify(data));
 
         if (mode === 'edit') {
+            // 1. Draw the Section 1 HTML first
             renderForm(); 
 
-            // A. Hybrid Data Fill
+            // 2. FILL THE DATA (Surgical approach for Section 1)
+            // We use the 'inp-' prefix because that is what renderForm creates
             fieldRules.forEach(r => {
-                const el = document.getElementById(`inp-${r.field_id}`) || 
-                           document.getElementById(`extra_${r.field_id}`) || 
-                           document.getElementById(r.field_id);
-                if (el) {
-                    if (data[r.field_id]) el.value = data[r.field_id];
-                    if (r.field_id === 'full_name') el.disabled = true; 
+                const el = document.getElementById(`inp-${r.field_id}`);
+                if (el && data[r.field_id]) {
+                    el.value = data[r.field_id];
+                    console.log("MERS: Loaded value into " + r.field_id);
+                    
+                    // Lock Name and Email for security
+                    if (r.field_id === 'full_name' || r.field_id === 'email') {
+                        el.disabled = true;
+                    }
                 }
             });
 
-            // B. Visual Transition
+            // 3. SHOW THE SCREEN
             document.getElementById('loading-init').style.display = 'none';
             document.getElementById('form-content').style.display = 'block';
 
-            // C. THE CORRECT BUTTON UNLOCK (Surgical Fix)
-            // Show the container that holds the "Details are Okay" button
-            const startBtnsContainer = document.getElementById('btns-start');
-            if (startBtnsContainer) {
-                startBtnsContainer.style.display = 'flex';
+            // 4. SHOW THE NAVIGATION BUTTONS
+            const startBtns = document.getElementById('btns-start');
+            if (startBtns) {
+                startBtns.style.display = 'flex';
             }
 
-            // Unlock the specific button you have in your HTML
             const regBtn = document.getElementById('btn-register');
             if (regBtn) {
                 regBtn.disabled = false;
                 regBtn.style.opacity = "1";
-                regBtn.style.cursor = "pointer";
-                // Keep the text exactly as it is in your HTML
                 regBtn.innerText = "DETAILS ARE OKAY, CLICK HERE TO PROCEED FURTHER";
             }
 
-            enableEditMode(); 
+            // 5. Set the mode
+            if (typeof enableEditMode === "function") enableEditMode();
 
-        } else if (mode === 'delete') {
-            document.getElementById('loading-init').style.display = 'none';
-            document.getElementById('form-content').style.display = 'block';
-            const regDate = data.timestamp ? data.timestamp.split(' ')[0] : 'N/A';
-            document.getElementById('form-content').innerHTML += `
-                <div style="background: #fff3f3; border: 2px solid #d32f2f; padding: 20px; border-radius: 12px; text-align: center; margin-top: 20px;">
-                    <h3 style="color: #d32f2f;">Confirm Deletion</h3>
-                    <p><strong>Name:</strong> ${data.full_name}<br><strong>Reg ID:</strong> ${regId}</p>
-                    <button class="primary-btn" style="background: #d32f2f;" onclick="processFinalDeletion('${regId}')">Yes, please delete</button>
-                </div>`;
         }
     } catch (e) {
         console.error("MERS Load Error:", e);
