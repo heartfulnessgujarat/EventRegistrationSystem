@@ -1065,7 +1065,7 @@ function manualFormatCheck() {
 }
 
 
-async function loadExistingData(regId, mode) {
+  async function loadExistingData(regId, mode) {
     try {
         console.log("MERS: Fetching data for " + regId);
         const snap = await db.ref('registrations/' + regId).once('value');
@@ -1124,7 +1124,6 @@ async function loadExistingData(regId, mode) {
         document.getElementById('loading-init').style.display = 'none';
     }
 }
-
 
 
 
