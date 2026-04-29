@@ -1064,69 +1064,85 @@ function manualFormatCheck() {
   }
 }
 
-async function loadExistingData(regId, mode) {
-    console.log(`[DIAGNOSTIC] Delete Mode Engagement: ${regId}`);
+
+  async function loadExistingData(regId, mode) {
+    console.log(`[MERS-SYNC] Loading ID: ${regId} | Mode: ${mode}`);
     try {
-        // 1. Fetch Data
+        // 1. DATA FETCHING
         let snap = await db.ref('masters/Master_Internal_DB/' + regId).once('value');
         let data = snap.val();
 
         if (!data) {
+            console.log("MERS: Checking root registrations...");
             snap = await db.ref('registrations/' + regId).once('value');
             data = snap.val();
         }
 
+        // 2. CUSTOM "NOT FOUND" SCREEN (Replaces Browser Alert)
         if (!data) {
-            alert("Registration not found.");
-            return;
-        }
-
-        // --- BRANCH: DELETE MODE ---
-        if (mode === 'delete') {
-            // Stop the loading spinner
             document.getElementById('loading-init').style.display = 'none';
-            
-            // Wipe the main container and build the STATIC confirmation window
             const mainContainer = document.getElementById('form-content');
             mainContainer.style.display = 'block';
             mainContainer.innerHTML = `
-                <div style="max-width: 600px; margin: 40px auto; padding: 30px; border: 1px solid #ffccc7; background: #fff2f0; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); font-family: 'Segoe UI', Tahoma, sans-serif;">
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <span style="font-size: 50px;">⚠️</span>
-                        <h2 style="color: #cf1322; margin: 10px 0;">Cancel Registration?</h2>
-                        <p style="color: #595959;">Please review the details below before confirming cancellation.</p>
+                <div style="max-width: 650px; margin: 80px auto; padding: 40px; text-align: center; border: 1px solid #ddd; border-radius: 15px; font-family: 'Segoe UI', sans-serif; background: #fff;">
+                    <div style="font-size: 60px; margin-bottom: 20px;">🔍</div>
+                    <h2 style="color: #444;">Registration Not Found</h2>
+                    <p style="color: #666; font-size: 18px; line-height: 1.6;">
+                        We could not find your registration data.<br>
+                        It may have been deleted by you previously, or the link is expired.
+                    </p>
+                    <button onclick="window.location.href='index.html'" style="background: #202c60; color: white; border: none; padding: 12px 30px; border-radius: 6px; cursor: pointer; margin-top: 20px; font-weight: bold;">Return to Home</button>
+                </div>`;
+            return;
+        }
+
+        // --- BRANCH: DELETE MODE (Wider, Custom UI, No Browser Popups) ---
+        if (mode === 'delete') {
+            document.getElementById('loading-init').style.display = 'none';
+            const mainContainer = document.getElementById('form-content');
+            mainContainer.style.display = 'block';
+            
+            // Increased max-width to 800px to prevent text wrapping
+            mainContainer.innerHTML = `
+                <div style="max-width: 800px; margin: 40px auto; padding: 40px; border: 1px solid #ffccc7; background: #fff2f0; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); font-family: 'Segoe UI', Tahoma, sans-serif;">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <span style="font-size: 60px;">⚠️</span>
+                        <h2 style="color: #cf1322; margin: 15px 0; font-size: 28px;">Cancel Registration?</h2>
+                        <p style="color: #595959; font-size: 17px;">Please review your details carefully before confirming cancellation.</p>
                     </div>
                     
-                    <div style="background: white; padding: 20px; border-radius: 10px; border: 1px solid #f0f0f0; margin-bottom: 25px;">
-                        <table style="width: 100%; border-collapse: collapse; font-size: 15px;">
-                            <tr style="border-bottom: 1px solid #f5f5f5;"><td style="padding: 10px; font-weight: bold; color: #8c8c8c;">Name</td><td style="padding: 10px; color: #262626;">${data.full_name || data.name}</td></tr>
-                            <tr style="border-bottom: 1px solid #f5f5f5;"><td style="padding: 10px; font-weight: bold; color: #8c8c8c;">Event ID</td><td style="padding: 10px; color: #262626;">${data.event_id || 'EVT001'}</td></tr>
-                            <tr style="border-bottom: 1px solid #f5f5f5;"><td style="padding: 10px; font-weight: bold; color: #8c8c8c;">Reg ID</td><td style="padding: 10px; font-size: 13px; color: #262626;">${regId}</td></tr>
-                            <tr style="border-bottom: 1px solid #f5f5f5;"><td style="padding: 10px; font-weight: bold; color: #8c8c8c;">Status</td><td style="padding: 10px;"><span style="background: #fff7e6; color: #d46b08; border: 1px solid #ffd591; padding: 2px 8px; border-radius: 4px; font-size: 13px;">${data.registration_status || 'Active'}</span></td></tr>
-                            <tr><td style="padding: 10px; font-weight: bold; color: #8c8c8c;">Date</td><td style="padding: 10px; color: #262626;">${data.timestamp || 'N/A'}</td></tr>
+                    <div style="background: white; padding: 30px; border-radius: 12px; border: 1px solid #f0f0f0; margin-bottom: 30px;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 17px;">
+                            <tr style="border-bottom: 1px solid #f5f5f5;"><td style="padding: 12px; font-weight: bold; color: #8c8c8c; width: 150px;">Name</td><td style="padding: 12px; color: #262626;">${data.full_name || data.name}</td></tr>
+                            <tr style="border-bottom: 1px solid #f5f5f5;"><td style="padding: 12px; font-weight: bold; color: #8c8c8c;">Event ID</td><td style="padding: 12px; color: #262626;">${data.event_id || 'EVT001'}</td></tr>
+                            <tr style="border-bottom: 1px solid #f5f5f5;"><td style="padding: 12px; font-weight: bold; color: #8c8c8c;">Reg ID</td><td style="padding: 12px; font-size: 15px; color: #262626;"><code>${regId}</code></td></tr>
+                            <tr style="border-bottom: 1px solid #f5f5f5;"><td style="padding: 12px; font-weight: bold; color: #8c8c8c;">Status</td><td style="padding: 12px;"><span style="background: #fff7e6; color: #d46b08; border: 1px solid #ffd591; padding: 4px 12px; border-radius: 6px; font-size: 14px; font-weight: bold;">${data.registration_status || 'Active'}</span></td></tr>
+                            <tr><td style="padding: 12px; font-weight: bold; color: #8c8c8c;">Reg. Date</td><td style="padding: 12px; color: #262626;">${data.timestamp || 'N/A'}</td></tr>
                         </table>
                     </div>
 
-                    <div style="display: flex; gap: 15px; justify-content: center;">
-                        <button onclick="executeSurgicalDeletion('${regId}')" 
-                                style="background: #ff4d4f; color: white; border: none; padding: 12px 25px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.3s;">
+                    <div id="delete-action-area" style="display: flex; gap: 20px; justify-content: center;">
+                        <button onclick="confirmSurgicalDeletion('${regId}')" 
+                                style="background: #ff4d4f; color: white; border: none; padding: 15px 35px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px;">
                             Confirm Cancellation
                         </button>
                         <button onclick="window.location.href='about:blank'" 
-                                style="background: #d9d9d9; color: #595959; border: none; padding: 12px 25px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.3s;">
+                                style="background: #d9d9d9; color: #595959; border: none; padding: 15px 35px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px;">
                             Do not Cancel
                         </button>
                     </div>
                 </div>
             `;
-            return; // Exit early so no other form logic triggers
+            return;
         }
 
-        // --- BRANCH: EDIT MODE (Unchanged) ---
+        // --- BRANCH: EDIT MODE (Fully Restored & Forced Update) ---
         if (mode === 'edit') {
             originalData = data;
             profileSnapshotForScript = encodeURIComponent(JSON.stringify(data));
-            renderForm(); 
+            
+            renderForm(); // Builds Section 1
+
             fieldRules.forEach(r => {
                 const el = document.getElementById(`inp-${r.field_id}`);
                 if (el && data[r.field_id] !== undefined) {
@@ -1137,10 +1153,26 @@ async function loadExistingData(regId, mode) {
                     }
                 }
             });
+
             document.getElementById('loading-init').style.display = 'none';
             document.getElementById('form-content').style.display = 'block';
-            if (document.getElementById('btns-start')) document.getElementById('btns-start').style.display = 'flex';
-            if (typeof updateButtonState === 'function') updateButtonState();
+
+            // Ensure the button container is visible
+            const startBtnsContainer = document.getElementById('btns-start');
+            if (startBtnsContainer) startBtnsContainer.style.display = 'flex';
+
+            // RESTORATION KEY: Manually force the button state and text
+            const regBtn = document.getElementById('btn-register');
+            if (regBtn) {
+                regBtn.disabled = false;
+                regBtn.style.opacity = "1";
+                regBtn.innerText = "DETAILS ARE OKAY, CLICK HERE TO PROCEED FURTHER";
+            }
+
+            // Trigger the internal validation logic to ensure the "Edit" logic recognizes the data
+            if (typeof updateButtonState === 'function') {
+                setTimeout(() => { updateButtonState(); }, 300);
+            }
         }
 
     } catch (e) {
@@ -1148,6 +1180,41 @@ async function loadExistingData(regId, mode) {
     }
 }
 
+// Custom In-Page Confirmation (No Browser Popups)
+function confirmSurgicalDeletion(regId) {
+    const area = document.getElementById('delete-action-area');
+    area.innerHTML = `
+        <div style="text-align: center; width: 100%;">
+            <p style="color: #cf1322; font-weight: bold; margin-bottom: 15px;">ARE YOU ABSOLUTELY SURE? THIS CANNOT BE UNDONE.</p>
+            <div style="display: flex; gap: 15px; justify-content: center;">
+                <button onclick="executeSurgicalDeletion('${regId}')" style="background: #cf1322; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold;">Yes, Delete Permanently</button>
+                <button onclick="location.reload()" style="background: #595959; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">Go Back</button>
+            </div>
+        </div>
+    `;
+}
+
+function executeSurgicalDeletion(regId) {
+    const updates = {};
+    updates[`registrations/${regId}`] = null;
+    updates[`masters/Master_Internal_DB/${regId}`] = null;
+
+    db.ref().update(updates).then(() => {
+        document.body.innerHTML = `
+            <div style='text-align:center; padding:100px 20px; font-family: sans-serif;'>
+                <div style="font-size: 60px; margin-bottom: 20px;">✅</div>
+                <h2 style='color: #52c41a;'>Registration Deleted</h2>
+                <p style="font-size: 18px; color: #595959;">The record <strong>${regId}</strong> has been removed.</p>
+                <p style="color: #8c8c8c;">You may now close this tab.</p>
+            </div>`;
+    }).catch(err => {
+        alert("Error: " + err.message);
+    });
+}
+
+
+
+  
 function executeSurgicalDeletion(regId) {
     // A quick browser-level "Last Chance"
     if (!confirm("Are you absolutely sure? This cannot be undone.")) return;
