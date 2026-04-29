@@ -1245,8 +1245,165 @@ function buildExtraSections(sectionId) {
     if(typeof updateButtonState === 'function') updateButtonState();
 }
 
-
 async function buildExtraSections(targetSectionNumber) {
+    if (!targetSectionNumber) targetSectionNumber = "Section2";
+
+    // --- DIAGNOSTIC X-RAY START ---
+    console.log(`--- MERS DIAGNOSTIC X-RAY [${targetSectionNumber}] ---`);
+    console.log("1. OriginalData available:", !!originalData);
+    if (originalData) console.log("2. Keys in OriginalData:", Object.keys(originalData));
+    // --- DIAGNOSTIC X-RAY END ---
+
+    const container = document.getElementById('dynamic-sections-content');
+    const titleHeader = document.getElementById('title-Section2');
+    const actionBtn = document.getElementById('btn-next-action'); 
+    const backBtn = document.getElementById('btn-back-to-profile');
+
+    // --- 1. SYNC CURRENT DATA ---
+    if (targetSectionNumber === "Section2") {
+        if (originalData) {
+            Object.keys(originalData).forEach(key => {
+                const inputEl = document.getElementById(`inp-${key}`);
+                if (inputEl) originalData[key] = inputEl.value;
+            });
+        }
+    }
+
+    const currentInputs = document.querySelectorAll('[id^="extra_"]');
+    currentInputs.forEach(input => { if (input.value) mersTempData[input.id] = input.value; });
+
+    container.innerHTML = ""; 
+    actionBtn.disabled = true;
+
+    const sectionObj = moreSections.find(s => s.section_number === targetSectionNumber);
+    
+    if (sectionObj) {
+        titleHeader.innerText = sectionObj.section_name || "Details";
+
+        const systemKeys = ['section_name', 'section_number', 'section_id', 'id'];
+        const fieldKeys = Object.keys(sectionObj).filter(key => 
+            !systemKeys.includes(key) && sectionObj[key] && typeof sectionObj[key] === 'string'
+        ).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
+        
+        console.log(`MERS: Found ${fieldKeys.length} potential fields in ${targetSectionNumber}`);
+
+        for (const key of fieldKeys) {
+            const fieldId = sectionObj[key];
+            const rule = fieldRules.find(r => r.field_id === fieldId);
+            
+            if (rule) {
+                const fieldWrapper = document.createElement('div');
+                fieldWrapper.className = 'form-group';
+                fieldWrapper.id = `wrapper_extra_${fieldId}`; 
+                fieldWrapper.style.marginBottom = "20px";
+                fieldWrapper.style.textAlign = "left";
+
+                // --- SMART PRE-FILL CHECK ---
+                const inputId = `extra_${fieldId}`;
+                let valToSet = "";
+                if (originalData) {
+                    valToSet = originalData[fieldId] || originalData[inputId] || "";
+                }
+                // Fallback to temp memory (Back Button)
+                if (!valToSet && mersTempData[inputId]) {
+                    valToSet = mersTempData[inputId];
+                }
+
+                // --- THE WATERFALL FIX ---
+                // If there is a value (Edit Mode or Back button), FORCE it to show.
+                if (valToSet && valToSet !== "") {
+                    fieldWrapper.style.display = 'block';
+                    console.log(`MERS: [SHOW] ${fieldId} because it has value: ${valToSet}`);
+                } else {
+                    // Otherwise, follow the rule from the Spreadsheet
+                    fieldWrapper.style.display = (rule.initial_state === "Hidden") ? 'none' : 'block';
+                    console.log(`MERS: [RULE] ${fieldId} visibility set by Initial State: ${rule.initial_state}`);
+                }
+
+                const isMandatory = (rule.field_validation && rule.field_validation !== "NULL" && rule.field_validation !== "N/A");
+                const label = document.createElement('label');
+                label.innerHTML = `<strong>${rule.display_label || fieldId} ${isMandatory ? '<span style="color:red">*</span>' : ''}</strong>`;
+                fieldWrapper.appendChild(label);
+
+                let input;
+                if (rule.edit_behavior === 'Editable_lookup_Dropdown') {
+                    input = document.createElement('select');
+                    input.className = 'form-control';
+                    input.id = inputId;
+                    const placeholder = document.createElement('option');
+                    placeholder.text = "-- Select --"; placeholder.value = "";
+                    input.appendChild(placeholder);
+
+                    if (rule.lookup_tab && rule.lookup_column) {
+                        try {
+                            const lookupSnap = await db.ref(`masters/${rule.lookup_tab}`).once('value');
+                            const lookupData = lookupSnap.val();
+                            if (lookupData) {
+                                const choices = Object.values(lookupData).map(row => row[rule.lookup_column]).filter(v => v);
+                                [...new Set(choices)].forEach(choice => {
+                                    const opt = document.createElement('option');
+                                    opt.value = choice; opt.text = choice;
+                                    input.appendChild(opt);
+                                });
+                            }
+                        } catch (e) { console.error("Lookup Error", e); }
+                    }
+                } else {
+                    input = document.createElement('input');
+                    const fieldLower = fieldId.toLowerCase();
+                    input.type = fieldLower.includes('date') ? 'date' : (fieldLower.includes('time') ? 'time' : 'text');
+                    input.className = 'form-control';
+                    input.id = inputId;
+                }
+
+                // Apply value and metadata
+                input.value = valToSet;
+                input.dataset.mandatory = isMandatory;                  
+                
+                input.onchange = function() {
+                    if (typeof validateField === 'function') {
+                        if (validateField(this.id.replace('extra_', ''), this.value, rule.field_validation) === false) return;
+                    }
+                    handleFieldChange(this, rule);
+                };
+
+                input.oninput = function() { updateButtonState(); };
+
+                fieldWrapper.appendChild(input);
+                container.appendChild(fieldWrapper);
+            }
+        }
+
+        actionBtn.onclick = function() {
+            if (targetSectionNumber === "Section2") buildExtraSections('Section3');
+            else submitData();
+        };
+
+        if (backBtn) {
+            backBtn.onclick = (targetSectionNumber === "Section3") 
+                ? () => buildExtraSections('Section2') 
+                : () => { 
+                    document.getElementById('Section2').style.display = 'none';  
+                    document.getElementById('Section1').style.display = 'block';  
+                };
+        }
+
+        actionBtn.innerText = (targetSectionNumber === "Section2") ? "PROCEED TO TRAVEL DETAILS" : "CONFIRM & REGISTER";
+        setTimeout(() => { updateButtonState(); }, 800);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+  
+async function oldbuildExtraSections(targetSectionNumber) {
     // --- DIAGNOSTIC START ---
     console.log("--- MERS DIAGNOSTIC X-RAY [" + targetSectionNumber + "] ---");
     console.log("1. OriginalData available:", !!originalData);
