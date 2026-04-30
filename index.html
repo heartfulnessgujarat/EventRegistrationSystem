@@ -1079,9 +1079,10 @@ function manualFormatCheck() {
   }
 }
 
+
   async function loadExistingData(regId, mode) {
     try {
-        // 1. Fetch data (Back to stable logic)
+        // 1. Fetch data (Firebase Logic)
         const [delSnap, masterSnap, regSnap] = await Promise.all([
             db.ref('deleted_registrations/' + regId).once('value'),
             db.ref('masters/Master_Internal_DB/' + regId).once('value'),
@@ -1092,60 +1093,78 @@ function manualFormatCheck() {
         let activeData = masterSnap.val() || regSnap.val();
 
         // --- THE "CLEAN" UI RESET ---
-        // We do this directly so no 'hideLoading is not defined' error can happen.
         if (document.getElementById('loading-init')) {
-            document.getElementById('loading-init').style.display = 'none';
+            document.getElementById('loading-init').style.display = 'none';[cite: 1]
         }
 
-        // PATH A: ARCHIVE
-        if (deletedData) {
-            const mainContainer = document.getElementById('form-content');
-            mainContainer.style.display = 'block';
-            mainContainer.innerHTML = `<div style="text-align:center; padding:40px;"><h2>Registration Deleted</h2><p>Deleted on: ${deletedData.deleted_at}</p></div>`;
+        const mainContainer = document.getElementById('form-content');[cite: 1]
+        if (!mainContainer) {
+            console.error("Critical Error: 'form-content' element not found in HTML.");[cite: 1]
             return;
         }
 
-        // PATH B: DELETE (Restored from stable logic)
+        // PATH A: ARCHIVE (Already Deleted)
+        if (deletedData) {
+            mainContainer.style.display = 'block';[cite: 1]
+            mainContainer.innerHTML = `
+                <div style="text-align:center; padding:40px; border: 1px solid #ccc; border-radius: 8px;">
+                    <h2 style="color: #d32f2f;">Registration Deleted</h2>
+                    <p>This record was removed on: <strong>${deletedData.deleted_at}</strong></p>
+                    <p>If you believe this is an error, please contact the administrator.</p>
+                </div>`;[cite: 1]
+            return;
+        }
+
+        // PATH B: DELETE 
         if (mode === 'delete' && activeData) {
-            document.getElementById('form-content').style.display = 'block'; 
-            renderDeleteInterface(regId, activeData); 
+            mainContainer.style.display = 'block';[cite: 1]
+            renderDeleteInterface(regId, activeData);[cite: 1]
             return; 
         }
 
-        // PATH C: EDIT (Restored from stable logic)
+        // PATH C: EDIT 
         if (mode === 'edit' && activeData) {
             originalData = activeData;
-            renderForm(); 
+            renderForm();[cite: 1]
 
             fieldRules.forEach(r => {
-                const el = document.getElementById(`inp-${r.field_id}`);
+                const el = document.getElementById(`inp-${r.field_id}`);[cite: 1]
                 if (el && activeData[r.field_id] !== undefined) {
-                    el.value = activeData[r.field_id];
+                    el.value = activeData[r.field_id];[cite: 1]
                     if (['full_name', 'mobile', 'email'].includes(r.field_id)) {
-                        el.disabled = true;
+                        el.disabled = true;[cite: 1]
                     }
                 }
             });
 
-            document.getElementById('form-content').style.display = 'block';
+            mainContainer.style.display = 'block';[cite: 1]
             
-            // Re-apply our "Ideal Screen" button logic
-            const regBtn = document.getElementById('btn-register');
+            const regBtn = document.getElementById('btn-register');[cite: 1]
             if (regBtn) {
-                regBtn.disabled = false;
-                regBtn.innerText = "DETAILS ARE OKAY, CLICK HERE TO PROCEED FURTHER";
+                regBtn.disabled = false;[cite: 1]
+                regBtn.innerText = "DETAILS ARE OKAY, CLICK HERE TO PROCEED FURTHER";[cite: 1]
             }
             return;
         }
 
+        // --- THE SAFETY NET (Action for Point 3) ---
+        // If the code reaches this point, it means no data was found in any database path.
+        mainContainer.style.display = 'block';[cite: 1]
+        mainContainer.innerHTML = `
+            <div style="text-align:center; padding:40px; background-color: #fff3cd; border: 1px solid #ffeeba;">
+                <h2 style="color: #856404;">No Record Found</h2>
+                <p>We couldn't find a registration for ID: <strong>${regId}</strong></p>
+                <p>Please double-check your link or register as a new user.</p>
+            </div>`;[cite: 1]
+
     } catch (e) { 
-        console.error("MERS Restore Error:", e);
-        if (document.getElementById('loading-init')) document.getElementById('loading-init').style.display = 'none';
+        console.error("MERS Restore Error:", e);[cite: 1]
+        if (document.getElementById('loading-init')) {
+            document.getElementById('loading-init').style.display = 'none';[cite: 1]
+        }
+        alert("A technical error occurred while loading your data. Please refresh the page.");[cite: 1]
     }
 }
-
-
-
   
 // THE INTEGRITY SAVE FUNCTION
 async function updateRegistrationWithIntegrity() {
