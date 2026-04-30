@@ -1393,6 +1393,42 @@ function showSuccessScreen() {
 }
 
 
+// --- NEW UTILITY FUNCTION ---
+function syncSection1Data() {
+    console.log("MERS: Manually syncing Section 1 to Temporary State...");
+    
+    const getVal = (id) => {
+        const el = document.getElementById(id);
+        return el ? el.value.trim() : "";
+    };
+
+    const freshSection1 = {
+        full_name: getVal('full_name'),
+        email: getVal('email'),
+        mobile: getVal('mobile'),
+        organization: getVal('organization'),
+        designation: getVal('designation'),
+        pincode: getVal('pincode'),
+        full_address: getVal('full_address')
+    };
+
+    if (typeof mersTempData !== 'undefined') {
+        Object.assign(mersTempData, freshSection1);
+    }
+    
+    if (typeof originalData !== 'undefined') {
+        Object.assign(originalData, freshSection1);
+    }
+    
+    console.log("MERS: Sync Complete:", freshSection1);
+}
+
+
+
+
+
+  
+
 // ==========================================
 // 1. SECTION TRANSITION LOGIC (CONSOLIDATED)
 // ==========================================
