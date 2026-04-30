@@ -582,6 +582,7 @@ const snap = await db.ref('masters/' + lookupTab).once('value');
 }
 
 
+
 function selectParticipant(p) {
   // --- MERS CRITICAL UPDATE: LOCK NAME INTO MEMORY ---
   // This ensures the "Blocked Package" data is saved even if the input is disabled.
@@ -607,34 +608,36 @@ function selectParticipant(p) {
       
       // UI: Handle Container Visibility (Section 1)
       if (cont) {
-        cont.style.display = (r.initial_state === 'Hidden') ? 'none' : 'block';[cite: 1]
+        cont.style.display = (r.initial_state === 'Hidden') ? 'none' : 'block';
       }
       
       // UI: Block the field and hide the Edit link
-      el.disabled = true;[cite: 1]
+      el.disabled = true;
       if (editLink) {
-        editLink.style.display = 'none';[cite: 1]
+        editLink.style.display = 'none';
       }
     }
   });
 
   // UI: Reset search results and show navigation buttons
   const resName = document.getElementById('res-full_name');
-  if (resName) resName.style.display = 'none';[cite: 1]
+  if (resName) resName.style.display = 'none';
   
   const btnsStart = document.getElementById('btns-start');
-  if (btnsStart) btnsStart.style.display = 'flex';[cite: 1]
+  if (btnsStart) btnsStart.style.display = 'flex';
   
   // Ensure the primary ID field is explicitly disabled
   const inpFullName = document.getElementById('inp-full_name');
-  if (inpFullName) inpFullName.disabled = true;[cite: 1]
+  if (inpFullName) inpFullName.disabled = true;
   
   // Trigger validation check to enable "DETAILS ARE OKAY"
   if (typeof checkAllValidations === 'function') {
-    checkAllValidations();[cite: 1]
+    checkAllValidations();
   }
 }
-  
+
+
+
 
 function selectLocation(l) {
   if (!l) return;
