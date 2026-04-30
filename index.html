@@ -861,7 +861,6 @@ async function handleSectionNavigation() {
 
 
 
-
 async function submitData() {
     console.log("%c [DIAGNOSTIC] submitData started! ", "background: #222; color: #bada55; font-size: 14px;");
 
@@ -869,14 +868,14 @@ async function submitData() {
         const urlParams = new URLSearchParams(window.location.search);
         const mode = (urlParams.get('mode') || 'new').toLowerCase();
         
-        // --- STEP 1: DEEP CAPTURE (THE FIX) ---
-        // We force-read the current screen values to ensure Master DB gets the updates
+        // --- STEP 1: DEEP CAPTURE ---
+        // Forces reading from the UI fields to ensure edited Section 1 data is captured
         const getFreshVal = (id) => {
             const el = document.getElementById(id);
             if (el) {
                 return el.value ? el.value.trim() : ""; 
             }
-            return (originalData && originalData[id]) ? originalData[id] : "";
+            return (typeof originalData !== 'undefined' && originalData[id]) ? originalData[id] : "";
         };
 
         const updatedSection1 = {
@@ -891,7 +890,7 @@ async function submitData() {
         
         console.log("MERS: Data captured from screen for Master DB:", updatedSection1);
 
-        // Validation: If full_name is missing, we stop immediately to prevent corrupting the Master DB
+        // Validation: If full_name is missing, we stop to prevent database corruption
         if (!updatedSection1.full_name) {
             throw new Error("Critical Error: 'full_name' is missing. Cannot sync with Master Database.");
         }
@@ -900,25 +899,24 @@ async function submitData() {
         if (overlay) overlay.style.display = 'block';
 
         // --- STEP 2: UPDATE MASTER DATABASE FIRST ---
-        // This solves your requirement: Fix Master DB update first.
+        // This ensures the source of truth is updated before the registration
         const masterRef = db.ref('masters/Master_Internal_DB');
         const masterSearch = await masterRef.orderByChild('full_name').equalTo(updatedSection1.full_name).once('value');
         
         if (masterSearch.exists()) {
             const userKey = Object.keys(masterSearch.val())[0]; 
             console.log("MERS: Updating Master DB record at key:", userKey);
-            await masterRef.child(userKey).update(updatedSection1); // Updates phone, email, etc.
+            await masterRef.child(userKey).update(updatedSection1);
         } else {
-            console.warn("MERS: No matching Master record found. Creating new entry if required.");
-            // Optional: await masterRef.push(updatedSection1);
+            console.warn("MERS: No matching Master record found for sync.");
         }
 
         // --- STEP 3: CONSTRUCT FINAL REGISTRATION OBJECT ---
         let finalRegId = urlParams.get('regId');
         const formData = {
-            ...originalData,      // Start with old record
-            ...mersTempData,      // Add Sections 2/3
-            ...updatedSection1,   // Overwrite with the fresh Section 1 we just saved to Master
+            ...originalData,      // Start with original record
+            ...mersTempData,      // Add dynamic logistics data from Sections 2 & 3
+            ...updatedSection1,   // Force-overwrite with the fresh Section 1 data
             registration_id: finalRegId,
             registration_status: (mode === 'new') ? "CONFIRMED" : "EDITED ON " + new Date().toLocaleString()
         };
@@ -930,27 +928,42 @@ async function submitData() {
         console.log("%c [SUCCESS] Both Databases Updated! ", "color: white; background: green;");
         
         // --- STEP 5: PROCEED TO SUCCESS UI ---
-        // ... (Rest of your UI hiding logic)
+        // Safely hide all relevant sections
+        const elementsToHide = ['Section1', 'Section2', 'btn-next-action', 'btn-back-to-profile'];
+        elementsToHide.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
+        
+        const header = document.querySelector('.event-header');
+        if (header) header.style.display = 'none';
+
+        const contentDiv = document.getElementById('success-content');
+        if (contentDiv) {
+            contentDiv.innerHTML = (typeof eventConfig !== 'undefined' && eventConfig.final_html) 
+                ? eventConfig.final_html 
+                : "<h2>Registration Updated Successfully!</h2>";
+        }
+
+        const successScreen = document.getElementById('success-screen');
+        if (successScreen) successScreen.style.display = 'block';
+
+        if (overlay) overlay.style.display = 'none';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        // Trigger Email Script if available
+        if (typeof SCRIPT_URL !== 'undefined' && SCRIPT_URL) {
+            fetch(`${SCRIPT_URL}?action=sendEmail&regId=${finalRegId}&eventId=${eventId}`)
+                .catch(err => console.error("Email trigger failed:", err));
+        }
         
     } catch (error) {
         console.error("[DIAGNOSTIC CRASH]:", error);
         alert("Save Failed: " + error.message);
-        if (document.getElementById('processing-overlay')) document.getElementById('processing-overlay').style.display = 'none';
+        const overlay = document.getElementById('processing-overlay');
+        if (overlay) overlay.style.display = 'none';
     }
 }
-```[cite: 1]
-
-### **Why this fixes the "No Save" problem:**
-1.  **Forced Extraction:** `getFreshVal` ignores the `originalData` if there is a value on the screen[cite: 1]. This ensures that changes made during "Edit" mode are actually picked up.
-2.  **Master-First Priority:** By moving the `masterRef.child(userKey).update(updatedSection1)` to the very top of the save sequence, we ensure the Master Database is updated **before** anything else happens[cite: 1].
-3.  **The "Full Name" Anchor:** Since `full_name` is your unique key, the code now performs a strict search to find the correct entry in `Master_Internal_DB` and updates it specifically[cite: 1].
-
-**Does this sequence of "Master DB Update -> Registration DB Update" align with how you want the data to flow?**
-  
-
-
-
-
 
 
 
