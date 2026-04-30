@@ -1079,10 +1079,15 @@ function manualFormatCheck() {
   }
 }
 
-
 async function loadExistingData(regId, mode) {
     try {
-        // STEP 1: Fast Parallel Fetch (Checking Deleted first for Transparency)
+        // 1. IMMEDIATE UI CLEANUP: Stop the spinner for all background-check scenarios
+        const hideLoading = () => {
+            const loader = document.getElementById('loading-init');
+            if (loader) loader.style.display = 'none';
+        };
+
+        // 2. PARALLEL FETCH: Get everything at once for speed
         const [delSnap, masterSnap, regSnap] = await Promise.all([
             db.ref('deleted_registrations/' + regId).once('value'),
             db.ref('masters/Master_Internal_DB/' + regId).once('value'),
@@ -1090,11 +1095,12 @@ async function loadExistingData(regId, mode) {
         ]);
 
         const deletedData = delSnap.val();
-        let data = masterSnap.val() || regSnap.val();
+        let activeData = masterSnap.val() || regSnap.val();
 
-        // SCENARIO: Already Deleted (The "Transparency" Screen)
+        // --- PATH A: THE ARCHIVE (Transparency) ---
+        // We check this first. If it's deleted, we show the message and STOP.
         if (deletedData) {
-            document.getElementById('loading-init').style.display = 'none';
+            hideLoading();
             const mainContainer = document.getElementById('form-content');
             mainContainer.style.display = 'block';
             mainContainer.innerHTML = `
@@ -1108,36 +1114,31 @@ async function loadExistingData(regId, mode) {
                     </div>
                     <p style="color: #8c8c8c;">This link is no longer active.</p>
                 </div>`;
-            return;
+            return; // EXIT: Code below will never run
         }
 
-        if (!data) {
-            document.getElementById('loading-init').style.display = 'none';
-            document.getElementById('form-content').style.display = 'block';
-            document.getElementById('form-content').innerHTML = `<div style="text-align:center; padding:100px;"><h2>Registration Not Found</h2></div>`;
-            return;
+        // --- PATH B: ACTIVE DELETE MODE ---
+        // If mode is delete, we show the UI and STOP. We do NOT load form rules.
+        if (mode === 'delete' && activeData) {
+            hideLoading();
+            renderDeleteInterface(regId, activeData); // Uses your working delete UI
+            return; // EXIT: Code below will never run
         }
 
-        // SCENARIO: Delete Mode (Remains untouched and perfect)
-        if (mode === 'delete') {
-            renderDeleteInterface(regId, data);
-            return;
-        }
-
-        // SCENARIO: Edit Mode (Restoring the Ideal Screen)
-        if (mode === 'edit') {
-            originalData = data;
-            profileSnapshotForScript = encodeURIComponent(JSON.stringify(data));
+        // --- PATH C: EDIT MODE (The Integrity Path) ---
+        // This only runs if Path A and Path B were skipped.
+        if (mode === 'edit' && activeData) {
+            originalData = activeData;
+            profileSnapshotForScript = encodeURIComponent(JSON.stringify(activeData));
             
-            // Render the whole form architecture
+            // Now we allow the form to render because it is actually needed
             renderForm(); 
 
-            // FETCH ALL ANSWERS: Loop through every rule and fill the field
+            // Fill all previous answers from all sections
             fieldRules.forEach(r => {
                 const el = document.getElementById(`inp-${r.field_id}`);
-                if (el && data[r.field_id] !== undefined) {
-                    el.value = data[r.field_id];
-                    // Lock core identity fields
+                if (el && activeData[r.field_id] !== undefined) {
+                    el.value = activeData[r.field_id];
                     if (['full_name', 'mobile', 'email'].includes(r.field_id)) {
                         el.disabled = true;
                         el.style.background = "#f5f5f5";
@@ -1145,10 +1146,10 @@ async function loadExistingData(regId, mode) {
                 }
             });
 
-            document.getElementById('loading-init').style.display = 'none';
+            hideLoading();
             document.getElementById('form-content').style.display = 'block';
 
-            // FORCE IDEAL SCREEN BUTTONS (Screenshot _3)
+            // Show the "Ideal Screen" buttons (Screenshot _3)
             const btnArea = document.getElementById('btns-start');
             if (btnArea) {
                 btnArea.style.display = 'flex';
@@ -1159,15 +1160,23 @@ async function loadExistingData(regId, mode) {
             const regBtn = document.getElementById('btn-register');
             if (regBtn) {
                 regBtn.disabled = false;
-                regBtn.style.opacity = "1";
-                regBtn.style.background = "#1a237e"; // Deep Blue
+                regBtn.style.background = "#1a237e";
                 regBtn.innerText = "DETAILS ARE OKAY, CLICK HERE TO PROCEED FURTHER";
             }
             
-            // Ensure any "I want to edit" button logic is also initialized
             if(typeof updateButtonState === 'function') updateButtonState();
+            return;
         }
-    } catch (e) { console.error("MERS Load Error:", e); }
+
+        // FALLBACK: If record not found at all
+        hideLoading();
+        document.getElementById('form-content').style.display = 'block';
+        document.getElementById('form-content').innerHTML = `<div style="text-align:center; padding:100px;"><h2>Registration Not Found</h2></div>`;
+
+    } catch (e) { 
+        hideLoading();
+        console.error("MERS Load Error:", e); 
+    }
 }
 
 // THE INTEGRITY SAVE FUNCTION
