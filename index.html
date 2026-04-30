@@ -1412,12 +1412,22 @@ function showSuccessScreen() {
     }
 }
 
+
 // ==========================================
 // 1. SECTION TRANSITION LOGIC (CONSOLIDATED)
 // ==========================================
 
 function proceedToLogistics() {
     console.log("MERS: Transitioning to Section 2...");
+
+    // === SYNC BLOCK ===
+    // Sync Section 1 data before moving to ensure dynamic builders have the latest values
+    if (typeof syncSection1Data === "function") {
+        syncSection1Data();
+    } else {
+        console.warn("MERS: syncSection1Data function not found. Skipping sync.");
+    }
+    // ==================
 
     // UI Transitions
     const s1 = document.getElementById('Section1');
@@ -1442,8 +1452,13 @@ const backBtn = document.getElementById('btn-back-to-profile');
 if (backBtn) {
     backBtn.onclick = function() {
         console.log("MERS: Returning to Section 1...");
-        document.getElementById('Section2').style.display = 'none';
-        document.getElementById('Section1').style.display = 'block';
+        
+        const s2 = document.getElementById('Section2');
+        const s1 = document.getElementById('Section1');
+        
+        if (s2) s2.style.display = 'none';
+        if (s1) s1.style.display = 'block';
+        
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 }
@@ -1452,8 +1467,9 @@ if (backBtn) {
 // 2. SYSTEM INITIALIZATION
 // ==========================================
 
-// Ensure this is called only once at the end of your logic definitions
 
+
+// Ensure this is called only once at the end of your logic definitions
 
 
 
