@@ -1065,63 +1065,81 @@ function manualFormatCheck() {
 }
 
 
-async function loadExistingData(regId, mode) {
-    console.log(`[DIAGNOSTIC] loadExistingData started for ID: ${regId}`);
+async function loadExistingData(regId, eventId) {
+    console.log("🚀 MERS: Initiating secure data fetch for ID:", regId);
+    
+    // Explicit paths following MERS database structure[cite: 1, 2]
+    const paths = {
+        deleted: `deleted_registrations/${regId}`,
+        master: `masters/Master_Internal_DB/${regId}`,
+        active: `registrations/${regId}`
+    };
+
     try {
-        // PATH A: Check the Master Internal DB first
-        let snap = await db.ref('masters/Master_Internal_DB/' + regId).once('value');
-        let data = snap.val();
+        // Fetch all potential locations simultaneously
+        const [delSnap, masterSnap, activeSnap] = await Promise.all([
+            firebase.database().ref(paths.deleted).once('value'),
+            firebase.database().ref(paths.master).once('value'),
+            firebase.database().ref(paths.active).once('value')
+        ]);
 
-        // PATH B: If not found, check the root 'registrations' folder
-        if (!data) {
-            console.log("MERS: Not found in Master_Internal_DB, checking root registrations...");
-            snap = await db.ref('registrations/' + regId).once('value');
-            data = snap.val();
-        }
-
-        if (!data) {
-            console.error("MERS: Registration REALLY not found for ID: " + regId);
-            alert("Registration not found. Please ensure the ID is correct.");
-            return;
-        }
-
-        // --- SUCCESS: DATA FOUND ---
-        originalData = data;
-        profileSnapshotForScript = encodeURIComponent(JSON.stringify(data));
-
-        if (mode === 'edit') {
-            renderForm(); 
-
-            fieldRules.forEach(r => {
-                const el = document.getElementById(`inp-${r.field_id}`);
-                if (el && data[r.field_id] !== undefined) {
-                    el.value = data[r.field_id];
-                    if (['full_name', 'mobile', 'email'].includes(r.field_id)) {
-                        el.disabled = true;
-                        el.style.background = "#f9f9f9";
-                    }
-                }
-            });
-
-            document.getElementById('loading-init').style.display = 'none';
-            document.getElementById('form-content').style.display = 'block';
-
-            const startBtnsContainer = document.getElementById('btns-start');
-            if (startBtnsContainer) startBtnsContainer.style.display = 'flex';
-
-            const regBtn = document.getElementById('btn-register');
-            if (regBtn) {
-                regBtn.disabled = false;
-                regBtn.style.opacity = "1";
-                regBtn.innerText = "DETAILS ARE OKAY, CLICK HERE TO PROCEED FURTHER";
-            }
+        // 1. Check for previously cancelled records first[cite: 2]
+        if (delSnap.exists()) {
+            const delData = delSnap.val();
+            const delDate = delData.cancelled_at || delData.deleted_at || "N/A";
             
-            if (typeof updateButtonState === 'function') updateButtonState();
+            Swal.fire({
+                icon: 'warning',
+                title: 'Registration Cancelled',
+                html: `This record was cancelled on: <b>${delDate}</b>.<br>Edits are no longer permitted for this ID.`,
+                confirmButtonColor: '#d33', // Matches your Delete UI theme[cite: 2]
+                allowOutsideClick: false
+            });
+            return; 
         }
-    } catch (e) {
-        console.error("MERS Entry Error:", e);
+
+        // 2. Determine active record location[cite: 1, 2]
+        let data = masterSnap.val() || activeSnap.val();
+
+        if (data) {
+            mersTempData = { ...data }; 
+            originalData = { ...data }; // For change tracking in Section 2[cite: 2]
+
+            if (currentMode === 'delete') {
+                setupDeleteConfirmationUI(data); // Custom MERS Delete UI[cite: 2]
+            } else if (currentMode === 'edit') {
+                populateUIFields(data);
+                
+                // MERS Security: Never allow editing of primary keys[cite: 2]
+                const lockedFields = ['full_name', 'event_id'];
+                lockedFields.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        el.disabled = true;
+                        el.style.backgroundColor = "#e9ecef"; // Custom MERS "Locked" style[cite: 2]
+                    }
+                });
+            }
+        } else {
+            // 3. Fallback if ID is completely unknown[cite: 2]
+            Swal.fire({
+                icon: 'error',
+                title: 'Data Not Found',
+                text: 'We could not locate this registration in the MERS system.',
+                confirmButtonColor: '#3085d6'
+            });
+        }
+    } catch (error) {
+        console.error("❌ MERS Fetch Error:", error);
+        // Generic error that still avoids any third-party branding[cite: 2]
+        Swal.fire('System Error', 'Unable to connect to the database. Please try again.', 'error');
     }
 }
+
+
+
+
+
 
 
 
