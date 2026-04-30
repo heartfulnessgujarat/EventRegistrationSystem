@@ -894,7 +894,7 @@ async function handleSectionNavigation() {
     }
 }
 
-async function submitData() {
+  async function submitData() {
     console.log("%c [DIAGNOSTIC] submitData started! ", "background: #222; color: #bada55; font-size: 14px;");
 
     try {
@@ -913,7 +913,7 @@ async function submitData() {
                 val = mersTempData[id];
             }
             
-            // 3. Last resort: check original record data
+            // 3. Last resort: check original record data[cite: 1]
             if (!val && typeof originalData !== 'undefined' && originalData[id]) {
                 val = originalData[id];
             }
@@ -933,7 +933,7 @@ async function submitData() {
         
         console.log("MERS: Verified Data for Database Sync:", updatedSection1);
 
-        // Final safety check
+        // Final safety check[cite: 1]
         if (!updatedSection1.full_name) {
             throw new Error("Critical Error: 'full_name' is missing. Please ensure Section 1 is filled.");
         }
@@ -954,23 +954,42 @@ async function submitData() {
             await masterRef.push(updatedSection1);
         }
 
-        // --- STEP 3: CONSTRUCT FINAL REGISTRATION OBJECT ---
+        // --- STEP 3: CONSTRUCT FINAL REGISTRATION OBJECT & GENERATE ID ---
         let finalRegId = urlParams.get('regId');
+
+        // NEW: If ID is missing (New Registration), use your custom formula[cite: 1]
+        if (!finalRegId || mode === 'new') {
+            const now = new Date();
+            const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+            const day = String(now.getUTCDate()).padStart(2, '0');
+            const month = monthNames[now.getUTCMonth()];
+            const year = now.getUTCFullYear();
+            const timePart = `${String(now.getUTCHours()).padStart(2, '0')}${String(now.getUTCMinutes()).padStart(2, '0')}${String(now.getUTCSeconds()).padStart(2, '0')}${String(now.getUTCMilliseconds()).padStart(3, '0')}`;
+            
+            const eventIdParam = typeof eventId !== 'undefined' ? eventId : (urlParams.get('id') || "EVT");
+            const currentCount = (typeof totalRegistrations !== 'undefined') ? totalRegistrations : 0;
+            const paddedCount = String(currentCount).padStart(3, '0');
+
+            // Formula: EventID-REG-Day-Month-Year-Time-Counter[cite: 1]
+            finalRegId = `${eventIdParam}-REG-${day}-${month}-${year}-${timePart}-${paddedCount}`;
+        }
+
         const formData = {
             ...originalData,
             ...mersTempData,
             ...updatedSection1,
-            registration_id: finalRegId,
+            registration_id: finalRegId, // CRITICAL: This ensures the ID is no longer null
             registration_status: (mode === 'new') ? "CONFIRMED" : "EDITED ON " + new Date().toLocaleString()
         };
 
         // --- STEP 4: SAVE TO REGISTRATION DATABASE ---
-        console.log("MERS: Saving to Registrations path...");
+        console.log("MERS: Saving to path registrations/" + finalRegId);
         await db.ref('registrations/' + finalRegId).set(formData);
         
         console.log("%c [SUCCESS] Both Databases Updated! ", "color: white; background: green;");
         
         // --- STEP 5: PROCEED TO SUCCESS UI ---
+        // (This part remains unchanged to protect your success screen)[cite: 1]
         const elementsToHide = ['Section1', 'Section2', 'Section3', 'btn-next-action', 'btn-back-to-profile'];
         elementsToHide.forEach(id => {
             const el = document.getElementById(id);
@@ -993,6 +1012,7 @@ async function submitData() {
         if (overlay) overlay.style.display = 'none';
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
+        // Trigger Email
         if (typeof SCRIPT_URL !== 'undefined' && SCRIPT_URL) {
             const eventIdParam = typeof eventId !== 'undefined' ? eventId : urlParams.get('id');
             fetch(`${SCRIPT_URL}?action=sendEmail&regId=${finalRegId}&eventId=${eventIdParam}`)
@@ -1006,7 +1026,6 @@ async function submitData() {
         if (overlay) overlay.style.display = 'none';
     }
 }
-
   
 function manualFormatCheck() {
   const emailInput = document.getElementById('inp-email');
