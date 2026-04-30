@@ -870,12 +870,15 @@ async function submitData() {
         const mode = (urlParams.get('mode') || 'new').toLowerCase();
         const existingRegId = urlParams.get('regId');
 
-        document.getElementById('processing-overlay').style.display = 'block';
+        // UI LOCK - Safe check
+        const overlay = document.getElementById('processing-overlay');
+        if (overlay) overlay.style.display = 'block';
 
         let finalRegId = existingRegId;
         let finalTimestamp = originalData.timestamp || "";
         let statusMsg = "CONFIRMED";
 
+        // --- ID & CAPACITY LOGIC ---
         if (mode === 'new') {
             const capacityLimit = parseInt(eventConfig.hall_capacity || "0");
             const counterRef = db.ref('counters/' + eventId);
@@ -908,7 +911,7 @@ async function submitData() {
             statusMsg = "EDITED ON " + new Date().toLocaleString();
         }
 
-        // --- SAFE SECTION 1 REFRESH ---
+        // --- SAFE DATA REFRESH ---
         const getVal = (id) => {
             const el = document.getElementById(id);
             return el ? el.value : (originalData[id] || ""); 
@@ -935,8 +938,10 @@ async function submitData() {
             event_id: eventId
         };
 
+        // SAVE DATA
         await db.ref('registrations/' + finalRegId).set(formData);
 
+        // --- MASTER DB UPDATE ---
         const masterUpdateData = {
             pincode: formData.pincode || "",
             email: formData.email || "",
@@ -954,36 +959,54 @@ async function submitData() {
             await masterRef.child(userKey).update(masterUpdateData);
         }
       
-        const scriptUrl = SCRIPT_URL;
-        fetch(`${scriptUrl}?action=sendEmail&regId=${finalRegId}&eventId=${eventId}`)
-            .catch(err => console.error("Email trigger failed:", err));
+        // EMAIL TRIGGER
+        if (typeof SCRIPT_URL !== 'undefined') {
+            fetch(`${SCRIPT_URL}?action=sendEmail&regId=${finalRegId}&eventId=${eventId}`)
+                .catch(err => console.error("Email trigger failed:", err));
+        }
 
-        // --- FINAL UI SWAP ---
+        // --- FINAL UI SWAP (SAFE VERSION) ---
+        const hide = (id) => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        };
+
+        const hideQuery = (selector) => {
+            const el = document.querySelector(selector);
+            if (el) el.style.display = 'none';
+        };
+
+        hide('Section1');
+        hide('Section2');
+        hide('btn-next-action');
+        hide('btn-back-to-profile');
+        hideQuery('.event-header');
+
         const dynamicContent = document.getElementById('dynamic-sections-content');
-        const s1 = document.getElementById('Section1');
-        const s2 = document.getElementById('Section2');
-        
         if (dynamicContent) dynamicContent.innerHTML = ""; 
-        if (s1) s1.style.display = 'none';
-        if (s2) s2.style.display = 'none';
-        
-        document.querySelector('.event-header').style.display = 'none';
-        document.getElementById('btn-next-action').style.display = 'none';
-        document.getElementById('btn-back-to-profile').style.display = 'none';
-        document.getElementById('app').style.display = 'block';
+
+        const app = document.getElementById('app');
+        if (app) app.style.display = 'block';
 
         const contentDiv = document.getElementById('success-content');
-        if (contentDiv) contentDiv.innerHTML = eventConfig.final_html || "<h2>Registration Successful!</h2>";
+        if (contentDiv) {
+            contentDiv.innerHTML = eventConfig.final_html || "<h2>Registration Successful!</h2>";
+        }
 
-        document.getElementById('success-screen').style.display = 'block';
-        document.getElementById('processing-overlay').style.display = 'none';
+        const successScreen = document.getElementById('success-screen');
+        if (successScreen) successScreen.style.display = 'block';
+
+        if (overlay) overlay.style.display = 'none';
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
     } catch (error) {
         console.error("[DIAGNOSTIC CRASH]:", error);
-        document.getElementById('processing-overlay').style.display = 'none';
+        const overlay = document.getElementById('processing-overlay');
+        if (overlay) overlay.style.display = 'none';
     }
 }
+
+
 
 
    
