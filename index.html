@@ -858,11 +858,10 @@ async function handleSectionNavigation() {
         document.getElementById('app').style.display = 'block';
     }
 }
-  
-// 2. THE SACRED ENGINE: The April 10th logic, now firing at the very end
 
 
-async function submitData() {
+
+  async function submitData() {
     console.log("%c [DIAGNOSTIC] submitData started! ", "background: #222; color: #bada55; font-size: 14px;");
 
     try {
@@ -870,7 +869,13 @@ async function submitData() {
         const mode = (urlParams.get('mode') || 'new').toLowerCase();
         const existingRegId = urlParams.get('regId');
 
-        // UI LOCK - Safe check
+        // Helper to hide elements only if they exist
+        const safeHide = (id) => {
+            const el = document.getElementById(id) || document.querySelector(id);
+            if (el) el.style.display = 'none';
+        };
+
+        // UI LOCK
         const overlay = document.getElementById('processing-overlay');
         if (overlay) overlay.style.display = 'block';
 
@@ -965,22 +970,12 @@ async function submitData() {
                 .catch(err => console.error("Email trigger failed:", err));
         }
 
-        // --- FINAL UI SWAP (SAFE VERSION) ---
-        const hide = (id) => {
-            const el = document.getElementById(id);
-            if (el) el.style.display = 'none';
-        };
-
-        const hideQuery = (selector) => {
-            const el = document.querySelector(selector);
-            if (el) el.style.display = 'none';
-        };
-
-        hide('Section1');
-        hide('Section2');
-        hide('btn-next-action');
-        hide('btn-back-to-profile');
-        hideQuery('.event-header');
+        // --- CRASH-PROOF UI SWAP ---
+        safeHide('Section1');
+        safeHide('Section2');
+        safeHide('btn-next-action');
+        safeHide('btn-back-to-profile');
+        safeHide('.event-header');
 
         const dynamicContent = document.getElementById('dynamic-sections-content');
         if (dynamicContent) dynamicContent.innerHTML = ""; 
@@ -1005,6 +1000,14 @@ async function submitData() {
         if (overlay) overlay.style.display = 'none';
     }
 }
+
+
+
+
+
+
+
+
 
 
 
