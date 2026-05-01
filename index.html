@@ -1067,25 +1067,45 @@ function manualFormatCheck() {
 async function loadExistingData(regId, mode) {
     console.log(`[DIAGNOSTIC] loadExistingData started for ID: ${regId}`);
     try {
-        // PATH A: Check the Master Internal DB first
+        const urlParams = new URLSearchParams(window.location.search);
+        const eventIdParam = urlParams.get('id') || "EVT001"; // Fetch current event ID
+
+        // PATH A: Check the Master Internal DB (This uses unique push keys)
         let snap = await db.ref('masters/Master_Internal_DB/' + regId).once('value');
         let data = snap.val();
 
-        // PATH B: If not found, check the root 'registrations' folder
+        // PATH B: Check the Event-Specific registrations folder (MERS FOLDER LOGIC)
         if (!data) {
-            console.log("MERS: Not found in Master_Internal_DB, checking root registrations...");
+            console.log(`MERS: Checking folder: registrations/${eventIdParam}/${regId}`);
+            snap = await db.ref('registrations/' + eventIdParam + '/' + regId).once('value');
+            data = snap.val();
+        }
+
+        // PATH C: FALLBACK (Check root registrations just in case of old legacy data)
+        if (!data) {
+            console.log("MERS: Checking root registrations fallback...");
             snap = await db.ref('registrations/' + regId).once('value');
             data = snap.val();
         }
 
         if (!data) {
             console.error("MERS: Registration REALLY not found for ID: " + regId);
-            alert("Registration not found. Please ensure the ID is correct.");
+            // Professional UI Error instead of a simple alert
+            const initLoading = document.getElementById('loading-init');
+            if (initLoading) {
+                initLoading.innerHTML = `
+                    <div style="border: 2px solid #cc0000; padding: 20px; background: #fff5f5; border-radius: 8px; text-align: center;">
+                        <h3 style="color: #cc0000;">Registration Not Found</h3>
+                        <p>We could not find ID: <strong>${regId}</strong></p>
+                        <p>Please ensure you are using the correct link from your email.</p>
+                    </div>`;
+            }
             return;
         }
 
         // --- SUCCESS: DATA FOUND ---
         originalData = data;
+        // Note: Use encodeURIComponent for safety, but we are moving away from snapshot logic
         profileSnapshotForScript = encodeURIComponent(JSON.stringify(data));
 
         if (mode === 'edit') {
@@ -1095,6 +1115,7 @@ async function loadExistingData(regId, mode) {
                 const el = document.getElementById(`inp-${r.field_id}`);
                 if (el && data[r.field_id] !== undefined) {
                     el.value = data[r.field_id];
+                    // Lock core identity fields in Edit Mode
                     if (['full_name', 'mobile', 'email'].includes(r.field_id)) {
                         el.disabled = true;
                         el.style.background = "#f9f9f9";
@@ -1122,31 +1143,21 @@ async function loadExistingData(regId, mode) {
     }
 }
 
-
-
-  
-  function cancelDeletionAction() {
-    document.getElementById('delete-confirmation-card').style.display = 'none';
-    document.getElementById('success-content').innerHTML = `
-        <div style="text-align:center;">
-            <h2>Excellent Choice!</h2>
-            <p>Your registration remains active. Thank you for staying with us.</p>
-        </div>`;
-    document.getElementById('success-screen').style.display = 'block';
-}
-
 async function processFinalDeletion(regId) {
     try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const eventIdParam = urlParams.get('id') || "EVT001";
+        
         document.getElementById('processing-overlay').style.display = 'block';
 
         // 1. THE COUNTER TRANSACTION (-1)
-        const counterRef = db.ref('counters/' + eventId);
+        const counterRef = db.ref('counters/' + eventIdParam);
         await counterRef.transaction((current) => {
             return (current || 1) - 1; 
         });
 
-        // 2. THE SOFT DELETE (Update Status)
-        await db.ref('registrations/' + regId).update({
+        // 2. THE SOFT DELETE (Update Status within the Event folder)
+        await db.ref('registrations/' + eventIdParam + '/' + regId).update({
             registration_status: "CANCELLED",
             cancelled_at: new Date().toLocaleString()
         });
@@ -1162,11 +1173,19 @@ async function processFinalDeletion(regId) {
         document.getElementById('success-screen').style.display = 'block';
 
     } catch (error) {
+        console.error("Deletion Error:", error);
         alert("Deletion failed. Please try again.");
         document.getElementById('processing-overlay').style.display = 'none';
     }
 }
 
+
+
+
+
+
+
+  
 function buildExtraSections(sectionId) {
     console.log("MERS: Building Section with Memory Check for: " + sectionId);
     
