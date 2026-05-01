@@ -1033,29 +1033,35 @@ async function submitData() {
         formData.registration_status = (mode === 'new') ? "CONFIRMED" : "EDITED ON " + new Date().toLocaleString();
 
 
+
 // --- STEP 4: SAVE DATA & CONDITIONAL COUNTER ---
-if (mode === 'new') {
-    // A. ID Sequence (Unique Serial - Never goes down)
-    const counterRef = db.ref('counters/' + eventIdParam);
-    const transactionResult = await counterRef.transaction((v) => (v || 0) + 1);
+        if (mode === 'new') {
+            console.log("MERS: Processing counters for Event:", eventIdParam);
 
-    if (transactionResult.committed) {
-        const paddedCount = String(transactionResult.snapshot.val()).padStart(3, '0');
-        const idParts = formData.registration_id.split('-');
-        idParts[idParts.length - 1] = paddedCount;
-        formData.registration_id = idParts.join('-');
-    }
+            // A. ID Sequence (Unique Serial - Never goes down)
+            const counterRef = db.ref('counters/' + eventIdParam);
+            const transactionResult = await counterRef.transaction((v) => (v || 0) + 1);
 
-    // B. ACTIVE SEATS (Body Count - Decremented by index-del.html)
-    // This line creates the node if it doesn't exist!
-    await db.ref('active_seats/' + eventIdParam).transaction((current) => {
-        return (current || 0) + 1;
-    });
-}
+            if (transactionResult.committed) {
+                const paddedCount = String(transactionResult.snapshot.val()).padStart(3, '0');
+                const idParts = formData.registration_id.split('-');
+                idParts[idParts.length - 1] = paddedCount;
+                formData.registration_id = idParts.join('-');
+                console.log("MERS: New ID assigned:", formData.registration_id);
+            }
 
+            // B. ACTIVE SEATS (Capacity Control - Created/Updated here)
+            try {
+                await db.ref('active_seats/' + eventIdParam).transaction((current) => {
+                    const nextVal = (current || 0) + 1;
+                    return nextVal;
+                });
+                console.log("MERS: active_seats incremented successfully.");
+            } catch (seatErr) {
+                console.error("MERS: active_seats transaction failed:", seatErr);
+            }
+        }
 
-      
-      
 
         await db.ref('registrations/' + eventIdParam + '/' + formData.registration_id).set(formData);
 
