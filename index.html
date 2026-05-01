@@ -1003,12 +1003,37 @@ async function submitData() {
             timestamp: new Date().toLocaleString(),
             registration_status: (mode === 'new') ? "CONFIRMED" : "EDITED ON " + new Date().toLocaleString()
         };
-
-        // --- STEP 4: SAVE TO EVENT-SPECIFIC FOLDER ---
-        console.log(`MERS: Saving to registrations/${eventIdParam}/${finalRegId}`);
-        await db.ref('registrations/' + eventIdParam + '/' + finalRegId).set(formData);
+// --- STEP 4: SAVE DATA & INCREMENT COUNTER ---
+        console.log(`%c [COUNTER] Updating tally for ${eventIdParam}... `, "color: #dfdfdf; background: #333;");
         
-        console.log("%c [SUCCESS] Databases Synchronized! ", "color: white; background: green;");
+        const counterRef = db.ref('counters/' + eventIdParam);
+
+        // This transaction safely increments the tally and returns the new number
+        const transactionResult = await counterRef.transaction((currentValue) => {
+            return (currentValue || 0) + 1;
+        });
+
+        if (transactionResult.committed) {
+            const finalCount = transactionResult.snapshot.val();
+            console.log(`[COUNTER] New Tally: ${finalCount}`);
+
+            // Optional: Re-stamp the ID with the absolute latest count from the database
+            const paddedCount = String(finalCount).padStart(3, '0');
+            
+            // Re-generating the ID suffix to match the live transaction count
+            const idParts = finalRegId.split('-');
+            idParts[idParts.length - 1] = paddedCount;
+            const synchronizedRegId = idParts.join('-');
+
+            formData.registration_id = synchronizedRegId;
+
+            console.log(`MERS: Saving to registrations/${eventIdParam}/${synchronizedRegId}`);
+            await db.ref('registrations/' + eventIdParam + '/' + synchronizedRegId).set(formData);
+            
+            console.log("%c [SUCCESS] Databases & Counter Synchronized! ", "color: white; background: green;");
+        } else {
+            throw new Error("Counter update failed. Please try again.");
+        }
         
         // --- STEP 5: UI TRANSITION ---
         const elementsToHide = ['Section1', 'Section2', 'Section3', 'btn-next-action', 'btn-back-to-profile'];
