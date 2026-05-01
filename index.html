@@ -341,18 +341,25 @@ console.log("%c MERS PING 1: Init sequence started. CurrentSection is: " + (type
             }
         }
 
-        // 3. CAPACITY CHECK (Gatekeeper Tier 2)
+// 3. CAPACITY CHECK (Gatekeeper Tier 2 - Now using Active Seats)
         if (mode === 'new') {
-            const counterSnap = await db.ref('counters/' + eventId).once('value');
-            const currentCount = Number(counterSnap.val() || 0); 
+            // We now point to 'active_seats' instead of 'counters' 
+            // to allow people to fill seats released by cancellations.
+            const seatSnap = await db.ref('active_seats/' + eventId).once('value');
+            const currentOccupancy = Number(seatSnap.val() || 0); 
             const maxCapacity = Number(eventConfig.hall_capacity || 0);
 
-            if (maxCapacity > 0 && currentCount >= maxCapacity) {
+            console.log(`[CAPACITY CHECK] Occupancy: ${currentOccupancy} / Max: ${maxCapacity}`);
+
+            if (maxCapacity > 0 && currentOccupancy >= maxCapacity) {
                 blockUIWithNotice(eventConfig.hall_capacity_full_msg || "Hall Capacity is full.");
                 return; 
             }
         }
 
+
+
+      
         // 4. LOAD UI COMPONENTS
         const [thankSnap, bannerSnap] = await Promise.all([
             db.ref('htmlStorage/' + eventId + '/thank').once('value'),
@@ -919,6 +926,8 @@ async function handleSectionNavigation() {
     }
 }
 
+
+  
 async function submitData() {
     console.log("%c [DIAGNOSTIC] submitData started! ", "background: #222; color: #bada55; font-size: 14px;");
 
@@ -1023,8 +1032,10 @@ async function submitData() {
         formData.timestamp = new Date().toLocaleString();
         formData.registration_status = (mode === 'new') ? "CONFIRMED" : "EDITED ON " + new Date().toLocaleString();
 
-        // --- STEP 4: SAVE DATA & CONDITIONAL COUNTER ---
+
+// --- STEP 4: SAVE DATA & CONDITIONAL COUNTER ---
         if (mode === 'new') {
+            // A. Handle ID Sequence (Unique Fingerprint - Never Decrements)
             const counterRef = db.ref('counters/' + eventIdParam);
             const transactionResult = await counterRef.transaction((v) => (v || 0) + 1);
 
@@ -1034,7 +1045,14 @@ async function submitData() {
                 idParts[idParts.length - 1] = paddedCount;
                 formData.registration_id = idParts.join('-');
             }
+
+            // B. Handle Hall Capacity (True Occupancy - Decrements via index-del.html)
+            await db.ref('active_seats/' + eventIdParam).transaction((current) => {
+                return (current || 0) + 1;
+            });
         }
+
+
 
         await db.ref('registrations/' + eventIdParam + '/' + formData.registration_id).set(formData);
 
