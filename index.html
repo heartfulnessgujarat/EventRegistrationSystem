@@ -895,7 +895,7 @@ async function handleSectionNavigation() {
 }
 
 
-  async function submitData() {
+async function submitData() {
     console.log("%c [DIAGNOSTIC] submitData started! ", "background: #222; color: #bada55; font-size: 14px;");
 
     try {
@@ -907,7 +907,7 @@ async function handleSectionNavigation() {
             const el = document.getElementById('inp-' + id) || document.getElementById(id);
             let val = (el && el.value) ? el.value.trim() : "";
             
-            if (!val && typeof mertsTempData !== 'undefined' && mersTempData[id]) {
+            if (!val && typeof mersTempData !== 'undefined' && mersTempData[id]) {
                 val = mersTempData[id];
             }
             
@@ -918,7 +918,6 @@ async function handleSectionNavigation() {
             return val;
         };
 
-        // MERS UPDATE: Added centre, zone, and district to the capture list
         const updatedSection1 = {
             full_name: getFreshVal('full_name'),
             email: getFreshVal('email'),
@@ -966,9 +965,12 @@ async function handleSectionNavigation() {
             const year = now.getUTCFullYear();
             const timePart = `${String(now.getUTCHours()).padStart(2, '0')}${String(now.getUTCMinutes()).padStart(2, '0')}${String(now.getUTCSeconds()).padStart(2, '0')}${String(now.getUTCMilliseconds()).padStart(3, '0')}`;
             
-            const currentCount = (typeof totalRegistrations !== 'undefined') ? totalRegistrations : 0;
-            const paddedCount = String(currentCount).padStart(3, '0');
-
+            // COUNTER FIX: Check both common variable names
+            let countToUse = 0;
+            if (typeof totalRegistrations !== 'undefined') countToUse = totalRegistrations;
+            else if (typeof currentCount !== 'undefined') countToUse = currentCount;
+            
+            const paddedCount = String(countToUse).padStart(3, '0');
             finalRegId = `${eventIdParam}-REG-${day}-${month}-${year}-${timePart}-${paddedCount}`;
         }
 
@@ -978,18 +980,17 @@ async function handleSectionNavigation() {
             ...updatedSection1,
             registration_id: finalRegId,
             event_id: eventIdParam,
-            timestamp: new Date().toLocaleString(), // Ensures match with your April 25th rows
+            timestamp: new Date().toLocaleString(),
             registration_status: (mode === 'new') ? "CONFIRMED" : "EDITED ON " + new Date().toLocaleString()
         };
 
-        // --- STEP 4: SAVE TO REGISTRATION DATABASE (FOLDER FIX) ---
-        // MERS CRITICAL: Saving inside the /EVT001/ folder so Edit Mode can find it
+        // --- STEP 4: SAVE TO REGISTRATION DATABASE ---
         console.log(`MERS: Saving to path registrations/${eventIdParam}/${finalRegId}`);
         await db.ref('registrations/' + eventIdParam + '/' + finalRegId).set(formData);
         
         console.log("%c [SUCCESS] Both Databases Updated! ", "color: white; background: green;");
         
-        // --- STEP 5: PROCEED TO SUCCESS UI ---
+        // --- STEP 5: PROCEED TO SUCCESS UI & TRIGGER EMAIL ---
         const elementsToHide = ['Section1', 'Section2', 'Section3', 'btn-next-action', 'btn-back-to-profile'];
         elementsToHide.forEach(id => {
             const el = document.getElementById(id);
@@ -1012,9 +1013,12 @@ async function handleSectionNavigation() {
         if (overlay) overlay.style.display = 'none';
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
-        // Trigger Email
+        // TRIGGER EMAIL FIX
         if (typeof SCRIPT_URL !== 'undefined' && SCRIPT_URL) {
-            fetch(`${SCRIPT_URL}?action=sendEmail&regId=${finalRegId}&eventId=${eventIdParam}`)
+            const emailUrl = `${SCRIPT_URL}?action=sendEmail&regId=${encodeURIComponent(finalRegId)}&eventId=${eventIdParam}`;
+            console.log("MERS: Triggering email via:", emailUrl);
+            fetch(emailUrl)
+                .then(() => console.log("MERS: Email script triggered successfully"))
                 .catch(err => console.error("Email trigger failed:", err));
         }
         
@@ -1025,8 +1029,6 @@ async function handleSectionNavigation() {
         if (overlay) overlay.style.display = 'none';
     }
 }
-
-
   
   
 function manualFormatCheck() {
