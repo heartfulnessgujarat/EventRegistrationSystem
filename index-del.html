@@ -10,46 +10,34 @@
   <style>
     body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
     .card { width: 100%; max-width: 450px; background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden; text-align: center; }
-    
-    /* Header Image/Title Styles */
-    .header-img { width: 100%; height: 150px; object-fit: cover; background: #eee; }
+    .header-img { width: 100%; height: 160px; object-fit: cover; background: #e0e0e0; display: block; }
     .header-content { padding: 15px; border-bottom: 1px solid #eee; }
-    .header-content h2 { color: #1a237e; margin: 0; font-size: 20px; }
-    .header-content p { color: #666; font-size: 13px; margin: 5px 0 0; }
-
+    .header-content h2 { color: #1a237e; margin: 0; font-size: 18px; line-height: 1.3; }
+    .header-content p { color: #666; font-size: 12px; margin: 5px 0 0; }
     .content-body { padding: 25px; }
-    .info-box { background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: left; border-left: 5px solid #1a237e; font-size: 14px; line-height: 1.6; }
-    
-    .question { font-weight: bold; color: #d32f2f; margin-bottom: 20px; font-size: 16px; }
-    
+    .info-box { background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: left; border-left: 5px solid #1a237e; font-size: 13px; line-height: 1.6; }
+    .question { font-weight: bold; color: #d32f2f; margin-bottom: 20px; font-size: 15px; }
     .btn-row { display: flex; gap: 10px; justify-content: center; }
     .btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 15px; transition: 0.3s; }
-    
     .btn-yes { background: #d32f2f; color: white; }
-    .btn-yes:hover { background: #b71c1c; }
     .btn-no { background: #4caf50; color: white; }
-    .btn-no:hover { background: #388e3c; }
-    
-    /* Message Screens */
     .full-msg { padding: 40px 20px; }
     .icon { font-size: 50px; margin-bottom: 15px; }
-    #loader { display: none; margin: 20px 0; color: #1a237e; font-weight: bold; }
+    .timer-text { font-size: 12px; color: #999; margin-top: 20px; font-weight: bold; }
+    #loader { color: #1a237e; font-weight: bold; padding: 40px; }
   </style>
 </head>
 <body>
 
 <div class="card" id="main-card">
-  <!-- 1. SEARCHING/LOADING UI -->
-  <div id="loading-ui" class="full-msg">
-    <div id="loader" style="display:block;">Verifying Registration...</div>
-  </div>
+  <div id="loader">Fetching Details...</div>
 
-  <!-- 2. MAIN CONFIRMATION UI -->
+  <!-- MAIN CONFIRMATION UI -->
   <div id="confirm-ui" style="display:none;">
     <img id="event-img" class="header-img" src="" alt="Event Banner">
     <div class="header-content">
-      <h2 id="event-title">Event Title</h2>
-      <p id="event-subtitle">Event Subtitle</p>
+      <h2 id="event-title">Loading...</h2>
+      <p id="event-subtitle">Loading...</p>
     </div>
     <div class="content-body">
       <div class="info-box" id="user-info"></div>
@@ -61,12 +49,12 @@
     </div>
   </div>
 
-  <!-- 3. SUCCESS/ALREADY DELETED/NO UI -->
+  <!-- STATUS MESSAGE SCREEN -->
   <div id="status-ui" class="full-msg" style="display:none;">
     <div class="icon" id="status-icon"></div>
     <h2 id="status-title"></h2>
     <p id="status-desc"></p>
-    <p style="font-size: 12px; color: #999; margin-top: 20px;">This window will close automatically in 15 seconds.</p>
+    <p class="timer-text">This window will close in <span id="countdown">15</span> seconds.</p>
   </div>
 </div>
 
@@ -81,54 +69,58 @@
 
   window.onload = async () => {
     if (!regId) {
-      showFinalStatus("Error", "Invalid registration link.", "❌");
+      showFinalStatus("Error", "Invalid link.", "⚠️");
       return;
     }
 
     try {
-      // Step 1: Search in Active Database
+      // 1. Fetch Event Metadata from config/eventConfig/[eventId]
+      const eventSnap = await db.ref(`config/eventConfig/${eventId}`).once('value');
+      const eventConfig = eventSnap.val() || {};
+      
+      document.getElementById('event-title').innerText = eventConfig.title || "Event Registration";
+      document.getElementById('event-subtitle').innerHTML = eventConfig.subtitle || "Registration Management";
+      // Use the specific key from your screenshot: event_title_image_url
+      document.getElementById('event-img').src = eventConfig.event_title_image_url || "";
+
+      // 2. Search in Active Database
       const activeSnap = await db.ref(`registrations/${eventId}/${regId}`).once('value');
       const activeData = activeSnap.val();
 
       if (activeData) {
         showConfirmationUI(activeData);
       } else {
-        // Step 2: Search in Deleted Database if not found in active
+        // 3. Search in Deleted Database
         const deletedSnap = await db.ref(`deleted_registrations/${eventId}/${regId}`).once('value');
         const deletedData = deletedSnap.val();
 
         if (deletedData) {
           showFinalStatus("Already Cancelled", 
-            `You have already deleted your reg on ${deletedData.cancelled_at || 'a previous date'}.`, "ℹ️");
+            `You have already deleted your reg on ${deletedData.cancelled_at}.`, "ℹ️");
         } else {
-          showFinalStatus("Not Found", "No registration record could be located.", "❓");
+          showFinalStatus("Not Found", "We couldn't find this record.", "❓");
         }
       }
     } catch (e) {
-      showFinalStatus("Error", "System error occurred. Please try again later.", "⚠️");
+      showFinalStatus("Error", "Connection error.", "❌");
     }
   };
 
   function showConfirmationUI(data) {
-    document.getElementById('loading-ui').style.display = 'none';
+    document.getElementById('loader').style.display = 'none';
     document.getElementById('confirm-ui').style.display = 'block';
-    
-    // Fill Event Details (Assuming event metadata exists at root or set defaults)
-    document.getElementById('event-title').innerText = data.event_type || "Event Registration";
-    document.getElementById('event-subtitle').innerText = "Registration Management";
     document.getElementById('user-info').innerHTML = `
       <strong>Name:</strong> ${data.full_name}<br>
       <strong>Reg ID:</strong> ${regId}<br>
       <strong>Reg Date:</strong> ${data.timestamp || 'N/A'}<br>
       <strong>Status:</strong> ${data.registration_status || 'ACTIVE'}
     `;
-    // Set placeholder image or fetch real one
-    document.getElementById('event-img').src = "https://via.placeholder.com/450x150?text=Event+Banner"; 
   }
 
   async function handleResponse(choice) {
     document.getElementById('confirm-ui').style.display = 'none';
-    document.getElementById('loading-ui').style.display = 'block';
+    document.getElementById('loader').innerText = "Processing...";
+    document.getElementById('loader').style.display = 'block';
 
     if (choice === 'NO') {
       showFinalStatus("Stay with us!", "Thank you for staying with us...", "😊");
@@ -136,30 +128,25 @@
     }
 
     try {
-      // Step 3: MOVE LOGIC (Fetch -> Write to Deleted -> Remove from Active)
       const snapshot = await db.ref(`registrations/${eventId}/${regId}`).once('value');
       const data = snapshot.val();
       
-      const cancelledDate = new Date().toLocaleString();
       data.registration_status = "CANCELLED";
-      data.cancelled_at = cancelledDate;
+      data.cancelled_at = new Date().toLocaleString();
 
-      // Move data
       await db.ref(`deleted_registrations/${eventId}/${regId}`).set(data);
       await db.ref(`registrations/${eventId}/${regId}`).remove();
 
-      // Decrement Counter[cite: 2]
-      const counterRef = db.ref('counters/' + eventId);
-      await counterRef.transaction((current) => (current || 1) - 1);
+      await db.ref('counters/' + eventId).transaction(c => (c || 1) - 1);
 
       showFinalStatus("Cancelled", "Thank you for cancellation... your seat is released now for others...", "✅");
     } catch (e) {
-      showFinalStatus("Error", "Failed to process cancellation.", "❌");
+      showFinalStatus("Error", "Process failed.", "❌");
     }
   }
 
   function showFinalStatus(title, desc, icon) {
-    document.getElementById('loading-ui').style.display = 'none';
+    document.getElementById('loader').style.display = 'none';
     document.getElementById('confirm-ui').style.display = 'none';
     document.getElementById('status-ui').style.display = 'block';
     
@@ -167,10 +154,20 @@
     document.getElementById('status-desc').innerText = desc;
     document.getElementById('status-icon').innerText = icon;
 
-    // Auto-close window after 15 seconds[cite: 2]
-    setTimeout(() => {
-      window.close();
-    }, 15000);
+    startCountdown();
+  }
+
+  function startCountdown() {
+    let timeLeft = 15;
+    const timerElement = document.getElementById('countdown');
+    const interval = setInterval(() => {
+      timeLeft--;
+      timerElement.innerText = timeLeft;
+      if (timeLeft <= 0) {
+        clearInterval(interval);
+        window.close();
+      }
+    }, 1000);
   }
 </script>
 </body>
