@@ -1923,52 +1923,59 @@ function validateField(id, value, rule) {
 init();
 
 
-function updateStayOptions() {
-  const eventId = document.getElementById('event_id').value;
+  function updateStayOptions() {
+  console.log("--- MERS X-RAY: [Stay Engine Triggered] ---");
+  
+  const urlParams = new URLSearchParams(window.location.search);
+  const eventId = urlParams.get('id'); 
   const gender = document.getElementById('gender').value;
   const staySelect = document.getElementById('stay_option');
 
-  if (!gender || !eventId) return;
+  console.log("MERS DIAG: EventID:", eventId, " | Gender Selected:", gender);
 
+  if (!gender || !eventId) {
+    console.log("MERS DIAG: Missing Gender or EventID. Aborting.");
+    return;
+  }
+
+  // Show loading state
   staySelect.innerHTML = '<option>Checking availability...</option>';
 
-  google.script.run.withSuccessHandler(function(status) {
-    staySelect.innerHTML = ''; // Clear previous options
-    
-    // Add default blank option
-    let optDefault = document.createElement('option');
-    optDefault.value = ""; optDefault.text = "-- Select --";
-    staySelect.appendChild(optDefault);
+  google.script.run
+    .withSuccessHandler(function(status) {
+      console.log("--- MERS X-RAY: [Server Response Received] ---", status);
+      
+      staySelect.innerHTML = ''; // Clear dropdown
+      
+      let defaultOpt = document.createElement('option');
+      defaultOpt.value = ""; defaultOpt.innerHTML = "-- Select --";
+      staySelect.appendChild(defaultOpt);
 
-    // Logic for Room
-    let optRoom = document.createElement('option');
-    if (status.roomSeats > 0) {
-      optRoom.value = "Room";
-      optRoom.text = "Room (" + status.roomSeats + " seats available)";
-    } else {
-      optRoom.value = "Room (Waiting List)";
-      optRoom.text = "Room (Waiting List)";
-    }
-    staySelect.appendChild(optRoom);
+      // ROOM logic with logging
+      if (status.roomSeats > 0) {
+        console.log("MERS DIAG: Room is Available. Count:", status.roomSeats);
+        let opt = document.createElement('option');
+        opt.value = "Room";
+        opt.innerHTML = "Room (" + status.roomSeats + " seats available)";
+        staySelect.appendChild(opt);
+      } else {
+        console.log("MERS DIAG: Room Full. Switching to Waiting List.");
+        let opt = document.createElement('option');
+        opt.value = "Room (Waiting List)";
+        opt.innerHTML = "Room (Waiting List)";
+        staySelect.appendChild(opt);
+      }
 
-    // Logic for Dormitory
-    let optDorm = document.createElement('option');
-    if (status.dormSeats > 0) {
-      optDorm.value = "Dormitory";
-      optDorm.text = "Dormitory (" + status.dormSeats + " seats available)";
-    } else {
-      optDorm.value = "Dormitory (Waiting List)";
-      optDorm.text = "Dormitory (Waiting List)";
-    }
-    staySelect.appendChild(optDorm);
-
-    // Logic for Own Arrangement
-    let optOwn = document.createElement('option');
-    optOwn.value = "I will arrange my own stay outside the venue";
-    optOwn.text = "I will arrange my own stay outside the venue";
-    staySelect.appendChild(optOwn);
-
-  }).getStayAvailability(eventId, gender);
+      // Always add own arrangement
+      let ownOpt = document.createElement('option');
+      ownOpt.value = "I will arrange my own stay outside the venue";
+      ownOpt.innerHTML = "I will arrange my own stay outside the venue";
+      staySelect.appendChild(ownOpt);
+    })
+    .withFailureHandler(function(err) {
+      console.error("--- MERS X-RAY: [SERVER ERROR] ---", err);
+    })
+    .getStayAvailability(eventId, gender);
 }
 
 
