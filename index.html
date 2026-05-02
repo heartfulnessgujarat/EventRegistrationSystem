@@ -1923,60 +1923,89 @@ function validateField(id, value, rule) {
 init();
 
 
-  function updateStayOptions() {
+/**
+ * SECTION 2: Dynamic Stay Option Swapper
+ */
+function updateStayOptions() {
   console.log("--- MERS X-RAY: [Stay Engine Triggered] ---");
   
   const urlParams = new URLSearchParams(window.location.search);
   const eventId = urlParams.get('id'); 
-  const gender = document.getElementById('gender').value;
-  const staySelect = document.getElementById('stay_option');
+  
+  // EXPANDED OR LOGIC: Checks for extra_, inp-, or plain IDs
+  const genderEl = document.getElementById('extra_gender') || 
+                   document.getElementById('inp-gender') || 
+                   document.getElementById('gender');
+                   
+  const staySelect = document.getElementById('extra_stay_option') || 
+                     document.getElementById('inp-stay_option') || 
+                     document.getElementById('stay_option');
 
-  console.log("MERS DIAG: EventID:", eventId, " | Gender Selected:", gender);
-
-  if (!gender || !eventId) {
-    console.log("MERS DIAG: Missing Gender or EventID. Aborting.");
+  if (!genderEl || !staySelect) {
+    console.error("MERS DIAG: Could not find Gender or Stay element. Check IDs in Section 1.");
     return;
   }
 
-  // Show loading state
+  const gender = genderEl.value;
+  console.log("MERS DIAG: EventID:", eventId, " | Gender:", gender, " | Element ID used:", genderEl.id);
+
+  if (!gender || !eventId) return;
+
   staySelect.innerHTML = '<option>Checking availability...</option>';
 
   google.script.run
     .withSuccessHandler(function(status) {
-      console.log("--- MERS X-RAY: [Server Response Received] ---", status);
+      console.log("--- MERS X-RAY: [Server Success] ---", status);
+      staySelect.innerHTML = ''; 
       
-      staySelect.innerHTML = ''; // Clear dropdown
-      
-      let defaultOpt = document.createElement('option');
-      defaultOpt.value = ""; defaultOpt.innerHTML = "-- Select --";
-      staySelect.appendChild(defaultOpt);
+      let optDefault = document.createElement('option');
+      optDefault.value = ""; optDefault.text = "-- Select --";
+      staySelect.appendChild(optDefault);
 
-      // ROOM logic with logging
+      // Room Logic
+      let optRoom = document.createElement('option');
       if (status.roomSeats > 0) {
-        console.log("MERS DIAG: Room is Available. Count:", status.roomSeats);
-        let opt = document.createElement('option');
-        opt.value = "Room";
-        opt.innerHTML = "Room (" + status.roomSeats + " seats available)";
-        staySelect.appendChild(opt);
+        optRoom.text = "Room (" + status.roomSeats + " seats available)";
+        optRoom.value = "Room";
       } else {
-        console.log("MERS DIAG: Room Full. Switching to Waiting List.");
-        let opt = document.createElement('option');
-        opt.value = "Room (Waiting List)";
-        opt.innerHTML = "Room (Waiting List)";
-        staySelect.appendChild(opt);
+        optRoom.text = "Room (Waiting List)";
+        optRoom.value = "Room (Waiting List)";
       }
+      staySelect.appendChild(optRoom);
 
-      // Always add own arrangement
-      let ownOpt = document.createElement('option');
-      ownOpt.value = "I will arrange my own stay outside the venue";
-      ownOpt.innerHTML = "I will arrange my own stay outside the venue";
-      staySelect.appendChild(ownOpt);
-    })
-    .withFailureHandler(function(err) {
-      console.error("--- MERS X-RAY: [SERVER ERROR] ---", err);
+      // Dorm Logic
+      let optDorm = document.createElement('option');
+      if (status.dormSeats > 0) {
+        optDorm.text = "Dormitory (" + status.dormSeats + " seats available)";
+        optDorm.value = "Dormitory";
+      } else {
+        optDorm.text = "Dormitory (Waiting List)";
+        optDorm.value = "Dormitory (Waiting List)";
+      }
+      staySelect.appendChild(optDorm);
+
+      // Own Arrangement
+      let optOwn = document.createElement('option');
+      optOwn.value = "I will arrange my own stay outside the venue";
+      optOwn.text = "I will arrange my own stay outside the venue";
+      staySelect.appendChild(optOwn);
     })
     .getStayAvailability(eventId, gender);
 }
+
+// SAFE LISTENER ATTACHMENT
+window.addEventListener('load', function() {
+  const genderEl = document.getElementById('extra_gender') || 
+                   document.getElementById('inp-gender') || 
+                   document.getElementById('gender');
+                   
+  if (genderEl) {
+    genderEl.addEventListener('change', updateStayOptions);
+    console.log("MERS DIAG: Listener successfully attached to:", genderEl.id);
+  } else {
+    console.warn("MERS DIAG: Gender field NOT found. Please check your HTML for the correct ID.");
+  }
+});
 
 
 
