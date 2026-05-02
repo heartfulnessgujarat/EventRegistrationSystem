@@ -28,6 +28,8 @@
     console.log("Path Established: " + (mode === 'edit' ? "EDIT MODE" : "FRESH REGISTRATION"));
     // The current flow in index.html will now take over automatically.
   })();
+
+ 
 </script>
 
 
@@ -1921,6 +1923,62 @@ function validateField(id, value, rule) {
 init();
 
   
+/**
+ * SECTION 2: Dynamic Stay Option Swapper
+ * Triggered when Gender is selected.
+ */
+function updateStayOptions() {
+  const eventId = document.getElementById('event_id').value; // Ensure you have an element with this ID
+  const gender = document.getElementById('gender').value;
+  const staySelect = document.getElementById('stay_option'); // The ID of your stay dropdown
+
+  if (!gender || !eventId) return;
+
+  // Show a "Loading..." state in the stay dropdown so user knows it's checking
+  const originalOptions = Array.from(staySelect.options).map(opt => opt.value);
+  staySelect.innerHTML = '<option>Checking availability...</option>';
+
+  google.script.run.withSuccessHandler(function(status) {
+    // 1. Clear the "Checking..." message
+    staySelect.innerHTML = '';
+
+    // 2. Define the logic for which labels to show
+    // We assume your master_stay_options has: "Room", "Dormitory", "Room (Waiting List)", "Dormitory (Waiting List)"
+    
+    const optionsToDisplay = [
+      "I will arrange my own stay outside the venue" // Always available
+    ];
+
+    // Room Logic
+    if (status.room === "Available") {
+      optionsToDisplay.unshift("Room");
+    } else {
+      optionsToDisplay.push("Room (Waiting List)");
+    }
+
+    // Dorm Logic
+    if (status.dorm === "Available") {
+      optionsToDisplay.push("Dormitory");
+    } else {
+      optionsToDisplay.push("Dormitory (Waiting List)");
+    }
+
+    // 3. Rebuild the dropdown
+    optionsToDisplay.forEach(text => {
+      let opt = document.createElement('option');
+      opt.value = text;
+      opt.innerHTML = text;
+      staySelect.appendChild(opt);
+    });
+
+  }).getStayAvailability(eventId, gender);
+}
+
+// Attach the listener to your Gender dropdown
+document.getElementById('gender').addEventListener('change', updateStayOptions);
+
+
+
 
   
 </script>
