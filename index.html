@@ -1215,41 +1215,23 @@ async function loadExistingData(regId, mode) {
     }
 }
 
-async function processFinalDeletion(regId) {
-    try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const eventIdParam = urlParams.get('id') || "EVT001";
-        
-        document.getElementById('processing-overlay').style.display = 'block';
 
-        // 1. THE COUNTER TRANSACTION (-1)
-        const counterRef = db.ref('counters/' + eventIdParam);
-        await counterRef.transaction((current) => {
-            return (current || 1) - 1; 
-        });
 
-        // 2. THE SOFT DELETE (Update Status within the Event folder)
-        await db.ref('registrations/' + eventIdParam + '/' + regId).update({
-            registration_status: "CANCELLED",
-            cancelled_at: new Date().toLocaleString()
-        });
-
-        // 3. SUCCESS MESSAGE
-        document.getElementById('processing-overlay').style.display = 'none';
-        document.getElementById('success-content').innerHTML = `
-            <div style="text-align:center;">
-                <h2 style="color: #d32f2f;">Registration Deleted</h2>
-                <p>Your registration (ID: ${regId}) has been successfully removed.</p>
-                <p>The seat has been released for others.</p>
-            </div>`;
-        document.getElementById('success-screen').style.display = 'block';
-
-    } catch (error) {
-        console.error("Deletion Error:", error);
-        alert("Deletion failed. Please try again.");
-        document.getElementById('processing-overlay').style.display = 'none';
-    }
+function processFinalDeletion(regId, eventId, gender) {
+  google.script.run
+    .withSuccessHandler(function() {
+      // After successful deletion, update the live counters
+      // This calls the server-side updateLiveTracker we just created
+      google.script.run.updateLiveTracker(eventId, gender, 'hall', 'subtract');
+      google.script.run.updateLiveTracker(eventId, gender, 'stay', 'subtract');
+      
+      console.log("Database cleaned and Live Tracker updated.");
+      alert("Registration Cancelled. Space is now available for others.");
+    })
+    .deleteFirebaseData(`registrations/${eventId}/${regId}`); 
 }
+
+
 
 
 
