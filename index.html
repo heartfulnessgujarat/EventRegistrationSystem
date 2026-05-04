@@ -1925,6 +1925,39 @@ function validateField(id, value, rule) {
 
 init();
 
+/**
+ * MERS Live Tracker Logic
+ * Calculates availability based on Gender and Event Config
+ */
+async function getStayAvailability(eventId, gender) {
+  console.log(`--- MERS X-RAY: Calculating for ${gender} ---`);
+  
+  // 1. Fetch Event Configuration (Total Capacity)
+  // Assumes you have an eventConfig object already loaded from Firebase
+  const config = window.eventConfig; 
+  if (!config) throw new Error("Event configuration not loaded");
+
+  // 2. Fetch Live Occupancy Counters from Firebase
+  // Using our standardized 'persons_per_room' naming
+  const roomMax = (gender === 'Male') ? config.room_max_m : config.room_max_f;
+  const dormMax = (gender === 'Male') ? config.dorm_max_m : config.dorm_max_f;
+
+  // 3. Simple Counter Logic (Live Tracker)
+  // We subtract current registered count from the max capacity defined in Event_Config
+  // Note: These paths must match your Firebase structure
+  const roomOccupancy = await db.ref(`events/${eventId}/counters/${gender}/room`).once('value').then(s => s.val() || 0);
+  const dormOccupancy = await db.ref(`events/${eventId}/counters/${gender}/dorm`).once('value').then(s => s.val() || 0);
+
+  return {
+    roomSeats: Math.max(0, roomMax - roomOccupancy),
+    dormSeats: Math.max(0, dormMax - dormOccupancy)
+  };
+}
+
+
+
+
+  
 async function updateStayOptions(event) {
   const targetId = event ? event.target.id : null;
   const validGenderIds = ['extra_gender', 'inp-gender', 'gender'];
