@@ -1930,31 +1930,39 @@ init();
  * Calculates availability based on Gender and Event Config
  */
 
-async function getStayAvailability(eventId, gender) {
+
+  async function getStayAvailability(eventId, gender) {
   const safeId = eventId || new URLSearchParams(window.location.search).get('id');
-  console.log(`--- MERS X-RAY: Attempting fetch for ${safeId} ---`);
+  console.log(`--- MERS X-RAY: Searching for ${safeId} ---`);
 
-  // 1. Try to fetch the full 'eventConfig' node to see what's inside
-  const configSnap = await firebase.database().ref(`eventConfig`).once('value');
-  const allConfigs = configSnap.val();
-  
-  console.log("MERS DIAG: All configs found:", allConfigs);
-
-  const config = allConfigs ? allConfigs[safeId] : null;
+  // 1. Try fetching from 'eventConfig' AND 'masters/eventConfig'
+  let configSnap = await firebase.database().ref(`eventConfig/${safeId}`).once('value');
+  let config = configSnap.val();
 
   if (!config) {
-    throw new Error(`Config for ${safeId} not found. Available IDs: ${allConfigs ? Object.keys(allConfigs) : 'NONE'}`);
+    console.log("MERS: Not found in root, checking masters/eventConfig...");
+    configSnap = await firebase.database().ref(`masters/eventConfig/${safeId}`).once('value');
+    config = configSnap.val();
   }
 
-  // 2. Numeric Conversion (Text to Number) as per Screenshot (94).png
+  if (!config) {
+    throw new Error(`Config not found in root or masters/ for ${safeId}`);
+  }
+
+  // 2. Numeric Conversion (Text to Number) from Screenshot (94).png
   const roomMax = Number(config.room_capacity) || 0;
   const dormMax = Number(config.dorm_capacity) || 0;
 
-  // 3. Fetch Counters
-  const counterSnap = await firebase.database().ref(`counters/${safeId}`).once('value');
-  const counters = counterSnap.val() || {};
+  // 3. Fetch Counters (Checking root and masters)
+  let counterSnap = await firebase.database().ref(`counters/${safeId}`).once('value');
+  let counters = counterSnap.val();
+  
+  if (!counters) {
+    counterSnap = await firebase.database().ref(`masters/counters/${safeId}`).once('value');
+    counters = counterSnap.val() || {};
+  }
 
-  // Check for gender-nested counters or flat counters
+  // Handle nested gender occupancy or flat occupancy
   const roomOccupancy = Number(counters[gender]?.room || counters.room || 0);
   const dormOccupancy = Number(counters[gender]?.dorm || counters.dorm || 0);
 
@@ -1965,8 +1973,7 @@ async function getStayAvailability(eventId, gender) {
     dormSeats: Math.max(0, dormMax - dormOccupancy)
   };
 }
-
-  
+ 
 async function updateStayOptions(event) {
   const targetId = event ? event.target.id : null;
   const validGenderIds = ['extra_gender', 'inp-gender', 'gender'];
