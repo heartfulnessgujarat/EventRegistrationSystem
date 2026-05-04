@@ -1931,32 +1931,34 @@ init();
  */
 
 
-async function getStayAvailability(eventId, gender) {
-  // Fix: If eventId is missing, grab it directly from the URL
+  async function getStayAvailability(eventId, gender) {
   const safeId = eventId || new URLSearchParams(window.location.search).get('id');
-  console.log(`--- MERS X-RAY: Calculating for Event: ${safeId}, Gender: ${gender} ---`);
+  console.log(`--- MERS X-RAY: Logic for Event: ${safeId} ---`);
 
-  if (!safeId) throw new Error("No Event ID found in URL");
+  if (!safeId) throw new Error("No Event ID found");
 
-  // 1. Fetch Config and Counters from the paths seen in Screenshot (92).png
+  // 1. Fetch from the nodes seen in Screenshot (93).png
   const [configSnap, counterSnap] = await Promise.all([
-    firebase.database().ref(`config/${safeId}`).once('value'),
+    firebase.database().ref(`eventConfig/${safeId}`).once('value'),
     firebase.database().ref(`counters/${safeId}`).once('value')
   ]);
 
   const config = configSnap.val();
   const counters = counterSnap.val() || {};
 
-  if (!config) throw new Error(`Config not found at config/${safeId}`);
+  if (!config) throw new Error(`Config not found at eventConfig/${safeId}`);
 
-  // 2. Numeric Conversion (Text to Number)
-  const roomMax = Number((gender === 'Male') ? config.room_max_m : config.room_max_f) || 0;
-  const dormMax = Number((gender === 'Male') ? config.dorm_max_m : config.dorm_max_f) || 0;
+  // 2. Numeric Conversion from your Firebase strings ("2", "10", etc.)
+  // Since you use total capacities, we pull them directly
+  const roomMax = Number(config.room_capacity) || 0;
+  const dormMax = Number(config.dorm_capacity) || 0;
 
-  const roomOccupancy = Number(counters.room) || 0;
-  const dormOccupancy = Number(counters.dorm) || 0;
+  // 3. Occupancy logic (subtracting from total capacity)
+  // If your counters are split by gender, we pull gender-specific occupancy
+  const roomOccupancy = Number(counters[gender]?.room) || Number(counters.room) || 0;
+  const dormOccupancy = Number(counters[gender]?.dorm) || Number(counters.dorm) || 0;
 
-  console.log(`MERS MATH: Room(${roomMax}-${roomOccupancy}) Dorm(${dormMax}-${dormOccupancy})`);
+  console.log(`MERS MATH: Room(${roomMax} - ${roomOccupancy}) Dorm(${dormMax} - ${dormOccupancy})`);
 
   return {
     roomSeats: Math.max(0, roomMax - roomOccupancy),
@@ -1964,8 +1966,6 @@ async function getStayAvailability(eventId, gender) {
   };
 }
 
-
-  
   
 async function updateStayOptions(event) {
   const targetId = event ? event.target.id : null;
