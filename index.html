@@ -2057,12 +2057,14 @@ async function getStayAvailability(eventId, gender) {
 
 if (!section2Visible || section2Visible.offsetParent === null) return;
 
+const genderEl =
+  document.getElementById('extra_gender') ||
+  document.getElementById('inp-gender') ||
+  document.getElementById('gender');
 
-    
-  const targetId = event?.target?.id;
+if (!genderEl || !genderEl.value) return;
 
-  // ✅ Run ONLY when gender changes
-  if (!targetId || !targetId.includes('gender')) return;
+
 
   const genderEl =
     document.getElementById('extra_gender') ||
