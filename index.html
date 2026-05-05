@@ -2149,12 +2149,10 @@ async function getStayAvailability(eventId, gender) {
 
 // 👉 ADD THIS LINE HERE (exactly here)
 
-
-if (stayEl.value) {
+if (stayEl.value && !stayEl.dataset.updated) {
+  stayEl.dataset.updated = "true";
   stayEl.dispatchEvent(new Event('change', { bubbles: true }));
 }
-
-
       
 
 console.log("MERS: Dropdown updated correctly");
