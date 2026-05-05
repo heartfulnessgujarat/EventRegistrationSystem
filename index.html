@@ -2051,8 +2051,14 @@ async function getStayAvailability(eventId, gender) {
   });
 
   // ✅ Run ONLY in Section 2
-  if (!window.currentSection || window.currentSection !== 2) return;
 
+
+    const section2Visible = document.querySelector('[data-section="2"], #section2');
+
+if (!section2Visible || section2Visible.offsetParent === null) return;
+
+
+    
   const targetId = event?.target?.id;
 
   // ✅ Run ONLY when gender changes
