@@ -2086,7 +2086,11 @@ async function updateStayOptions(event) {
 
   try {
     // Get availability
+
+    
     const status = await getStayAvailability(eventId, genderEl.value);
+
+    window.availability = status;
 
     // Prevent async overwrite after section change
     if (typeof currentSection !== 'undefined' && currentSection !== 2) {
