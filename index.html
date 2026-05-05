@@ -2085,21 +2085,10 @@ async function updateStayOptions(event) {
   container.innerHTML = '<div style="color: #2e7d32;">Checking live availability...</div>';
 
   try {
-    // Get availability
 
-    
     const status = await getStayAvailability(eventId, genderEl.value);
 
-    window.availability = status;
-
-    await buildExtraSections();
-
-    // Prevent async overwrite after section change
-    if (typeof currentSection !== 'undefined' && currentSection !== 2) {
-      return;
-    }
-
-    // Show availability ONLY (no field manipulation)
+    // Show availability
     container.innerHTML = `
       <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #c8e6c9; padding-bottom: 5px; margin-bottom: 5px;">
         <span>Available Seats for Room:</span>
@@ -2115,15 +2104,109 @@ async function updateStayOptions(event) {
       </div>
     `;
 
-    console.log("MERS: Capacity displayed for", genderEl.value);
+    // 🔥 SAFE OPTION UPDATE (NO REBUILD)
+
+
+setTimeout(() => {
+  const stayEl = document.getElementById('extra_stay_option');
+
+  if (stayEl && stayEl.tagName === 'SELECT' && stayEl.options.length > 0) {
+
+    const currentValue = stayEl.value;
+
+    let newOptions = [];
+
+    if (status.roomSeats > 0) {
+      newOptions.push("Room");
+    } else {
+      newOptions.push("Room (Waiting List)");
+    }
+
+    if (status.dormSeats > 0) {
+      newOptions.push("Dormitory");
+    } else {
+      newOptions.push("Dormitory (Waiting List)");
+    }
+
+    newOptions.push("I will arrange my own stay outside the venue");
+
+    stayEl.innerHTML = '';
+
+    newOptions.forEach(opt => {
+      const option = document.createElement('option');
+      option.value = opt;
+      option.textContent = opt;
+      stayEl.appendChild(option);
+    });
+
+    if (newOptions.includes(currentValue)) {
+      stayEl.value = currentValue;
+    }
+
+    console.log("MERS: Dropdown safely updated AFTER render");
+
+  }
+}, 200);
+    
+    
+//    const stayEl = document.getElementById('extra_stay_option');
+
+    
+
+    if (stayEl && stayEl.tagName === 'SELECT') {
+
+      const originalOptions = [
+        "Room",
+        "Dormitory",
+        "I will arrange my own stay outside the venue",
+        "Room (Waiting List)",
+        "Dormitory (Waiting List)"
+      ];
+
+      let newOptions = [];
+
+      // Room logic
+      if (status.roomSeats > 0) {
+        newOptions.push("Room");
+      } else {
+        newOptions.push("Room (Waiting List)");
+      }
+
+      // Dorm logic
+      if (status.dormSeats > 0) {
+        newOptions.push("Dormitory");
+      } else {
+        newOptions.push("Dormitory (Waiting List)");
+      }
+
+      // Always include outside
+      newOptions.push("I will arrange my own stay outside the venue");
+
+      const currentValue = stayEl.value;
+
+      // Clear and rebuild options
+      stayEl.innerHTML = '';
+
+      newOptions.forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt;
+        option.textContent = opt;
+        stayEl.appendChild(option);
+      });
+
+      // Restore previous selection if still valid
+      if (newOptions.includes(currentValue)) {
+        stayEl.value = currentValue;
+      }
+    }
+
+    console.log("MERS: Capacity + Options updated for", genderEl.value);
 
   } catch (error) {
     container.innerHTML = '<div style="color: #d32f2f;">Error loading availability</div>';
     console.error("MERS Error:", error);
   }
-}
-
-  
+}  
 // Keep this at the bottom - it connects the function to your form
 document.addEventListener('change', updateStayOptions);
 console.log("MERS DIAG: Section 2 Listener Active via Delegation");
