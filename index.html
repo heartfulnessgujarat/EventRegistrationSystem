@@ -1925,58 +1925,89 @@ function validateField(id, value, rule) {
 
 init();
 
+
 /**
- * MERS Live Tracker Logic
- * Calculates availability based on Gender and Event Config
+ * NEW: MERS Live Availability Engine (Rooms + Dorms - Gender Aware)
  */
+async function getStayAvailability(eventId, gender) {
+  const db = firebase.database();
 
+  // 1. Fetch Config
+  const configSnap = await db.ref(`config/eventConfig/${eventId}`).once('value');
+  const config = configSnap.val();
 
-  async function getStayAvailability(eventId, gender) {
-  const safeId = eventId || new URLSearchParams(window.location.search).get('id');
-  console.log(`--- MERS X-RAY: Searching for ${safeId} ---`);
+  const roomCapacity = Number(config.room_capacity) || 0;
+  const personsPerRoom = Number(config.persons_per_room) || 2;
 
-  // 1. Try fetching from 'eventConfig' AND 'masters/eventConfig'
-  let configSnap = await firebase.database().ref(`eventConfig/${safeId}`).once('value');
-  let config = configSnap.val();
+  const maleDormCap = Number(config.male_dorm_capacity) || 0;
+  const femaleDormCap = Number(config.female_dorm_capacity) || 0;
 
-  if (!config) {
-    console.log("MERS: Not found in root, checking masters/eventConfig...");
-    configSnap = await firebase.database().ref(`masters/eventConfig/${safeId}`).once('value');
-    config = configSnap.val();
+  const maleDormSize = Number(config.male_dorm_persons_per_dorm) || 0;
+  const femaleDormSize = Number(config.female_dorm_persons_per_dorm) || 0;
+
+  // 2. Fetch Registrations
+  const regSnap = await db.ref(`registrations/${eventId}`).once('value');
+  const regs = regSnap.val() || {};
+
+  let maleRoom = 0, femaleRoom = 0;
+  let maleDorm = 0, femaleDorm = 0;
+
+  Object.values(regs).forEach(r => {
+    if (r.registration_status === "CANCELLED") return;
+
+    if (r.stay_option === "Room") {
+      if (r.gender === "Male") maleRoom++;
+      if (r.gender === "Female") femaleRoom++;
+    }
+
+    if (r.stay_option === "Dormitory") {
+      if (r.gender === "Male") maleDorm++;
+      if (r.gender === "Female") femaleDorm++;
+    }
+  });
+
+  // ---------------------------
+  // 🛏️ DORM LOGIC
+  // ---------------------------
+  const maleDormTotal = maleDormCap * maleDormSize;
+  const femaleDormTotal = femaleDormCap * femaleDormSize;
+
+  const dormSeats =
+    gender === "Male"
+      ? Math.max(0, maleDormTotal - maleDorm)
+      : Math.max(0, femaleDormTotal - femaleDorm);
+
+  // ---------------------------
+  // 🏠 ROOM LOGIC
+  // ---------------------------
+  const totalRoomUsers = maleRoom + femaleRoom;
+  const totalRoomsUsed = totalRoomUsers / personsPerRoom;
+
+  let remainingRooms = roomCapacity - totalRoomsUsed;
+
+  let oppositePartial = 0;
+
+  if (gender === "Male") {
+    if (femaleRoom % personsPerRoom !== 0) oppositePartial = 1;
+  } else {
+    if (maleRoom % personsPerRoom !== 0) oppositePartial = 1;
   }
 
-  if (!config) {
-    throw new Error(`Config not found in root or masters/ for ${safeId}`);
-  }
+  let availableRooms = Math.floor(remainingRooms - oppositePartial);
+  availableRooms = Math.max(0, availableRooms);
 
-  // 2. Numeric Conversion (Text to Number) from Screenshot (94).png
-  const roomMax = Number(config.room_capacity) || 0;
-  const dormMax = Number(config.dorm_capacity) || 0;
+  const roomSeats = availableRooms * personsPerRoom;
 
-  // 3. Fetch Counters (Checking root and masters)
-  let counterSnap = await firebase.database().ref(`counters/${safeId}`).once('value');
-  let counters = counterSnap.val();
-  
-  if (!counters) {
-    counterSnap = await firebase.database().ref(`masters/counters/${safeId}`).once('value');
-    counters = counterSnap.val() || {};
-  }
-
-  // Handle nested gender occupancy or flat occupancy
-  const roomOccupancy = Number(counters[gender]?.room || counters.room || 0);
-  const dormOccupancy = Number(counters[gender]?.dorm || counters.dorm || 0);
-
-  console.log(`MERS MATH: Room(${roomMax}-${roomOccupancy}) Dorm(${dormMax}-${dormOccupancy})`);
-
-  return {
-    roomSeats: Math.max(0, roomMax - roomOccupancy),
-    dormSeats: Math.max(0, dormMax - dormOccupancy)
-  };
+  return { roomSeats, dormSeats };
 }
- 
+
+
+
 async function updateStayOptions(event) {
   const targetId = event ? event.target.id : null;
   const validGenderIds = ['extra_gender', 'inp-gender', 'gender'];
+
+  // Only react to gender change
   if (event && !validGenderIds.includes(targetId)) return;
 
   const genderEl = document.getElementById('extra_gender') || 
@@ -1989,12 +2020,20 @@ async function updateStayOptions(event) {
     return;
   }
 
-  // 1. Find or Create the Capacity Box
+  // 1. Create / Find Capacity Box
   let container = document.getElementById('capacity-container');
   if (!container) {
     container = document.createElement('div');
     container.id = 'capacity-container';
-    container.style = "margin: 15px 0; font-weight: bold; padding: 12px; border-radius: 8px; border: 2px solid #c8e6c9; background-color: #f1f8e9; font-family: sans-serif;";
+    container.style = `
+      margin: 15px 0;
+      font-weight: bold;
+      padding: 12px;
+      border-radius: 8px;
+      border: 2px solid #c8e6c9;
+      background-color: #f1f8e9;
+      font-family: sans-serif;
+    `;
     genderEl.parentNode.insertBefore(container, genderEl.nextSibling);
   }
 
@@ -2002,31 +2041,74 @@ async function updateStayOptions(event) {
   container.innerHTML = '<div style="color: #2e7d32;">Checking live availability...</div>';
 
   try {
-    // 2. Trigger the availability calculation (Replacing the static "5")
-    // Note: eventConfig and getStayAvailability must be defined in your script
+    // 2. Get live availability
     const status = await getStayAvailability(window.currentEventId, genderEl.value);
 
-    // 3. Display the two rows (Room and Dorm)
+    // 3. Show Room + Dorm availability
     container.innerHTML = `
       <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #c8e6c9; padding-bottom: 5px; margin-bottom: 5px;">
-        <span>Room Availability:</span>
+        <span>Available Seats for Room:</span>
         <span style="color: ${status.roomSeats > 0 ? '#2e7d32' : '#d32f2f'};">
           ${status.roomSeats > 0 ? status.roomSeats + ' Seats' : 'Waiting List'}
         </span>
       </div>
       <div style="display: flex; justify-content: space-between;">
-        <span>Dorm Availability:</span>
+        <span>Available Seats for Dorm:</span>
         <span style="color: ${status.dormSeats > 0 ? '#2e7d32' : '#d32f2f'};">
           ${status.dormSeats > 0 ? status.dormSeats + ' Seats' : 'Waiting List'}
         </span>
       </div>
     `;
-    console.log("MERS: Live capacity displayed for", genderEl.value);
+
+    // 4. Update Stay Option Dropdown (🔥 MAIN FEATURE)
+    const stayEl = document.getElementById('extra_stay_option') ||
+                   document.getElementById('stay_option');
+
+    if (stayEl) {
+      let options = [];
+
+      // ROOM
+      if (status.roomSeats > 0) {
+        options.push("Room");
+      } else {
+        options.push("Room (Waiting List)");
+      }
+
+      // DORM
+      if (status.dormSeats > 0) {
+        options.push("Dormitory");
+      } else {
+        options.push("Dormitory (Waiting List)");
+      }
+
+      // ALWAYS AVAILABLE
+      options.push("I will arrange my own stay outside the venue");
+
+      // Clear old options
+      stayEl.innerHTML = '';
+
+      // Add new options
+      options.forEach(opt => {
+        const option = document.createElement("option");
+        option.value = opt;
+        option.textContent = opt;
+        stayEl.appendChild(option);
+      });
+
+      // Show stay option AFTER gender selection
+      if (stayEl.parentElement) {
+        stayEl.parentElement.style.display = 'block';
+      }
+    }
+
+    console.log("MERS: Capacity + Stay Options updated for", genderEl.value);
+
   } catch (error) {
     container.innerHTML = '<div style="color: #d32f2f;">Error loading availability</div>';
     console.error("MERS Error:", error);
   }
 }
+
 
 
 // Keep this at the bottom - it connects the function to your form
