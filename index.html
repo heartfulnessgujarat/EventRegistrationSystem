@@ -2098,31 +2098,27 @@ if (typeof currentSection !== 'undefined' && currentSection !== 2) {
 
 // 6. Populate dropdown (SAFE UPDATE)
 
-if (stayEl.tagName === 'SELECT') {
+const stayContainer = document.querySelector('[id*="stay_option"]');
 
-  const currentValue = stayEl.value; // preserve selected value
-
-  Array.from(stayEl.options).forEach(opt => {
-
-    if (opt.value.includes("Room")) {
-      opt.text = status.roomSeats > 0 ? "Room" : "Room (Waiting List)";
-      // ❌ DO NOT change opt.value
-    }
-
-    if (opt.value.includes("Dormitory")) {
-      opt.text = status.dormSeats > 0 ? "Dormitory" : "Dormitory (Waiting List)";
-      // ❌ DO NOT change opt.value
-    }
-
-  });
-
-  // restore selection
-  stayEl.value = currentValue;
-
-} else {
-  console.warn("MERS: stay option is not SELECT, skipping safe update");
+if (!stayContainer) {
+  console.warn("MERS: Stay option container not found");
+  return;
 }
 
+// Find all option labels inside it
+const items = stayContainer.querySelectorAll('label, div, span');
+
+items.forEach(el => {
+  const text = el.innerText.trim();
+
+  if (text.includes("Room")) {
+    el.innerText = status.roomSeats > 0 ? "Room" : "Room (Waiting List)";
+  }
+
+  if (text.includes("Dormitory")) {
+    el.innerText = status.dormSeats > 0 ? "Dormitory" : "Dormitory (Waiting List)";
+  }
+});
 
    
     
