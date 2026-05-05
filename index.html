@@ -2095,24 +2095,31 @@ if (typeof currentSection !== 'undefined' && currentSection !== 2) {
     options.push(status.dormSeats > 0 ? "Dormitory" : "Dormitory (Waiting List)");
     options.push("I will arrange my own stay outside the venue");
 
-    // 6. Populate dropdown
 
-const select = document.createElement('select');
-select.className = 'form-control';
-select.id = stayEl.id; // preserve ID
+// 6. Populate dropdown (SAFE UPDATE)
 
-options.forEach(opt => {
-  const option = document.createElement("option");
-  option.value = opt;
-  option.textContent = opt;
-  select.appendChild(option);
-});
+if (stayEl.tagName === 'SELECT') {
 
-// Replace old element
-stayEl.parentNode.replaceChild(select, stayEl);
+  Array.from(stayEl.options).forEach(opt => {
 
+    if (opt.value.includes("Room")) {
+      opt.text = status.roomSeats > 0 ? "Room" : "Room (Waiting List)";
+      opt.value = opt.text;
+    }
+
+    if (opt.value.includes("Dormitory")) {
+      opt.text = status.dormSeats > 0 ? "Dormitory" : "Dormitory (Waiting List)";
+      opt.value = opt.text;
+    }
+
+  });
+
+} else {
+  console.warn("MERS: stay option is not SELECT, skipping safe update");
+}
 
     
+   
     
     // 7. Ensure visibility
     if (stayEl.parentElement) {
