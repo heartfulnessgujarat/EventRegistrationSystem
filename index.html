@@ -2041,30 +2041,22 @@ async function getStayAvailability(eventId, gender) {
   return { roomSeats, dormSeats };
 }
 
-async function updateStayOptions(event) {
-
-console.log("updateStayOptions fired →", {
-  section: currentSection,
-  target: event?.target?.id
-});
 
 
+  async function updateStayOptions(event) {
 
-  
+  console.log("updateStayOptions fired →", {
+    section: window.currentSection,
+    target: event?.target?.id
+  });
 
-  // Run only in Section 2
+  // ✅ Run ONLY in Section 2
+  if (!window.currentSection || window.currentSection !== 2) return;
 
-  if (typeof window.currentSection === 'undefined' || window.currentSection !== 2) {
-  return;
-}
-  const targetId = event ? event.target.id : null;
+  const targetId = event?.target?.id;
 
-
+  // ✅ Run ONLY when gender changes
   if (!targetId || !targetId.includes('gender')) return;
-  
-  const validGenderIds = ['extra_gender', 'inp-gender', 'gender'];
-
-  if (event && !validGenderIds.includes(targetId)) return;
 
   const genderEl =
     document.getElementById('extra_gender') ||
@@ -2077,7 +2069,7 @@ console.log("updateStayOptions fired →", {
     return;
   }
 
-  // Create / Find Capacity Box
+  // ✅ Create / Find Capacity Box
   let container = document.getElementById('capacity-container');
   if (!container) {
     container = document.createElement('div');
@@ -2101,7 +2093,7 @@ console.log("updateStayOptions fired →", {
 
     const status = await getStayAvailability(eventId, genderEl.value);
 
-    // Show availability
+    // ✅ Show availability
     container.innerHTML = `
       <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #c8e6c9; padding-bottom: 5px; margin-bottom: 5px;">
         <span>Available Seats for Room:</span>
@@ -2117,64 +2109,14 @@ console.log("updateStayOptions fired →", {
       </div>
     `;
 
-    // 🔥 SAFE OPTION UPDATE (NO REBUILD)
+    // ✅ WAIT for dropdown render, then update safely
+    setTimeout(() => {
 
+      const stayEl = document.getElementById('extra_stay_option');
 
-setTimeout(() => {
-  const stayEl = document.getElementById('extra_stay_option');
+      if (!stayEl || stayEl.tagName !== 'SELECT') return;
 
-  if (stayEl && stayEl.tagName === 'SELECT' && stayEl.options.length > 0) {
-
-    const currentValue = stayEl.value;
-
-    let newOptions = [];
-
-    if (status.roomSeats > 0) {
-      newOptions.push("Room");
-    } else {
-      newOptions.push("Room (Waiting List)");
-    }
-
-    if (status.dormSeats > 0) {
-      newOptions.push("Dormitory");
-    } else {
-      newOptions.push("Dormitory (Waiting List)");
-    }
-
-    newOptions.push("I will arrange my own stay outside the venue");
-
-    stayEl.innerHTML = '';
-
-    newOptions.forEach(opt => {
-      const option = document.createElement('option');
-      option.value = opt;
-      option.textContent = opt;
-      stayEl.appendChild(option);
-    });
-
-    if (newOptions.includes(currentValue)) {
-      stayEl.value = currentValue;
-    }
-
-    console.log("MERS: Dropdown safely updated AFTER render");
-
-  }
-}, 200);
-    
-    
-//    const stayEl = document.getElementById('extra_stay_option');
-
-    
-
-    if (stayEl && stayEl.tagName === 'SELECT') {
-
-      const originalOptions = [
-        "Room",
-        "Dormitory",
-        "I will arrange my own stay outside the venue",
-        "Room (Waiting List)",
-        "Dormitory (Waiting List)"
-      ];
+      const currentValue = stayEl.value;
 
       let newOptions = [];
 
@@ -2192,12 +2134,10 @@ setTimeout(() => {
         newOptions.push("Dormitory (Waiting List)");
       }
 
-      // Always include outside
+      // Always include outside option
       newOptions.push("I will arrange my own stay outside the venue");
 
-      const currentValue = stayEl.value;
-
-      // Clear and rebuild options
+      // Replace options safely
       stayEl.innerHTML = '';
 
       newOptions.forEach(opt => {
@@ -2211,7 +2151,10 @@ setTimeout(() => {
       if (newOptions.includes(currentValue)) {
         stayEl.value = currentValue;
       }
-    }
+
+      console.log("MERS: Dropdown updated correctly");
+
+    }, 200);
 
     console.log("MERS: Capacity + Options updated for", genderEl.value);
 
@@ -2219,10 +2162,13 @@ setTimeout(() => {
     container.innerHTML = '<div style="color: #d32f2f;">Error loading availability</div>';
     console.error("MERS Error:", error);
   }
-}  
-// Keep this at the bottom - it connects the function to your form
+}
+
+
+// ✅ Keep this listener (unchanged)
 document.addEventListener('change', updateStayOptions);
 console.log("MERS DIAG: Section 2 Listener Active via Delegation");
+
 
 
   
