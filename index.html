@@ -2092,6 +2092,8 @@ async function updateStayOptions(event) {
 
     window.availability = status;
 
+    await buildExtraSections();
+
     // Prevent async overwrite after section change
     if (typeof currentSection !== 'undefined' && currentSection !== 2) {
       return;
