@@ -2044,12 +2044,11 @@ async function getStayAvailability(eventId, gender) {
 
 async function updateStayOptions(event) {
 
-  // 🚫 STRICT: run ONLY when Section 2 is visible
-  const section2Visible = document.querySelector('[data-section="2"], #section2');
-  if (!section2Visible || section2Visible.offsetParent === null) {
-    return;
-  }
+// ✅ Run ONLY when gender field changes
+const targetId = event?.target?.id || '';
+if (!targetId.includes('gender')) return;
 
+  
   console.log("updateStayOptions fired →", {
     section: window.currentSection,
     target: event?.target?.id
