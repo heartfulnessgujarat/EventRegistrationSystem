@@ -1112,20 +1112,9 @@ const activeResult = await activeSeatsRef.transaction((current) => {
     return (current || 0) + 1;
 });
 
-const latestActiveSeats = activeResult.snapshot.val() || 0;
 
-const roomCapacity = Number(eventConfig?.room_capacity || 0);
 
-if (latestActiveSeats > roomCapacity) {
-
-    await db.ref('waitlist_seats/' + eventIdParam).transaction((current) => {
-        return (current || 0) + 1;
-    });
-
-    console.log("MERS: WAITLIST counter incremented.");
-}
               
-                            
                 console.log("MERS: active_seats incremented successfully.");
 
 
