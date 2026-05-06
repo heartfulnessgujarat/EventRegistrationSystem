@@ -1125,13 +1125,20 @@ if (latestActiveSeats > roomCapacity) {
     console.log("MERS: WAITLIST counter incremented.");
 }
               
-              
-
-
-              
+                            
                 console.log("MERS: active_seats incremented successfully.");
 
 
+              // ===== CONFIRMED ACCOMMODATION COUNTER UPDATE =====
+
+if (confirmedCounterPath) {
+
+    await db.ref(confirmedCounterPath).transaction((current) => {
+        return (current || 0) + 1;
+    });
+
+    console.log("MERS: confirmed accommodation counter incremented.");
+}
 
 
 
