@@ -1054,19 +1054,40 @@ const selectedGender = (formData.extra_gender || "").toLowerCase();
 const selectedStay = (formData.extra_stay_option || "").toLowerCase();
 
 let confirmedCounterPath = "";
+// =====================================================
+// CONFIRMED ROOM
+// =====================================================
 
-// ROOM
-if (selectedStay.includes("room")) {
+if (selectedStay === "room") {
 
     if (selectedGender === "male") {
-        confirmedCounterPath = 'counters/confirmed_counters/room_male/' + eventIdParam;
+        confirmedCounterPath =
+            'counters/confirmed_counters/room_male/' + eventIdParam;
     }
 
     if (selectedGender === "female") {
-        confirmedCounterPath = 'counters/confirmed_counters/room_female/' + eventIdParam;
+        confirmedCounterPath =
+            'counters/confirmed_counters/room_female/' + eventIdParam;
     }
 }
 
+
+// =====================================================
+// ROOM WAITLIST
+// =====================================================
+
+if (selectedStay === "room (waiting list)") {
+
+    if (selectedGender === "male") {
+        waitlistCounterPath =
+            'counters/waitlist_counters/room_male/' + eventIdParam;
+    }
+
+    if (selectedGender === "female") {
+        waitlistCounterPath =
+            'counters/waitlist_counters/room_female/' + eventIdParam;
+    }
+}
 // DORM
 if (selectedStay.includes("dorm")) {
 
