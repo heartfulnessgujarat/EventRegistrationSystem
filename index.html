@@ -1095,6 +1095,29 @@ if (selectedStay === "room (waiting list)") {
     }
 }
 // DORM
+
+// =====================================================
+// DORM WAITLIST
+// =====================================================
+
+if (selectedStay === "dormitory (waiting list)") {
+
+    if (selectedGender === "male") {
+        waitlistCounterPath =
+            'counters/waitlist_counters/dorm_male/' + eventIdParam;
+    }
+
+    if (selectedGender === "female") {
+        waitlistCounterPath =
+            'counters/waitlist_counters/dorm_female/' + eventIdParam;
+    }
+}
+
+
+      
+      
+
+      
 if (selectedStay.includes("dorm")) {
 
     if (selectedGender === "male") {
