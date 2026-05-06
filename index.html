@@ -1072,6 +1072,19 @@ async function submitData() {
                 });
                 console.log("MERS: active_seats incremented successfully.");
 
+// ===== WAITLIST COUNTER INITIALIZATION =====
+const wlRef = db.ref('waitlist_seats/' + eventIdParam);
+
+const wlSnapshot = await wlRef.once('value');
+
+if (!wlSnapshot.exists()) {
+    await wlRef.set(0);
+    console.log("MERS: waitlist counter initialized.");
+}
+
+
+              
+
               console.log("STEP-1 PASSED");
 
 console.log("eventConfig.final_html exists?", !!eventConfig.final_html);
