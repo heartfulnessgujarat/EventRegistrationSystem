@@ -2342,12 +2342,9 @@ if (!formContent || formContent.style.display === 'none') {
         <span>Available Seats for Room:</span>
         <span style="color: ${status.roomSeats > 0 ? '#2e7d32' : '#d32f2f'};">
 
-
-        ${status.dormSeats > 0 
-    ? status.dormSeats + ' Seats' 
-    : 'WL-' + (status.dormWaitlist || 0)}
-
-      
+${status.roomSeats > 0 
+    ? status.roomSeats + ' Seats' 
+    : 'WL-' + (status.roomWaitlist || 0)}
           
         </span>
       </div>
