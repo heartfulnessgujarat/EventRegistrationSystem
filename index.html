@@ -2069,6 +2069,11 @@ async function updateStayOptions(event) {
 const targetId = event?.target?.id || '';
 if (!targetId.includes('gender')) return;
 
+const formContent = document.getElementById('form-content');
+
+if (!formContent || formContent.style.display === 'none') {
+    return;
+}
   
   console.log("updateStayOptions fired →", {
     section: window.currentSection,
