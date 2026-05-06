@@ -2233,54 +2233,53 @@ async function getStayAvailability(eventId, gender) {
       ? Math.max(0, maleDormTotal - maleDorm)
       : Math.max(0, femaleDormTotal - femaleDorm);
 
-  // =====================================================
-  // ROOM CALCULATION (NEW CORRECT LOGIC)
-  // =====================================================
+// =====================================================
+// ROOM CALCULATION (FINAL GENDER-BLOCKING LOGIC)
+// =====================================================
 
-  const totalRoomSeats = roomCapacity * personsPerRoom;
+let roomSeats = 0;
 
-  let roomSeats = 0;
+if (gender === "Male") {
 
-  if (gender === "Male") {
+  // Female occupied rooms block male usage
+  const femaleRoomsOccupied =
+    Math.ceil(femaleRoom / personsPerRoom);
 
-    // SAME gender usable seats
-    const sameGenderRemaining =
-      totalRoomSeats - maleRoom;
+  // Remaining rooms usable for males
+  const roomsAvailableForMale =
+    Math.max(0, roomCapacity - femaleRoomsOccupied);
 
-    // ROOMS blocked by opposite gender
-    const femaleRoomsOccupied =
-      Math.ceil(femaleRoom / personsPerRoom);
+  // Maximum seats males can use
+  const maxMaleSeats =
+    roomsAvailableForMale * personsPerRoom;
 
-    const roomsAvailableForMale =
-      Math.max(0, roomCapacity - femaleRoomsOccupied);
+  // Remaining usable male seats
+  roomSeats =
+    maxMaleSeats - maleRoom;
 
-    const maxMaleSeatsPossible =
-      roomsAvailableForMale * personsPerRoom;
+} else {
 
-    roomSeats =
-      Math.min(sameGenderRemaining, maxMaleSeatsPossible);
+  // Male occupied rooms block female usage
+  const maleRoomsOccupied =
+    Math.ceil(maleRoom / personsPerRoom);
 
-  } else {
+  // Remaining rooms usable for females
+  const roomsAvailableForFemale =
+    Math.max(0, roomCapacity - maleRoomsOccupied);
 
-    // SAME gender usable seats
-    const sameGenderRemaining =
-      totalRoomSeats - femaleRoom;
+  // Maximum seats females can use
+  const maxFemaleSeats =
+    roomsAvailableForFemale * personsPerRoom;
 
-    // ROOMS blocked by opposite gender
-    const maleRoomsOccupied =
-      Math.ceil(maleRoom / personsPerRoom);
+  // Remaining usable female seats
+  roomSeats =
+    maxFemaleSeats - femaleRoom;
+}
 
-    const roomsAvailableForFemale =
-      Math.max(0, roomCapacity - maleRoomsOccupied);
+// Safety
+roomSeats = Math.max(0, roomSeats);
 
-    const maxFemaleSeatsPossible =
-      roomsAvailableForFemale * personsPerRoom;
-
-    roomSeats =
-      Math.min(sameGenderRemaining, maxFemaleSeatsPossible);
-  }
-
-  roomSeats = Math.max(0, roomSeats);
+  
 
   // =====================================================
   // WAITLIST COUNTERS
