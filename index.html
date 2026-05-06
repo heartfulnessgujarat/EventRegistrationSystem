@@ -2253,7 +2253,44 @@ async function getStayAvailability(eventId, gender) {
 
   const roomSeats = availableRooms * personsPerRoom;
 
-  return { roomSeats, dormSeats };
+  let roomWaitlist = 0;
+let dormWaitlist = 0;
+
+// ===== ROOM WL =====
+if (gender.toLowerCase() === 'male') {
+
+    const roomWLSnap = await db.ref('counters/waitlist_counters/room_male/' + eventId).once('value');
+
+    roomWaitlist = roomWLSnap.val() || 0;
+
+} else {
+
+    const roomWLSnap = await db.ref('counters/waitlist_counters/room_female/' + eventId).once('value');
+
+    roomWaitlist = roomWLSnap.val() || 0;
+}
+
+// ===== DORM WL =====
+if (gender.toLowerCase() === 'male') {
+
+    const dormWLSnap = await db.ref('counters/waitlist_counters/dorm_male/' + eventId).once('value');
+
+    dormWaitlist = dormWLSnap.val() || 0;
+
+} else {
+
+    const dormWLSnap = await db.ref('counters/waitlist_counters/dorm_female/' + eventId).once('value');
+
+    dormWaitlist = dormWLSnap.val() || 0;
+}
+
+return {
+    roomSeats,
+    dormSeats,
+    roomWaitlist,
+    dormWaitlist
+};
+  
 }
 
 
