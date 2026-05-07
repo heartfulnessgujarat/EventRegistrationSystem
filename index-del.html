@@ -305,23 +305,6 @@ if (regStatus === "DORM WL") {
 }
 
       
-
-      // 3. UPDATE NEW SEAT AVAILABILITY COUNTERS
-
-const gender = (data.gender || "").toUpperCase();
-const regStatus = originalStatus;
-      
-const accType = (data.accommodation_type || "").toUpperCase();
-
-// Example paths — adjust to your actual structure
-
-      
-      showFinalStatus("Cancelled", "Thank you for cancellation... your seat is released now for others...", "✅");
-    } catch (e) {
-      showFinalStatus("Error", "Process failed.", "❌");
-    }
-  }
-
   function showFinalStatus(title, desc, icon) {
     document.getElementById('loader').style.display = 'none';
     document.getElementById('confirm-ui').style.display = 'none';
