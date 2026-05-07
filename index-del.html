@@ -149,11 +149,14 @@
     }
 
     try {
-      const snapshot = await db.ref(`registrations/${eventId}/${regId}`).once('value');
-      const data = snapshot.val();
-      
-      data.registration_status = "CANCELLED";
-      data.cancelled_at = new Date().toLocaleString();
+     const snapshot = await db.ref(`registrations/${eventId}/${regId}`).once('value');
+const data = snapshot.val();
+
+// STORE ORIGINAL STATUS BEFORE OVERWRITING
+const originalStatus = (data.registration_status || "").toUpperCase();
+
+data.registration_status = "CANCELLED";
+data.cancelled_at = new Date().toLocaleString();
 
       // 1. Move record to deleted folder
       await db.ref(`deleted_registrations/${eventId}/${regId}`).set(data);
@@ -161,78 +164,158 @@
       // 2. Remove record from active folder
       await db.ref(`registrations/${eventId}/${regId}`).remove();
 
+      // =====================================================
+// READ REQUIRED VALUES FOR COUNTER DECREMENT
+// =====================================================
+
+const gender = (data.gender || "").trim().toUpperCase();
+
+const accType = (
+  data.accommodation_type || ""
+).trim().toUpperCase();
+
+// originalStatus already captured earlier
+const regStatus = originalStatus;
+
+
+      // =====================================================
+// DECREMENT CONFIRMED COUNTERS
+// =====================================================
+
+if (regStatus === "CONFIRMED") {
+
+  // ---------- ROOM ----------
+  if (accType === "ROOM") {
+
+    if (gender === "MALE") {
+
+      await db.ref(
+        `counters/confirmed_counters/room_male/${eventId}`
+      ).transaction(current => {
+
+        return Math.max((current || 0) - 1, 0);
+
+      });
+
+    }
+
+    if (gender === "FEMALE") {
+
+      await db.ref(
+        `counters/confirmed_counters/room_female/${eventId}`
+      ).transaction(current => {
+
+        return Math.max((current || 0) - 1, 0);
+
+      });
+
+    }
+
+  }
+
+  // ---------- DORM ----------
+  if (accType === "DORM") {
+
+    if (gender === "MALE") {
+
+      await db.ref(
+        `counters/confirmed_counters/dorm_male/${eventId}`
+      ).transaction(current => {
+
+        return Math.max((current || 0) - 1, 0);
+
+      });
+
+    }
+
+    if (gender === "FEMALE") {
+
+      await db.ref(
+        `counters/confirmed_counters/dorm_female/${eventId}`
+      ).transaction(current => {
+
+        return Math.max((current || 0) - 1, 0);
+
+      });
+
+    }
+
+  }
+
+}
+
+// =====================================================
+// DECREMENT WAITLIST COUNTERS
+// =====================================================
+
+if (regStatus === "ROOM WL") {
+
+  if (gender === "MALE") {
+
+    await db.ref(
+      `counters/waitlist_counters/room_male/${eventId}`
+    ).transaction(current => {
+
+      return Math.max((current || 0) - 1, 0);
+
+    });
+
+  }
+
+  if (gender === "FEMALE") {
+
+    await db.ref(
+      `counters/waitlist_counters/room_female/${eventId}`
+    ).transaction(current => {
+
+      return Math.max((current || 0) - 1, 0);
+
+    });
+
+  }
+
+}
+
+if (regStatus === "DORM WL") {
+
+  if (gender === "MALE") {
+
+    await db.ref(
+      `counters/waitlist_counters/dorm_male/${eventId}`
+    ).transaction(current => {
+
+      return Math.max((current || 0) - 1, 0);
+
+    });
+
+  }
+
+  if (gender === "FEMALE") {
+
+    await db.ref(
+      `counters/waitlist_counters/dorm_female/${eventId}`
+    ).transaction(current => {
+
+      return Math.max((current || 0) - 1, 0);
+
+    });
+
+  }
+
+}
+
+      
+
       // 3. UPDATE NEW SEAT AVAILABILITY COUNTERS
 
 const gender = (data.gender || "").toUpperCase();
-const regStatus = (data.registration_status || "").toUpperCase();
+const regStatus = originalStatus;
+      
 const accType = (data.accommodation_type || "").toUpperCase();
 
 // Example paths — adjust to your actual structure
-const counterRef = db.ref(`seat_availability/${eventId}`);
 
-await counterRef.transaction(current => {
-
-  current = current || {};
-
-  // ---------- CONFIRMED ROOM ----------
-  if (regStatus === "CONFIRMED" && accType === "ROOM") {
-
-    if (gender === "MALE") {
-      current.confirmed_male_room =
-        Math.max((current.confirmed_male_room || 0) - 1, 0);
-    }
-
-    if (gender === "FEMALE") {
-      current.confirmed_female_room =
-        Math.max((current.confirmed_female_room || 0) - 1, 0);
-    }
-  }
-
-  // ---------- CONFIRMED DORM ----------
-  if (regStatus === "CONFIRMED" && accType === "DORM") {
-
-    if (gender === "MALE") {
-      current.confirmed_male_dorm =
-        Math.max((current.confirmed_male_dorm || 0) - 1, 0);
-    }
-
-    if (gender === "FEMALE") {
-      current.confirmed_female_dorm =
-        Math.max((current.confirmed_female_dorm || 0) - 1, 0);
-    }
-  }
-
-  // ---------- ROOM WL ----------
-  if (regStatus === "ROOM WL") {
-
-    if (gender === "MALE") {
-      current.room_wl_male =
-        Math.max((current.room_wl_male || 0) - 1, 0);
-    }
-
-    if (gender === "FEMALE") {
-      current.room_wl_female =
-        Math.max((current.room_wl_female || 0) - 1, 0);
-    }
-  }
-
-  // ---------- DORM WL ----------
-  if (regStatus === "DORM WL") {
-
-    if (gender === "MALE") {
-      current.dorm_wl_male =
-        Math.max((current.dorm_wl_male || 0) - 1, 0);
-    }
-
-    if (gender === "FEMALE") {
-      current.dorm_wl_female =
-        Math.max((current.dorm_wl_female || 0) - 1, 0);
-    }
-  }
-
-  return current;
-});
-
+      
       showFinalStatus("Cancelled", "Thank you for cancellation... your seat is released now for others...", "✅");
     } catch (e) {
       showFinalStatus("Error", "Process failed.", "❌");
