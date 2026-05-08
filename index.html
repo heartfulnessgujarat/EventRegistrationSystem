@@ -2670,10 +2670,21 @@ if you proceed further.`
     return;
   }
 
-  alert(
-    "Next step: accommodation editing will be enabled."
-  );
+// =====================================================
+// ENABLE ACCOMMODATION EDIT MODE
+// =====================================================
 
+window.accommodationEditUnlocked = true;
+
+// Rebuild dropdown with LIVE options
+updateStayOptions({
+  type: 'mers-section-refresh'
+});
+
+// Hide button after unlock
+btn.style.display = "none";
+
+  
 };
 
 
