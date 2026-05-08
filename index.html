@@ -521,8 +521,6 @@ console.log("%c MERS PING 1: Init sequence started. CurrentSection is: " + (type
   checkAllValidations();
 }
 
-
-
   
 function renderDropdown(div, list, type) {
   div.innerHTML = '';
@@ -1466,6 +1464,8 @@ async function loadExistingData(regId, mode) {
         if (mode === 'edit') {
             renderForm(); 
 
+          
+
             fieldRules.forEach(r => {
                 const el = document.getElementById(`inp-${r.field_id}`);
                 if (el && data[r.field_id] !== undefined) {
@@ -1478,6 +1478,34 @@ async function loadExistingData(regId, mode) {
                 }
             });
 
+
+          // =====================================================
+// MERS: TRIGGER SECTION 2 REACTIVE FLOW IN EDIT MODE
+// =====================================================
+
+setTimeout(() => {
+
+    const genderField =
+        document.getElementById("inp-gender");
+
+    if (genderField) {
+
+        genderField.dispatchEvent(
+            new Event("change")
+        );
+
+        console.log(
+            "MERS EDIT MODE: Gender change event triggered."
+        );
+
+    }
+
+}, 300);
+
+
+
+
+          
             document.getElementById('loading-init').style.display = 'none';
             document.getElementById('form-content').style.display = 'block';
 
