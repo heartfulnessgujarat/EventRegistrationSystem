@@ -2662,6 +2662,11 @@ stayEl.appendChild(placeholder);
 stayEl.disabled =
   !window.accommodationEditUnlocked;
 
+      console.log(
+  "MERS LOCK CHECK:",
+  stayEl.disabled
+);
+
 if (!window.accommodationEditUnlocked) {
 
   stayEl.style.background =
