@@ -2786,6 +2786,19 @@ stayEl.appendChild(placeholder);
         stayEl.value = currentValue;
       }
 
+      // =====================================================
+// ENABLE DROPDOWN AFTER UNLOCK
+// =====================================================
+
+stayEl.disabled = false;
+
+stayEl.removeAttribute("disabled");
+
+stayEl.style.pointerEvents = "auto";
+
+stayEl.style.opacity = "1";
+
+stayEl.style.background = "";
     
       
 // 👉 ADD THIS LINE HERE (exactly here)
