@@ -8,7 +8,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
 
-
   <!-- Path Selection Logic: Redirects Delete Mode to index-del.html -->
 <script>
   (function() {
@@ -1274,7 +1273,36 @@ if (mode === 'edit') {
     // CONFIRMED COUNTER
     // =====================================================
 
-    if (confirmedCounterPath) {
+// =====================================================
+// RECALCULATE LIVE AVAILABILITY
+// =====================================================
+
+const latestAvailability =
+    await getStayAvailability(
+        eventIdParam,
+        selectedGender
+    );
+
+console.log(
+    "MERS EDIT: Latest availability after release:",
+    latestAvailability
+);
+
+// =====================================================
+// DETERMINE LIVE STATUS
+// =====================================================
+
+const wantsRoom =
+    selectedStay.includes("room");
+
+// =====================================================
+// ROOM LOGIC
+// =====================================================
+
+if (wantsRoom) {
+
+    // ROOM AVAILABLE
+    if (latestAvailability.roomSeats > 0) {
 
         const confirmResult =
             await db.ref(confirmedCounterPath)
@@ -1287,25 +1315,18 @@ if (mode === 'edit') {
         const confirmCount =
             confirmResult.snapshot.val();
 
-        const stayLabel =
-            selectedStay.includes("room")
-            ? "ROOM"
-            : "DORM";
-
         stayAllocationCode =
-            `${stayLabel}-CONFIRM#${confirmCount}`;
+            `ROOM-CONFIRM#${confirmCount}`;
 
         console.log(
-            "MERS EDIT: New confirmed allocation:",
+            "MERS EDIT: Assigned ROOM CONFIRM:",
             stayAllocationCode
         );
+
     }
 
-    // =====================================================
-    // WAITLIST COUNTER
-    // =====================================================
-
-    if (waitlistCounterPath) {
+    // ROOM WAITLIST
+    else {
 
         const waitlistResult =
             await db.ref(waitlistCounterPath)
@@ -1318,25 +1339,69 @@ if (mode === 'edit') {
         const waitlistCount =
             waitlistResult.snapshot.val();
 
-        const stayLabel =
-            selectedStay.includes("room")
-            ? "ROOM"
-            : "DORM";
-
         stayAllocationCode =
-            `${stayLabel}-WAITLIST#${waitlistCount}`;
+            `ROOM-WAITLIST#${waitlistCount}`;
 
         console.log(
-            "MERS EDIT: New waitlist allocation:",
+            "MERS EDIT: Assigned ROOM WAITLIST:",
             stayAllocationCode
         );
     }
 }
 
+// =====================================================
+// DORM LOGIC
+// =====================================================
 
+else {
 
+    // DORM AVAILABLE
+    if (latestAvailability.dormSeats > 0) {
 
+        const confirmResult =
+            await db.ref(confirmedCounterPath)
+            .transaction((current) => {
 
+                return (current || 0) + 1;
+
+            });
+
+        const confirmCount =
+            confirmResult.snapshot.val();
+
+        stayAllocationCode =
+            `DORM-CONFIRM#${confirmCount}`;
+
+        console.log(
+            "MERS EDIT: Assigned DORM CONFIRM:",
+            stayAllocationCode
+        );
+
+    }
+
+    // DORM WAITLIST
+    else {
+
+        const waitlistResult =
+            await db.ref(waitlistCounterPath)
+            .transaction((current) => {
+
+                return (current || 0) + 1;
+
+            });
+
+        const waitlistCount =
+            waitlistResult.snapshot.val();
+
+        stayAllocationCode =
+            `DORM-WAITLIST#${waitlistCount}`;
+
+        console.log(
+            "MERS EDIT: Assigned DORM WAITLIST:",
+            stayAllocationCode
+        );
+    }
+}
       
 // --- STEP 4: SAVE DATA & CONDITIONAL COUNTER ---
         if (mode === 'new') {
