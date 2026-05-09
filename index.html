@@ -1070,89 +1070,80 @@ let confirmedCounterPath = "";
 
       let waitlistCounterPath = "";
 let stayAllocationCode = "";
+
+      // =====================================================
+console.log("FINAL selectedStay =", selectedStay);
+
+// RESET PATHS SAFELY
+confirmedCounterPath = "";
+waitlistCounterPath = "";
+
 // =====================================================
-// CONFIRMED ROOM
+// ROOM LOGIC
 // =====================================================
 
-      console.log("FINAL selectedGender =", selectedGender);
-      console.log("FINAL selectedStay =", selectedStay);
+if (selectedStay.includes("room")) {
+
+    // ROOM WAITLIST
+    if (selectedStay.includes("waiting")) {
+
+        waitlistCounterPath =
+            'counters/waitlist_counters/room_' +
+            selectedGender +
+            '/' +
+            eventIdParam;
+    }
+
+    // ROOM CONFIRMED
+    else {
+
+        confirmedCounterPath =
+            'counters/confirmed_counters/room_' +
+            selectedGender +
+            '/' +
+            eventIdParam;
+    }
+}
+
+// =====================================================
+// DORM LOGIC
+// =====================================================
+
+if (selectedStay.includes("dorm")) {
+
+    // DORM WAITLIST
+    if (selectedStay.includes("waiting")) {
+
+        waitlistCounterPath =
+            'counters/waitlist_counters/dorm_' +
+            selectedGender +
+            '/' +
+            eventIdParam;
+    }
+
+    // DORM CONFIRMED
+    else {
+
+        confirmedCounterPath =
+            'counters/confirmed_counters/dorm_' +
+            selectedGender +
+            '/' +
+            eventIdParam;
+    }
+}
 
 console.log(
-  "MERS COUNTER PATH CHECK:",
-  {
-    selectedGender,
-    selectedStay,
-    confirmedCounterPath,
-    waitlistCounterPath,
-    formGender: formData.extra_gender,
-    originalGender: originalData?.extra_gender
-  }
+    "MERS COUNTER PATH CHECK:",
+    {
+        selectedGender,
+        selectedStay,
+        confirmedCounterPath,
+        waitlistCounterPath,
+        formGender: formData.extra_gender,
+        originalGender: originalData?.extra_gender
+    }
 );
 
-      
-if (selectedStay === "room") {
-
-  
-
-    if (selectedGender === "male") {
-        confirmedCounterPath =
-            'counters/confirmed_counters/room_male/' + eventIdParam;
-    }
-
-    if (selectedGender === "female") {
-        confirmedCounterPath =
-            'counters/confirmed_counters/room_female/' + eventIdParam;
-    }
-}
-
-
-// =====================================================
-// ROOM WAITLIST
-// =====================================================
-
-if (selectedStay === "room (waiting list)") {
-
-    if (selectedGender === "male") {
-        waitlistCounterPath =
-            'counters/waitlist_counters/room_male/' + eventIdParam;
-    }
-
-    if (selectedGender === "female") {
-        waitlistCounterPath =
-            'counters/waitlist_counters/room_female/' + eventIdParam;
-    }
-}
-// DORM
-
-// =====================================================
-// DORM WAITLIST
-// =====================================================
-
-if (selectedStay === "dormitory (waiting list)") {
-
-    if (selectedGender === "male") {
-        waitlistCounterPath =
-            'counters/waitlist_counters/dorm_male/' + eventIdParam;
-    }
-
-    if (selectedGender === "female") {
-        waitlistCounterPath =
-            'counters/waitlist_counters/dorm_female/' + eventIdParam;
-    }
-}
-
-    if (selectedStay === "dormitory") {
-
-    if (selectedGender === "male") {
-        confirmedCounterPath =
-            'counters/confirmed_counters/dorm_male/' + eventIdParam;
-    }
-
-    if (selectedGender === "female") {
-        confirmedCounterPath =
-            'counters/confirmed_counters/dorm_female/' + eventIdParam;
-    }
-}
       
       // =====================================================
 // EDIT MODE → RELEASE OLD ACCOMMODATION
