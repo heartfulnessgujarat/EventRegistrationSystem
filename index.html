@@ -3071,50 +3071,30 @@ if (availabilityBox) {
 
 popupContent.innerHTML = `
 
-<div style="margin-bottom:15px;">
+<div style="line-height:1.5;">
 
-<b>Current Accommodation Status</b>
-
-<br><br>
-
-${currentStay}
-
-</div>
-
-<div>
-
-If you continue editing your stay option:
-
-<ul style="margin-top:10px; padding-left:20px;">
-
-<li>
-Your current accommodation allocation will be released
-</li>
-
-<li>
-Your current queue position may be lost permanently
-</li>
-
-<li>
-If you change your stay option from
-<b>${currentStay}</b>
-to
-<b>${alternateStayType}</b>,
-the current ${alternateStayType} availability status is:
+Your current accommodation status is
+<b>${currentStay}</b>.
 
 <br><br>
 
-<b style="color:#d32f2f;">
-${alternateStatusText}
-</b>
+You are about to change your stay option to
+<b>${alternateStayType}</b>.
 
-</li>
+<br><br>
 
-</ul>
+Please check the current
+<b>${alternateStayType}</b>
+availability shown above this popup before proceeding further, because you may lose your current accommodation allocation.
+
+<br><br>
+
+<b>Do you want to continue?</b>
 
 </div>
 `;
-
+  
+  
 // SHOW POPUP
 popupOverlay.style.display = "flex";
 
