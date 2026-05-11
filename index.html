@@ -1519,8 +1519,8 @@ if (confirmedCounterPath) {
     // BUILD STAY ALLOCATION CODE
     // =====================================================
 
-    const stayLabel =
-      selectedStay.includes("room")
+   const stayLabel =
+      stayInfo.type === "room"
       ? "ROOM"
       : "DORM";
 
@@ -1560,11 +1560,12 @@ if (waitlistCounterPath) {
     // BUILD STAY ALLOCATION CODE
     // =====================================================
 
-    const stayLabel =
-      selectedStay.includes("room")
+   const stayLabel =
+      stayInfo.type === "room"
       ? "ROOM"
       : "DORM";
 
+  
     stayAllocationCode =
       `${stayLabel}-WAITLIST#${waitlistCount}`;
 
