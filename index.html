@@ -2476,40 +2476,75 @@ function updateButtonState() {
     return str;
 }
 
-  function showValidationPopup(message) {
+function showValidationPopup(message, type = "date") {
 
     const overlay =
-        document.getElementById("mersPopupOverlay");
+        document.getElementById("validationPopupOverlay");
+
+    const icon =
+        document.getElementById("validationPopupIcon");
+
+    const title =
+        document.getElementById("validationPopupTitle");
 
     const content =
-        document.getElementById("mersPopupContent");
+        document.getElementById("validationPopupMessage");
 
-    const proceedBtn =
-        document.getElementById("mersPopupProceed");
+    const btn =
+        document.getElementById("validationPopupBtn");
 
-    const cancelBtn =
-        document.getElementById("mersPopupCancel");
+    // ==============================
+    // DATE MODE
+    // ==============================
 
-    // Keep existing popup heading
-    // OR use one generic reusable heading
+    if (type === "date") {
 
-    // Update dynamic message
-    content.innerHTML = message;
+        icon.innerHTML = "📅";
 
-    // Hide Proceed button
-    proceedBtn.style.display = "none";
+        title.innerText = "Invalid Date";
 
-    // Configure OK button
-    cancelBtn.innerText = "OK";
+        title.style.color = "#c62828";
 
-    // Close popup
-    cancelBtn.onclick = () => {
+        btn.style.background = "#c62828";
+    }
+
+    // ==============================
+    // TIME MODE
+    // ==============================
+
+    if (type === "time") {
+
+        icon.innerHTML = "🕒";
+
+        title.innerText = "Invalid Time";
+
+        title.style.color = "#1565c0";
+
+        btn.style.background = "#1565c0";
+    }
+
+    // ==============================
+    // MESSAGE
+    // ==============================
+
+    content.innerHTML = "❌ " + message;
+
+    // ==============================
+    // CLOSE
+    // ==============================
+
+    btn.onclick = function () {
+
         overlay.style.display = "none";
     };
 
-    // Show popup
+    // ==============================
+    // SHOW
+    // ==============================
+
     overlay.style.display = "flex";
 }
+
 
   
 function validateField(id, value, rule) {
