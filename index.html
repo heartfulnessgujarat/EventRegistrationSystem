@@ -1473,6 +1473,21 @@ console.log(
 const wantsRoom =
   stayInfo.type === "room";
 
+if (!stayInfo.type) {
+
+    console.log(
+        "MERS EDIT: Outside stay detected. No accommodation counter update required."
+    );
+
+    stayAllocationCode = "OUTSIDE-STAY";
+}
+
+else {
+
+
+
+
+  
 // =====================================================
 // ROOM LOGIC
 // =====================================================
