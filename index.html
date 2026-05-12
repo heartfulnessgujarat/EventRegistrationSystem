@@ -1238,6 +1238,19 @@ waitlistCounterPath = "";
 // CENTRALIZED STAY CLASSIFICATION
 // =====================================================
 
+console.log("selectedStay =", selectedStay);
+
+console.log("formData.extra_stay_option =", formData.extra_stay_option);
+
+console.log("originalData.extra_stay_option =", originalData.extra_stay_option);
+
+console.log("mersTempData.extra_stay_option =", mersTempData.extra_stay_option);
+
+
+
+
+
+      
 const stayInfo =
     classifyStayOption(selectedStay);
 
@@ -2476,6 +2489,8 @@ function updateButtonState() {
     return str;
 }
 
+
+  
 function showValidationPopup(message, type = "date") {
 
     const overlay =
@@ -3486,9 +3501,6 @@ console.log("MERS DIAG: Section 2 Listener Active via Delegation");
     </div>
 
 </div>
-
-
-
 
     
 </body>
