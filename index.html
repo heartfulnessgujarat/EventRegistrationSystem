@@ -601,9 +601,7 @@ console.log("%c MERS PING 1: Init sequence started. CurrentSection is: " + (type
         document.getElementById('loading-init').innerHTML = "<h2>Error loading form. Please refresh.</h2>";
     }
 
-  //  if (section2) {
-   //     section2.prepend(diag);
-  //  }
+ 
     
 }
 
@@ -1582,10 +1580,11 @@ else {
     }
 }
 
-//  }
+
 
   
 // --- STEP 4: SAVE DATA & CONDITIONAL COUNTER ---
+  
         if (mode === 'new') {
             console.log("MERS: Processing counters for Event:", eventIdParam);
 
@@ -2136,9 +2135,7 @@ if (fieldId === 'stay_option' && window.availability) {
         if (backBtn) {
             backBtn.onclick = (targetSectionNumber === "Section3") 
 
-              
-          //      ? () => buildExtraSections('Section2') 
-
+       
 ? () => {
 
     buildExtraSections('Section2');
