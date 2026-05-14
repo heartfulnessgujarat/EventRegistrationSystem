@@ -2324,14 +2324,7 @@ function proceedToLogistics() {
 // FORCE LIVE SECTION 2 AVAILABILITY REFRESH
 // =====================================================
 
-setTimeout(() => {
-
-    updateStayOptions({
-        type: 'mers-section-refresh'
-    });
-
-}, 800);
-
+refreshSection2BusinessLogic();
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -3388,13 +3381,18 @@ console.log("MERS: Dropdown updated correctly");
     );
 }
 
+function refreshSection2BusinessLogic() {
 
+    setTimeout(() => {
 
+        updateStayOptions({
+            type: 'mers-section-refresh'
+        });
 
-  
+    }, 800);
+}
 
-
-  
+ 
 
 // ✅ Keep this listener (unchanged)
 document.addEventListener('change', updateStayOptions);
