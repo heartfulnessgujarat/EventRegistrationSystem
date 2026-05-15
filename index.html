@@ -2125,32 +2125,60 @@ if (fieldId === 'stay_option') {
                 if (originalData) originalData[cleanId] = input.value;
             });
 
-            if (targetSectionNumber === "Section2") {
-                buildExtraSections('Section3');
-            } else {
-                console.log("MERS: Finalizing Submission with updated values...");
-                submitData(); // Triggers existing thank you/email logic[cite: 1]
-            }
+
+          const nextSection =
+    getNextSection(targetSectionNumber);
+
+if (nextSection) {
+
+    buildExtraSections(nextSection);
+
+} else {
+
+    console.log(
+        "MERS: Finalizing Submission with updated values..."
+    );
+
+    submitData();
+}
+
+        
+ 
+          
         };
 
         if (backBtn) {
-            backBtn.onclick = (targetSectionNumber === "Section3") 
 
-              
-          //      ? () => buildExtraSections('Section2') 
 
-? () => {
+          const previousSection =
+    getPreviousSection(targetSectionNumber);
 
-    buildExtraSections('Section2');
+backBtn.onclick = () => {
 
-   refreshSection2BusinessLogic();
+    if (previousSection) {
 
-}
-              
-                : () => { 
-                    document.getElementById('Section2').style.display = 'none';  
-                    document.getElementById('Section1').style.display = 'block';  
-                };
+        buildExtraSections(previousSection);
+
+        if (
+            previousSection === "Section2"
+        ) {
+
+            refreshSection2BusinessLogic();
+
+        }
+
+    } else {
+
+        document.getElementById('Section2').style.display =
+            'none';
+
+        document.getElementById('Section1').style.display =
+            'block';
+    }
+};
+
+
+          
         }
 
         actionBtn.innerText = (targetSectionNumber === "Section2") ? "PROCEED TO TRAVEL DETAILS" : "CONFIRM & REGISTER";
@@ -3484,6 +3512,50 @@ function filterRoomChoices(fieldId, choices) {
         return true;
     });
 }
+
+
+
+function getSectionIndex(sectionNumber) {
+
+    return moreSections.findIndex(
+        s => s.section_number === sectionNumber
+    );
+}
+
+function getNextSection(currentSection) {
+
+    const currentIndex =
+        getSectionIndex(currentSection);
+
+    if (currentIndex === -1) {
+        return null;
+    }
+
+    const nextSection =
+        moreSections[currentIndex + 1];
+
+    return nextSection
+        ? nextSection.section_number
+        : null;
+}
+
+function getPreviousSection(currentSection) {
+
+    const currentIndex =
+        getSectionIndex(currentSection);
+
+    if (currentIndex <= 0) {
+        return null;
+    }
+
+    const previousSection =
+        moreSections[currentIndex - 1];
+
+    return previousSection
+        ? previousSection.section_number
+        : null;
+}
+
 
   
   
