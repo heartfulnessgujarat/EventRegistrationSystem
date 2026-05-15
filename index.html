@@ -2470,14 +2470,32 @@ function updateButtonState() {
 
     // 3. Button Text Update
     const currentNum = window.currentSection || 1;
-    if (dynamicSectionName === "Section3" || currentNum === 3) {
-        actionBtn.innerText = "CONFIRM & REGISTER";
-    } else if (dynamicSectionName === "Section2" || currentNum === 2) {
-        actionBtn.innerText = "PROCEED TO TRAVEL DETAILS";
-    } else {
-        actionBtn.innerText = "PROCEED TO SELECTION";
-    }
 
+
+  const nextSectionForButton =
+    getNextSection(dynamicSectionName);
+
+if (nextSectionForButton) {
+
+    const nextSectionObj =
+        moreSections.find(
+            s => s.section_number === nextSectionForButton
+        );
+
+    actionBtn.innerText =
+        `PROCEED TO ${(
+            nextSectionObj?.section_name ||
+            "NEXT SECTION"
+        ).toUpperCase()}`;
+
+} else {
+
+    actionBtn.innerText =
+        "CONFIRM & REGISTER";
+}
+
+
+  
     // 4. THE UNLOCK LOGIC
     // If we are in a section with dynamic rules (Sect 2 or 3)
     if (totalVisibleRequired > 0) {
