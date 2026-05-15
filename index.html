@@ -2126,6 +2126,10 @@ if (fieldId === 'stay_option') {
             });
 
 
+
+
+
+          
           const nextSection =
     getNextSection(targetSectionNumber);
 
@@ -2181,7 +2185,15 @@ backBtn.onclick = () => {
           
         }
 
-        actionBtn.innerText = (targetSectionNumber === "Section2") ? "PROCEED TO TRAVEL DETAILS" : "CONFIRM & REGISTER";
+   //     actionBtn.innerText = (targetSectionNumber === "Section2") ? "PROCEED TO TRAVEL DETAILS" : "CONFIRM & REGISTER";
+
+
+      actionBtn.innerText =
+    sectionObj.action_button_label ||
+    "CONTINUE";
+
+
+      
         setTimeout(() => { updateButtonState(); }, 800);
     }
 }
