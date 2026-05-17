@@ -1911,12 +1911,25 @@ formData.stay_allocation_code =
 
             const filteredData = {};
 
-            selectedColumns.forEach(col => {
 
-                filteredData[col] =
-                    formData[col] || "";
+          selectedColumns.forEach(col => {
 
-            });
+    const normalizedKey =
+        col.replace(/^extra_/, "");
+
+    filteredData[col] =
+        formData[col] ??
+        formData[normalizedKey] ??
+        "";
+
+});
+
+
+
+
+
+
+          
 
             // Always preserve registration_id
             filteredData.registration_id =
