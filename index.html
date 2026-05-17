@@ -1956,18 +1956,34 @@ formData.stay_allocation_code =
                 '/' +
                 formData.registration_id;
 
-            await db.ref(projectionPath)
-            .set(filteredData);
-
-            console.log(
-                "MERS LIVE REG: Updated:",
-                projectionPath
-            );
-            }
 
 
 
-    } catch (err) {
+      await db.ref(projectionPath)
+.set(filteredData);
+
+console.log(
+ "MERS LIVE REG: Updated:",
+ projectionPath
+);
+
+    }
+
+}
+
+} catch (err) {
+
+
+
+
+
+      
+      
+
+      
+
+
+      
 
         console.error(
             "MERS LIVE REG ERROR:",
