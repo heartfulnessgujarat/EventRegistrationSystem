@@ -1866,10 +1866,19 @@ formData.stay_allocation_code =
         // LOOP CONFIGS
         // ============================================
 
-        for (const configKey in allConfigs) {
 
-            const config =
-                allConfigs[configKey];
+
+      for (const eventKey in allConfigs) {
+
+    const teamConfigs =
+        allConfigs[eventKey] || {};
+
+    for (const teamKey in teamConfigs) {
+
+        const config =
+            teamConfigs[teamKey];
+
+          
 
             // Skip inactive rows
             if (
