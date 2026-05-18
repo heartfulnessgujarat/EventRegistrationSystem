@@ -9,28 +9,107 @@
 
 
   <!-- Path Selection Logic: Redirects Delete Mode to index-del.html -->
-<script>
-  (function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const mode = urlParams.get('mode');
-    const eventId = urlParams.get('id'); // Using 'id' as per your shared link structure
-    const regId = urlParams.get('regId');
 
-    // PATH 3: DELETE MODE
-    if (mode === 'delete' && regId) {
-      console.log("Redirecting to Delete Path...");
-      window.location.href = `index-del.html?id=${eventId}&regId=${regId}`;
-      return; // Stop execution of the rest of index.html
+
+
+  <script>
+
+(async function() {
+
+  const urlParams =
+    new URLSearchParams(
+      window.location.search
+    );
+
+  const mode =
+    urlParams.get('mode');
+
+  const eventId =
+    urlParams.get('id');
+
+  const regId =
+    urlParams.get('regId');
+
+  // ==================================================
+  // PATH 3 : DELETE MODE
+  // ==================================================
+
+  if (mode === 'delete' && regId) {
+
+    console.log(
+      "Redirecting to Delete Path..."
+    );
+
+    window.location.href =
+      `index-del.html?id=${eventId}&regId=${regId}`;
+
+    return;
+
+  }
+
+  // ==================================================
+  // FETCH EVENT TYPE
+  // ==================================================
+
+  try {
+
+    const response =
+      await fetch(
+
+        `https://ferrari-reg-2026-default-rtdb.asia-southeast1.firebasedatabase.app/config/eventConfig/${eventId}/event_type.json`
+
+      );
+
+    const eventType =
+      await response.json();
+
+    console.log(
+      "Event Type:",
+      eventType
+    );
+
+    // ================================================
+    // EXTERNAL EVENT
+    // ================================================
+
+    if (eventType === "EXTERNAL") {
+
+      console.log(
+        "Redirecting to External Registration..."
+      );
+
+      window.location.href =
+        `index-ext.html?id=${eventId}`;
+
+      return;
+
     }
 
-    // PATH 1 & 2: FRESH OR EDIT
-    console.log("Path Established: " + (mode === 'edit' ? "EDIT MODE" : "FRESH REGISTRATION"));
-    // The current flow in index.html will now take over automatically.
-  })();
+    // ================================================
+    // INTERNAL EVENT
+    // ================================================
 
- 
+    console.log(
+      "INTERNAL EVENT FLOW"
+    );
+
+  }
+
+  catch (err) {
+
+    console.error(
+      "Event Type Fetch Error:",
+      err
+    );
+
+  }
+
+})();
 </script>
 
+
+
+  
   
 <style>
     body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 20px; margin: 0; }
