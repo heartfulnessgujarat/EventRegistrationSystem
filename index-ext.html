@@ -695,7 +695,19 @@ console.log("%c MERS PING 1: Init sequence started. CurrentSection is: " + (type
         <label>${r.display_label || r.field_id}</label>
         
       </div>
-      <input type="text" id="inp-${r.field_id}" oninput="onInputChange('${r.field_id}', this.value)" disabled autocomplete="off">
+
+      
+      <input 
+    type="text" 
+    id="inp-${r.field_id}" 
+    oninput="onInputChange('${r.field_id}', this.value)"
+    
+    ${r.edit_behavior === 'Locked' ? 'disabled' : ''}
+    
+    autocomplete="off">
+
+
+      
       <div class="help-text" id="help-${r.field_id}">${r.field_help_text || ''}</div>
       <div class="error-msg-text" id="err-${r.field_id}"></div>
       <div class="dropdown" id="res-${r.field_id}"></div>
