@@ -693,7 +693,7 @@ console.log("%c MERS PING 1: Init sequence started. CurrentSection is: " + (type
     div.innerHTML = `
       <div class="label-row">
         <label>${r.display_label || r.field_id}</label>
-        ${needsEditLink ? `<span class="edit-link" id="edit-link-${r.field_id}" style="display:none;" onclick="unlockField('${r.field_id}')">Edit</span>` : ''}
+        
       </div>
       <input type="text" id="inp-${r.field_id}" oninput="onInputChange('${r.field_id}', this.value)" disabled autocomplete="off">
       <div class="help-text" id="help-${r.field_id}">${r.field_help_text || ''}</div>
