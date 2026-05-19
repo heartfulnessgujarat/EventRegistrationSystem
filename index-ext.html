@@ -153,19 +153,24 @@
     
     <div id="dynamic-fields"></div>
 
+    <div style="padding:20px;">
     
-    
+    <button
+        id="btn-register"
+        class="primary-btn"
+        disabled
+        onclick="handleSectionNavigation()">
+
+        <span id="next-section-btn-label">
+            PROCEED
+        </span>
+
+    </button>
+
+</div>
   
   
-<div id="btns-start" style="display:none; flex-direction:column; gap:10px; padding: 20px;">
-        <button id="btn-register" class="primary-btn" disabled onclick="proceedToLogistics()">DETAILS ARE OKAY, CLICK HERE TO PROCEED FURTHER</button>
-        
-        <button class="primary-btn" style="background:#455a64;" onclick="enableEditMode()">I WANT TO EDIT DETAILS</button>
-    </div>
-
-    <button id="btn-master-update" class="primary-btn" style="display:none; margin: 0 20px 20px 20px;" disabled onclick="proceedToLogistics()">I HAVE UPDATED DETAILS, CLICK HERE TO PROCEED FURTHER</button>
-
-
+  
 
   
   </div>
@@ -683,7 +688,7 @@ console.log("%c MERS PING 1: Init sequence started. CurrentSection is: " + (type
     div.className = 'field-container';
     div.id = `cont-${r.field_id}`;
     div.style.display = (r.initial_state === 'Hidden') ? 'none' : 'block';
-    const needsEditLink = ['Editable', 'Editable_Verify', 'Editable_Lookup'].includes(r.edit_behavior);
+ 
     
     div.innerHTML = `
       <div class="label-row">
@@ -716,10 +721,8 @@ console.log("%c MERS PING 1: Init sequence started. CurrentSection is: " + (type
       ` : ''}
     `;
     container.appendChild(div);
-    if (r.field_id === 'full_name') {
-      div.style.display = 'block';
-      document.getElementById('inp-full_name').disabled = false;
-    }
+
+    
   });
 }
 
@@ -877,6 +880,9 @@ function selectParticipant(p) {
   if (resName) resName.style.display = 'none';
   
   const btnsStart = document.getElementById('btns-start');
+
+
+  
   if (btnsStart) btnsStart.style.display = 'flex';
   
   // Ensure the primary ID field is explicitly disabled
@@ -925,60 +931,6 @@ function selectLocation(l) {
   checkAllValidations();
 }
 
-
-  
-function enableEditMode() {
-    document.getElementById('btns-start').style.display = 'none';
-    document.getElementById('btn-master-update').style.display = 'block';
-    
-    fieldRules.forEach(r => {
-        const editLink = document.getElementById(`edit-link-${r.field_id}`);
-        const helpEl = document.getElementById(`help-${r.field_id}`);
-        const canBeEdited = ['Editable', 'Editable_Verify', 'Editable_Lookup'].includes(r.edit_behavior);
-        
-        // Only show the edit link if it's editable AND NOT the full_name field
-        if (editLink && canBeEdited && r.field_id !== 'full_name') {
-            editLink.style.display = 'inline';
-        }
-        
-        if (helpEl && helpEl.innerText.trim() !== "") {
-            helpEl.style.display = 'block';
-        }
-    });
-}
-
-function unlockField(id) {
-  // 1. HARD GUARD: Never unlock the full_name
-  if (id === 'full_name') {
-    alert("Full Name is locked and cannot be changed.");
-    return; 
-  }
-
-  const inp = document.getElementById(`inp-${id}`);
-  const editLink = document.getElementById(`edit-link-${id}`);
-  
-  // 2. Standard Unlock Logic
-  inp.disabled = false;
-  inp.focus();
-  if (editLink) editLink.style.display = 'none';
-
-  // 3. CENTRE SEARCH FIX: Re-bind search logic AND refresh master list
-  if (id === 'centre') {
-    inp.setAttribute("oninput", "handleSearch('centre', this.value)");
-    masterData = []; // <--- THIS IS THE ONLY ADDITION: Forces a fresh fetch from Firebase
-  }
-
-  // 4. Existing Email Verification Logic (Preserved)
-  if (id === 'email') {
-    const checkBtn = document.getElementById('vcheck-email');
-    if (checkBtn) checkBtn.style.display = 'block';
-    const vBtn = document.getElementById('vbtn-email');
-    if (vBtn) vBtn.style.display = 'none';
-    const msg = document.getElementById('vmsg-email');
-    if (msg) msg.style.display = 'none';
-  }
-}
- 
     
   function sendCode(type) {
     verificationAttempts[type] = 0;
@@ -1090,8 +1042,12 @@ function checkAllValidations() {
       }
     });
 
-    const masterBtn = document.getElementById('btn-master-update');
+  
+  
     const regBtn = document.getElementById('btn-register');
+
+
+  
     if (masterBtn) masterBtn.disabled = !allValid;
     if (regBtn) regBtn.disabled = !allValid;
   }
@@ -2212,6 +2168,9 @@ async function loadExistingData(regId, mode) {
             document.getElementById('form-content').style.display = 'block';
 
             const startBtnsContainer = document.getElementById('btns-start');
+
+
+                    
             if (startBtnsContainer) startBtnsContainer.style.display = 'flex';
 
             const regBtn = document.getElementById('btn-register');
