@@ -1478,10 +1478,19 @@ function checkAllValidations() {
 
                 }
 
-                else if (
-                    isValid &&
-                    input.value.trim() !== ""
-                ) {
+
+
+
+else if (
+    isValid &&
+    input.value.trim() !== "" &&
+    !verificationStates[r.field_id]
+)
+                
+                
+                
+                
+                {
 
                     if (vBtn) {
 
