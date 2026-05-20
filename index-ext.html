@@ -1717,13 +1717,16 @@ async function submitData() {
           full_name: getFreshVal('ext_full_name'),
             email: getFreshVal('ext_email'),
             mobile: getFreshVal('ext_mobile'),
-            organization: getFreshVal('ext_organization'),
+            organization: getFreshVal('ext_orgname'),
             designation: getFreshVal('ext_designation'),
             pincode: getFreshVal('ext_pincode'),
             full_address: getFreshVal('ext_full_address'),
             centre: getFreshVal('ext_city'),
             zone: getFreshVal('ext_zone'),
+            
+            
             district: getFreshVal('ext_district')
+               
         };
         
         if (!updatedSection1.full_name) {
