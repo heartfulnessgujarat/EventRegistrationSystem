@@ -770,13 +770,9 @@ if (
 }
 
 
-
 async function onInputChange(fId, val) {
 
   if (
-      fId === 'full_name' ||
-      fId === 'ext_full_name' ||
-      fId === 'centre' ||
       fId === 'ext_city'
   ) {
 
@@ -786,201 +782,171 @@ async function onInputChange(fId, val) {
   checkAllValidations();
 }
 
-
-  
 function renderDropdown(div, list, type) {
+
   div.innerHTML = '';
-  
+
   if (list.length > 0) {
+
     div.style.display = 'block';
-    
+
     list.forEach(item => {
-      const d = document.createElement('div');
-      d.className = 'item'; 
-      
-      // 1. SURGICAL FIX: Display the correct text based on type
-      // If it's a 'loc' object, show the 'centre' property.
-      // If it's a name string, show the string.
 
-      
-     const displayValue =
-  (type === 'loc')
-    ? (item.centre || item.ext_city || item)
-    : item;
-      
-      d.textContent = displayValue; 
-      
+      const d =
+        document.createElement('div');
+
+      d.className = 'item';
+
+      // =====================================================
+      // DISPLAY VALUE
+      // =====================================================
+
+      const displayValue =
+        (type === 'loc')
+          ? (
+              item.centre ||
+              item.ext_city ||
+              item
+            )
+          : item;
+
+      d.textContent = displayValue;
+
       d.onclick = () => {
+
+        // =====================================================
+        // EXTERNAL CITY SELECTION
+        // =====================================================
+
         if (type === 'loc') {
-          // 2. THE CHAIN REACTION: 
-          // We already have the full object (item) from handleSearch!
-          // No need to search masterData again. Just pass it directly.
-          selectLocation(item); 
-          
-        } else {
-          // This remains the same for the initial Name search
-          const person = masterData.find(x => {
 
-            
-         //   const name = x.full_name || x['Full Name'] || "";
+            selectLocation(item);
 
-            const name =
-    x.full_name ||
-    x.ext_full_name ||
-    x['Full Name'] ||
-    "";
-
-
-
-            
-            return String(name).trim() === item;
-          });
-          if (person) {
-            selectParticipant(person); 
-          }
         }
+
         div.style.display = 'none';
       };
+
       div.appendChild(d);
+
     });
-  } else { 
-    div.style.display = 'none'; 
+
+  } else {
+
+    div.style.display = 'none';
+
   }
 }
-
-
-async function handleSearch(fId, val) {
-  const resDiv = document.getElementById(`res-${fId}`);
-  if (val.length < 3) { resDiv.style.display = 'none'; return; }
   
-  const rule = fieldRules.find(r => r.field_id === fId);
-  const lookupTab = rule ? rule.lookup_tab : "Master_Internal_DB"; // Fallback to Master if rule is loading
+  
+  
+  
+  
+  async function handleSearch(fId, val) {
 
-  /** * THE "SCENARIO B" FIX: 
-   * During an Email Edit, masterData.length is exactly 1 (the user's record).
-   * We force a fetch if we are searching a lookup field like 'centre'
-   * to ensure the system "wakes up" and sees the whole database.
-   */
-//  if (lookupTab && (masterData.length <= 1 || fId === 'centre')) { 
+  const resDiv = document.getElementById(`res-${fId}`);
 
+  if (val.length < 3) {
+    resDiv.style.display = 'none';
+    return;
+  }
+
+  const rule =
+    fieldRules.find(r => r.field_id === fId);
+
+  const lookupTab =
+    rule ? rule.lookup_tab : "Master_External_DB";
+
+  // =====================================================
+  // LOAD LOOKUP DATABASE
+  // =====================================================
 
   if (
-    lookupTab &&
-    (
-        masterData.length <= 1 ||
-        fId === 'centre' ||
-        fId === 'ext_city'
-    )
-) {
+      lookupTab &&
+      (
+          masterData.length <= 1 ||
+          fId === 'ext_city'
+      )
+  ) {
 
+      const snap =
+        await db.ref(
+          'masters/' + lookupTab
+        ).once('value');
 
-  
+      const raw = snap.val() || {};
 
-    
-
-// OLD LINE: const snap = await db.ref(lookupTab).once('value');
-// NEW SURGICAL UPDATE:
-const snap = await db.ref('masters/' + lookupTab).once('value');
-    
-    
-    
-    const raw = snap.val() || {};
-    masterData = Array.isArray(raw) ? raw : Object.values(raw);
+      masterData =
+        Array.isArray(raw)
+          ? raw
+          : Object.values(raw);
   }
 
   const searchVal = val.toLowerCase();
 
+  // =====================================================
+  // EXTERNAL CITY SEARCH
+  // =====================================================
 
-// --- FULL NAME SEARCH LOGIC ---
+  if (
+      fId === 'ext_city'
+  ) {
 
-if (
-    fId === 'full_name' ||
-    fId === 'ext_full_name'
-) {
+      const matchedObjects =
+        masterData.filter(x => {
 
-    const allMatches = masterData
-      .filter(x => {
-        const n = x.full_name || x['Full Name'] || "";
-        return String(n).toLowerCase().includes(searchVal);
-      })
-      .map(x => String(x.full_name || x['Full Name'] || "").trim());
+          const c =
+            x.centre ||
+            x.ext_city ||
+            x['Centre'] ||
+            "";
 
-    const uniqueNames = [...new Set(allMatches)];
+          return String(c)
+            .toLowerCase()
+            .includes(searchVal);
 
-    renderDropdown(
-        resDiv,
-        uniqueNames.slice(0, 8),
-        'name'
-    );
+      });
 
-// --- CENTRE SEARCH LOGIC ---
+      // UNIQUE CITY LIST
+      const uniqueMap = new Map();
 
-} else if (
-    fId === 'centre' ||
-    fId === 'ext_city'
-) {
+      matchedObjects.forEach(item => {
 
-    const matchedObjects = masterData.filter(x => {
+          const cityName =
+            String(
+                item.centre ||
+                item.ext_city ||
+                item['Centre'] ||
+                ""
+            ).trim();
 
-     // const c = x.centre || x['Centre'] || "";
+          if (
+              cityName &&
+              !uniqueMap.has(
+                  cityName.toLowerCase()
+              )
+          ) {
 
-      const c =
-    x.centre ||
-    x.ext_city ||
-    x['Centre'] ||
-    "";
+              uniqueMap.set(
+                  cityName.toLowerCase(),
+                  item
+              );
+          }
+      });
 
-      return String(c)
-        .toLowerCase()
-        .includes(searchVal);
+      const finalUniqueList =
+        Array.from(uniqueMap.values());
 
-    });
-
-    // UNIQUE: Ensure cities appear once
-    const uniqueMap = new Map();
-
-    matchedObjects.forEach(item => {
-
-    //  const cityName =
-    //    String(item.centre || item['Centre'] || "").trim();
-
-const cityName =
-  String(
-      item.centre ||
-      item.ext_city ||
-      item['Centre'] ||
-      ""
-  ).trim();
-
-
-
-      
-
-      if (
-          cityName &&
-          !uniqueMap.has(cityName.toLowerCase())
-      ) {
-
-        uniqueMap.set(
-            cityName.toLowerCase(),
-            item
-        );
-      }
-    });
-
-    const finalUniqueList =
-      Array.from(uniqueMap.values());
-
-    renderDropdown(
-        resDiv,
-        finalUniqueList.slice(0, 8),
-        'loc'
-    );
-}
- 
+      renderDropdown(
+          resDiv,
+          finalUniqueList.slice(0, 8),
+          'loc'
+      );
   }
+}
 
 
+  
 function selectParticipant(p) {
   // --- MERS CRITICAL UPDATE: LOCK NAME INTO MEMORY ---
   // This ensures the "Blocked Package" data is saved even if the input is disabled.
@@ -1038,42 +1004,78 @@ function selectParticipant(p) {
 }
 
 
-
-
 function selectLocation(l) {
+
   if (!l) return;
 
-  // 1. Update the Centre field itself
-  const centreInp = document.getElementById('inp-centre');
-  if (centreInp) {
-    centreInp.value = l.centre || l.Centre || "";
+  // =====================================================
+  // UPDATE EXT_CITY FIELD
+  // =====================================================
+
+  const cityInp =
+    document.getElementById('inp-ext_city');
+
+  if (cityInp) {
+
+      cityInp.value =
+        l.centre ||
+        l.ext_city ||
+        l.Centre ||
+        "";
   }
 
-  // 2. DYNAMIC VLOOKUP: Look at Field_Rules instead of a hard-coded list
-  // We find all fields that are set to 'Locked' and have a lookup_tab
-  const dependentFields = fieldRules.filter(r => r.edit_behavior === 'Locked');
+  // =====================================================
+  // DYNAMIC AUTO-FILL
+  // =====================================================
+
+  const dependentFields =
+    fieldRules.filter(
+      r => r.edit_behavior === 'Locked'
+    );
 
   dependentFields.forEach(rule => {
-    const fId = rule.field_id;
-    const el = document.getElementById(`inp-${fId}`);
-    
-    if (el) {
-      // Get the value from the Master Database object (l) 
-      // using the field_id as the key (e.g., l['state'])
-      const newValue = l[fId] || l[fId.charAt(0).toUpperCase() + fId.slice(1)] || '';
-      el.value = newValue;
-    }
+
+      const fId = rule.field_id;
+
+      const el =
+        document.getElementById(`inp-${fId}`);
+
+      if (el) {
+
+          const newValue =
+            l[fId] ||
+            l[
+              fId.charAt(0).toUpperCase() +
+              fId.slice(1)
+            ] ||
+            '';
+
+          el.value = newValue;
+      }
   });
 
-  // 3. UI Cleanup
-  const resDiv = document.getElementById('res-centre');
-  if (resDiv) resDiv.style.display = 'none';
+  // =====================================================
+  // UI CLEANUP
+  // =====================================================
 
-  // 4. Final Validation
+  const resDiv =
+    document.getElementById('res-ext_city');
+
+  if (resDiv) {
+
+      resDiv.style.display = 'none';
+  }
+
+  // =====================================================
+  // FINAL VALIDATION
+  // =====================================================
+
   checkAllValidations();
 }
 
 
+
+  
   function unlockField(id) {
 
   // 1. HARD GUARD: Never unlock the full_name
@@ -1196,60 +1198,184 @@ function selectLocation(l) {
   }
 
 
-
 function checkAllValidations() {
+
     let allValid = true;
+
     fieldRules.forEach(r => {
-      const input = document.getElementById(`inp-${r.field_id}`);
-      const errDiv = document.getElementById(`err-${r.field_id}`);
-      if (input) {
-        let isValid = validateField(r.field_id, input.value, r.field_validation);
-        let isChanged = input.value !== (originalData[r.field_id] || "");
-        
-        if (!isValid && input.value.trim() !== "") {
-          input.style.border = '2px solid red';
-          if (errDiv) { errDiv.innerText = r.error_msg || "Invalid input"; errDiv.style.display = 'block'; }
-          allValid = false;
-        } else {
-          input.style.border = '1px solid #ced4da';
-          if (errDiv) errDiv.style.display = 'none';
-        }
 
-        if (r.field_id === 'email' || r.field_id === 'mobile') {
-          const panel = document.getElementById(`panel-${r.field_id}`);
-          const vBtn = document.getElementById(`vbtn-${r.field_id}`);
-          const msg = document.getElementById(`vmsg-${r.field_id}`);
+        const input =
+          document.getElementById(
+            `inp-${r.field_id}`
+          );
 
-          if (verificationStates[r.field_id]) {
-            if (msg) msg.style.display = 'block'; 
-            if (panel) panel.style.display = 'none';
-          } 
-          else if (isValid && isChanged) {
-            vBtn.innerText = `Click here to send Verification Code to ${input.value}`;
-            panel.style.display = 'block';
-            if (msg) msg.style.display = 'none';
-            allValid = false;
-          } 
-          else {
-            if (panel) panel.style.display = 'none';
-            if (!isChanged && msg) msg.style.display = 'none';
-          }
+        const errDiv =
+          document.getElementById(
+            `err-${r.field_id}`
+          );
+
+        if (input) {
+
+            let isValid =
+              validateField(
+                r.field_id,
+                input.value,
+                r.field_validation
+              );
+
+            let isChanged =
+              input.value !==
+              (originalData[r.field_id] || "");
+
+            // =====================================================
+            // NORMAL VALIDATION
+            // =====================================================
+
+            if (
+                !isValid &&
+                input.value.trim() !== ""
+            ) {
+
+                input.style.border =
+                  '2px solid red';
+
+                if (errDiv) {
+
+                    errDiv.innerText =
+                      r.error_msg ||
+                      "Invalid input";
+
+                    errDiv.style.display =
+                      'block';
+                }
+
+                allValid = false;
+
+            } else {
+
+                input.style.border =
+                  '1px solid #ced4da';
+
+                if (errDiv) {
+                    errDiv.style.display =
+                      'none';
+                }
+            }
+
+            // =====================================================
+            // EMAIL + MOBILE VERIFICATION
+            // =====================================================
+
+            if (
+                r.field_id === 'email' ||
+                r.field_id === 'mobile' ||
+                r.field_id === 'ext_email' ||
+                r.field_id === 'ext_mobile'
+            ) {
+
+                const panel =
+                  document.getElementById(
+                    `panel-${r.field_id}`
+                  );
+
+                const vBtn =
+                  document.getElementById(
+                    `vbtn-${r.field_id}`
+                  );
+
+                const msg =
+                  document.getElementById(
+                    `vmsg-${r.field_id}`
+                  );
+
+                if (
+                    verificationStates[
+                      r.field_id
+                    ]
+                ) {
+
+                    if (msg) {
+                        msg.style.display =
+                          'block';
+                    }
+
+                    if (panel) {
+                        panel.style.display =
+                          'none';
+                    }
+
+                }
+
+                else if (
+                    isValid &&
+                    input.value.trim() !== ""
+                ) {
+
+                    if (vBtn) {
+
+                        vBtn.innerText =
+                          `Click here to send Verification Code to ${input.value}`;
+                    }
+
+                    if (panel) {
+                        panel.style.display =
+                          'block';
+                    }
+
+                    if (msg) {
+                        msg.style.display =
+                          'none';
+                    }
+
+                    allValid = false;
+                }
+
+                else {
+
+                    if (panel) {
+                        panel.style.display =
+                          'none';
+                    }
+
+                    if (msg) {
+                        msg.style.display =
+                          'none';
+                    }
+                }
+            }
+
+            // =====================================================
+            // REQUIRED FIELD CHECK
+            // =====================================================
+
+            if (
+                input.value.trim() === "" &&
+                r.initial_state === 'Visible'
+            ) {
+
+                allValid = false;
+            }
         }
-        
-        if (input.value.trim() === "" && r.initial_state === 'Visible') allValid = false;
-      }
     });
 
-  
-  
-    const regBtn = document.getElementById('btn-register');
+    // =====================================================
+    // FINAL BUTTON STATE
+    // =====================================================
+
+    const regBtn =
+      document.getElementById(
+        'btn-register'
+      );
+
+    if (regBtn) {
+
+        regBtn.disabled = !allValid;
+    }
+}
 
 
-  
-    if (masterBtn) masterBtn.disabled = !allValid;
-    if (regBtn) regBtn.disabled = !allValid;
-  }
 
+  
   // 1. THE PAGE TURNER: Moves between Section 1, 2, and 3
 async function handleSectionNavigation() {
     console.log("%c MERS PING 3: handleSectionNavigation() was just called!", "color: blue; font-weight: bold;");
@@ -3021,9 +3147,26 @@ function validateField(id, value, rule) {
         return val !== "";
     }
 
-    if (rule === 'MOB') return /^[6-9]\d{9}$/.test(val);
-    if (rule === 'PIN') return /^\d{6}$/.test(val);
-    if (rule === 'EMAIL') return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+
+  if (rule === 'MOB') {
+
+    return /^[6-9]\d{9}$/.test(val);
+}
+
+if (rule === 'PIN') {
+
+    return /^\d{6}$/.test(val);
+}
+
+if (rule === 'EMAIL') {
+
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+}
+
+
+
+
+  
 
     // --- ARRIVAL DATE (ESD) - UNTOUCHED ---
     if (rule.includes("ESD")) {
