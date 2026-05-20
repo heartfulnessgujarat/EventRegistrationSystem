@@ -1042,15 +1042,32 @@ function selectLocation(l) {
 
       if (el) {
 
-          const newValue =
-            l[fId] ||
-            l[
-              fId.charAt(0).toUpperCase() +
-              fId.slice(1)
-            ] ||
-            '';
 
-          el.value = newValue;
+
+        // REMOVE ext_ PREFIX
+const baseFieldId =
+  fId.replace('ext_', '');
+
+const newValue =
+
+  // exact key
+  l[fId] ||
+
+  // stripped key
+  l[baseFieldId] ||
+
+  // Capitalized stripped key
+  l[
+    baseFieldId.charAt(0).toUpperCase() +
+    baseFieldId.slice(1)
+  ] ||
+
+  '';
+
+el.value = newValue;
+
+
+        
       }
   });
 
