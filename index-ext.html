@@ -846,13 +846,14 @@ const snap = await db.ref('masters/' + lookupTab).once('value');
 
   const searchVal = val.toLowerCase();
 
-  // --- FULL NAME SEARCH LOGIC ---
 
-  if (
+// --- FULL NAME SEARCH LOGIC ---
+
+if (
     fId === 'full_name' ||
     fId === 'ext_full_name'
-)
- 
+) {
+
     const allMatches = masterData
       .filter(x => {
         const n = x.full_name || x['Full Name'] || "";
@@ -861,33 +862,60 @@ const snap = await db.ref('masters/' + lookupTab).once('value');
       .map(x => String(x.full_name || x['Full Name'] || "").trim());
 
     const uniqueNames = [...new Set(allMatches)];
-    renderDropdown(resDiv, uniqueNames.slice(0, 8), 'name');
 
-  // --- CENTRE SEARCH LOGIC ---
+    renderDropdown(
+        resDiv,
+        uniqueNames.slice(0, 8),
+        'name'
+    );
 
-  
-  else if (
+// --- CENTRE SEARCH LOGIC ---
+
+} else if (
     fId === 'centre' ||
     fId === 'ext_city'
-)
-  
+) {
+
     const matchedObjects = masterData.filter(x => {
-      // Direct property access as per your verified column titles
-      const c = x.centre || x['Centre'] || ""; 
-      return String(c).toLowerCase().includes(searchVal);
+
+      const c = x.centre || x['Centre'] || "";
+
+      return String(c)
+        .toLowerCase()
+        .includes(searchVal);
+
     });
 
-    // UNIQUE: Ensure cities like "Navsari" only appear once in the dropdown
+    // UNIQUE: Ensure cities appear once
     const uniqueMap = new Map();
+
     matchedObjects.forEach(item => {
-      const cityName = String(item.centre || item['Centre'] || "").trim();
-      if (cityName && !uniqueMap.has(cityName.toLowerCase())) {
-        uniqueMap.set(cityName.toLowerCase(), item);
+
+      const cityName =
+        String(item.centre || item['Centre'] || "").trim();
+
+      if (
+          cityName &&
+          !uniqueMap.has(cityName.toLowerCase())
+      ) {
+
+        uniqueMap.set(
+            cityName.toLowerCase(),
+            item
+        );
       }
     });
 
-    const finalUniqueList = Array.from(uniqueMap.values());
-    renderDropdown(resDiv, finalUniqueList.slice(0, 8), 'loc');
+    const finalUniqueList =
+      Array.from(uniqueMap.values());
+
+    renderDropdown(
+        resDiv,
+        finalUniqueList.slice(0, 8),
+        'loc'
+    );
+}
+ 
   }
 }
 
