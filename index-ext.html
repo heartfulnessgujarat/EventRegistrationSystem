@@ -770,11 +770,22 @@ if (
 }
 
 
- 
-  async function onInputChange(fId, val) {
-  if (fId === 'full_name' || fId === 'centre') handleSearch(fId, val);
+
+async function onInputChange(fId, val) {
+
+  if (
+      fId === 'full_name' ||
+      fId === 'ext_full_name' ||
+      fId === 'centre' ||
+      fId === 'ext_city'
+  ) {
+
+      handleSearch(fId, val);
+  }
+
   checkAllValidations();
 }
+
 
   
 function renderDropdown(div, list, type) {
@@ -790,7 +801,13 @@ function renderDropdown(div, list, type) {
       // 1. SURGICAL FIX: Display the correct text based on type
       // If it's a 'loc' object, show the 'centre' property.
       // If it's a name string, show the string.
-      const displayValue = (type === 'loc') ? (item.centre || item) : item;
+
+      
+     const displayValue =
+  (type === 'loc')
+    ? (item.centre || item.ext_city || item)
+    : item;
+      
       d.textContent = displayValue; 
       
       d.onclick = () => {
@@ -803,7 +820,19 @@ function renderDropdown(div, list, type) {
         } else {
           // This remains the same for the initial Name search
           const person = masterData.find(x => {
-            const name = x.full_name || x['Full Name'] || "";
+
+            
+         //   const name = x.full_name || x['Full Name'] || "";
+
+            const name =
+    x.full_name ||
+    x.ext_full_name ||
+    x['Full Name'] ||
+    "";
+
+
+
+            
             return String(name).trim() === item;
           });
           if (person) {
@@ -832,7 +861,22 @@ async function handleSearch(fId, val) {
    * We force a fetch if we are searching a lookup field like 'centre'
    * to ensure the system "wakes up" and sees the whole database.
    */
-  if (lookupTab && (masterData.length <= 1 || fId === 'centre')) { 
+//  if (lookupTab && (masterData.length <= 1 || fId === 'centre')) { 
+
+
+  if (
+    lookupTab &&
+    (
+        masterData.length <= 1 ||
+        fId === 'centre' ||
+        fId === 'ext_city'
+    )
+) {
+
+
+  
+
+    
 
 // OLD LINE: const snap = await db.ref(lookupTab).once('value');
 // NEW SURGICAL UPDATE:
@@ -878,7 +922,13 @@ if (
 
     const matchedObjects = masterData.filter(x => {
 
-      const c = x.centre || x['Centre'] || "";
+     // const c = x.centre || x['Centre'] || "";
+
+      const c =
+    x.centre ||
+    x.ext_city ||
+    x['Centre'] ||
+    "";
 
       return String(c)
         .toLowerCase()
@@ -891,8 +941,20 @@ if (
 
     matchedObjects.forEach(item => {
 
-      const cityName =
-        String(item.centre || item['Centre'] || "").trim();
+    //  const cityName =
+    //    String(item.centre || item['Centre'] || "").trim();
+
+const cityName =
+  String(
+      item.centre ||
+      item.ext_city ||
+      item['Centre'] ||
+      ""
+  ).trim();
+
+
+
+      
 
       if (
           cityName &&
