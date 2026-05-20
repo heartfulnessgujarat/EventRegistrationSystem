@@ -1171,6 +1171,7 @@ el.value = newValue;
   }
 }
 
+  
 function sendCode(type) {
 
     verificationAttempts[type] = 0;
@@ -1205,7 +1206,7 @@ function sendCode(type) {
 
     fetch(
 
-      `${SCRIPT_URL}?action=sendVerificationCode&email=${encodeURIComponent(targetValue)}&eventId=${eventId}`,
+      `${SCRIPT_URL}?action=sendVerificationCode&email=${encodeURIComponent(targetEmail)}&eventId=${eventId}`,
 
       { mode: 'no-cors' }
 
@@ -1270,6 +1271,17 @@ async function verifyCodeInput(type, code) {
           document.getElementById(
             `inp-${type}`
           ).value;
+
+
+      let targetEmail = targetValue;
+
+if (type === 'ext_mobile') {
+
+    targetEmail =
+      document.getElementById(
+        'inp-ext_email'
+      ).value;
+}
 
         const emailKey =
           targetValue.replace(
