@@ -712,17 +712,49 @@ console.log("%c MERS PING 1: Init sequence started. CurrentSection is: " + (type
       <div class="error-msg-text" id="err-${r.field_id}"></div>
       <div class="dropdown" id="res-${r.field_id}"></div>
       <div id="vmsg-${r.field_id}" style="font-size:13px; margin-top:5px; font-weight:bold; display:none;"></div>
-      ${(r.field_id === 'email' || r.field_id === 'mobile') ? `
+
+
+      (
+    r.field_id === 'email' ||
+    r.field_id === 'mobile' ||
+    r.field_id === 'ext_email' ||
+    r.field_id === 'ext_mobile'
+) ? `
+
+
+
+
+      
         <div class="verify-panel" id="panel-${r.field_id}">
+      
           
-          ${r.field_id === 'email' ? `
+        ${
+    (
+        r.field_id === 'email' ||
+        r.field_id === 'ext_email'
+    ) ? `
+
+
+          
             <button type="button" class="verify-btn" id="vcheck-email" 
               style="background:#455a64; color:white; margin-bottom:10px;" 
               onclick="manualFormatCheck()">Check Email Format</button>
           ` : ''}
 
           <button class="verify-btn" id="vbtn-${r.field_id}" 
-            style="display: ${r.field_id === 'email' ? 'none' : 'block'};" 
+
+    
+            style="display: ${
+(
+    r.field_id === 'email' ||
+    r.field_id === 'ext_email'
+)
+? 'none'
+: 'block'
+};"
+
+
+    
             onclick="sendCode('${r.field_id}')"></button>
           
           <div id="box-${r.field_id}" style="display:none;">
