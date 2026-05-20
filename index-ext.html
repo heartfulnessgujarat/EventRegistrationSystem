@@ -734,6 +734,37 @@ console.log("%c MERS PING 1: Init sequence started. CurrentSection is: " + (type
     `;
     container.appendChild(div);
 
+    // =====================================================
+// EXTERNAL FLOW AUTO-UNLOCK
+// =====================================================
+
+if (
+    typeof eventConfig !== 'undefined' &&
+    eventConfig.event_type === 'EXTERNAL'
+) {
+
+    const editableModes = [
+        'Editable',
+        'Editable_Verify',
+        'Editable_Lookup'
+    ];
+
+    if (
+        editableModes.includes(r.edit_behavior)
+    ) {
+
+        setTimeout(() => {
+
+            unlockField(r.field_id);
+
+        }, 50);
+
+    }
+}
+
+
+    
+
     
   });
 }
@@ -943,6 +974,62 @@ function selectLocation(l) {
   checkAllValidations();
 }
 
+
+  function unlockField(id) {
+
+  // 1. HARD GUARD: Never unlock the full_name
+  if (id === 'full_name') {
+    alert("Full Name is locked and cannot be changed.");
+    return; 
+  }
+
+  const inp = document.getElementById(`inp-${id}`);
+  const editLink = document.getElementById(`edit-link-${id}`);
+  
+  // 2. Standard Unlock Logic
+  inp.disabled = false;
+  inp.focus();
+
+  if (editLink) {
+    editLink.style.display = 'none';
+  }
+
+  // 3. CENTRE SEARCH FIX
+  if (id === 'centre') {
+
+    inp.setAttribute(
+      "oninput",
+      "handleSearch('centre', this.value)"
+    );
+
+    masterData = [];
+  }
+
+  // 4. Existing Email Verification Logic
+  if (id === 'email') {
+
+    const checkBtn =
+      document.getElementById('vcheck-email');
+
+    if (checkBtn) {
+      checkBtn.style.display = 'block';
+    }
+
+    const vBtn =
+      document.getElementById('vbtn-email');
+
+    if (vBtn) {
+      vBtn.style.display = 'none';
+    }
+
+    const msg =
+      document.getElementById('vmsg-email');
+
+    if (msg) {
+      msg.style.display = 'none';
+    }
+  }
+}
     
   function sendCode(type) {
     verificationAttempts[type] = 0;
