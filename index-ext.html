@@ -786,9 +786,33 @@ if (
 
 
     
+  });
+
+      // =====================================================
+  // FORCE INITIAL CURSOR POSITION
+  // =====================================================
+
+  setTimeout(() => {
+
+      const firstField =
+        document.getElementById(
+          'inp-ext_full_name'
+        );
+
+      if (firstField) {
+
+          firstField.focus();
+
+      }
+
+  }, 500);
+
+
+
+
+
 
     
-  });
 }
 
 
