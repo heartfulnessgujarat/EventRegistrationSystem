@@ -1879,16 +1879,47 @@ if (mobSearch.exists()) {
         };
 
         // DUP ENTRY FIX: Explicitly consolidate clean keys into "extra_" keys
-        const keysToConsolidate = ['arrival_date', 'arrival_time', 'depart_date', 'depart_time', 'gender', 'travel_mode', 'stay_option'];
 
-        keysToConsolidate.forEach(key => {
-            const extraKey = 'extra_' + key;
-            // If the clean key exists, move its value to the extra_ key and delete the clean one
-            if (formData[key]) {
-                formData[extraKey] = formData[key]; 
-                delete formData[key]; 
-            }
-        });
+      
+     //   const keysToConsolidate = ['arrival_date', 'arrival_time', 'depart_date', 'depart_time', 'gender', 'travel_mode', 'stay_option'];
+
+      const keysToConsolidate = [
+  'ext_arrival_date',
+  'ext_arrival_time',
+  'ext_depart_date',
+  'ext_depart_time',
+  'ext_gender',
+  'ext_travel_mode',
+  'ext_stay_option'
+];
+
+
+
+
+
+
+      keysToConsolidate.forEach(key => {
+
+    const extraKey =
+        'extra_' +
+        key.replace('ext_', '');
+
+    if (formData[key]) {
+
+        formData[extraKey] =
+            formData[key];
+
+        delete formData[key];
+    }
+});
+
+        
+
+
+
+
+
+      
 
         if (!finalRegId || mode === 'new') {
             const now = new Date();
