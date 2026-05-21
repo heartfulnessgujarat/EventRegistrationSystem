@@ -1083,11 +1083,7 @@ el.value = newValue;
   
   function unlockField(id) {
 
-  // 1. HARD GUARD: Never unlock the full_name
-  if (id === 'full_name') {
-    alert("Full Name is locked and cannot be changed.");
-    return; 
-  }
+  
 
   const inp = document.getElementById(`inp-${id}`);
   const editLink = document.getElementById(`edit-link-${id}`);
@@ -1100,16 +1096,7 @@ el.value = newValue;
     editLink.style.display = 'none';
   }
 
-  // 3. CENTRE SEARCH FIX
-  if (id === 'centre') {
-
-    inp.setAttribute(
-      "oninput",
-      "handleSearch('centre', this.value)"
-    );
-
-    masterData = [];
-  }
+ 
 
   // 4. Existing Email Verification Logic
   if (id === 'email') {
