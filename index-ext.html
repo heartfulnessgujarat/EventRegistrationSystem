@@ -717,14 +717,14 @@ console.log("%c MERS PING 1: Init sequence started. CurrentSection is: " + (type
     ${ (
     r.field_id === 'email' ||
     r.field_id === 'mobile' ||
-    r.field_id === 'ext_email' ||
-    r.field_id === 'ext_mobile'
+    r.field_id === 'email' ||
+    r.field_id === 'mobile'
 ) ? `
 
 
 <div class="verify-panel" id="panel-${r.field_id}">
           
-  ${(r.field_id === 'email' || r.field_id === 'ext_email') ? `
+  ${(r.field_id === 'email' || r.field_id === 'email') ? `
   
     <button
       type="button"
@@ -742,7 +742,7 @@ console.log("%c MERS PING 1: Init sequence started. CurrentSection is: " + (type
   <button
     class="verify-btn"
     id="vbtn-${r.field_id}"
-    style="display: ${(r.field_id === 'email' || r.field_id === 'ext_email') ? 'none' : 'block'};"
+    style="display: ${(r.field_id === 'email' || r.field_id === 'email') ? 'none' : 'block'};"
     onclick="sendCode('${r.field_id}')">
   </button>
 
@@ -796,7 +796,7 @@ if (
 
       const firstField =
         document.getElementById(
-          'inp-ext_full_name'
+          'inp-full_name'
         );
 
       if (firstField) {
@@ -819,7 +819,7 @@ if (
 async function onInputChange(fId, val) {
 
   if (
-      fId === 'ext_city'
+      fId === 'city'
   ) {
 
       handleSearch(fId, val);
@@ -851,7 +851,7 @@ function renderDropdown(div, list, type) {
         (type === 'loc')
           ? (
               item.centre ||
-              item.ext_city ||
+              item.city ||
               item
             )
           : item;
@@ -911,7 +911,7 @@ function renderDropdown(div, list, type) {
       lookupTab &&
       (
           masterData.length <= 1 ||
-          fId === 'ext_city'
+          fId === 'city'
       )
   ) {
 
@@ -935,7 +935,7 @@ function renderDropdown(div, list, type) {
   // =====================================================
 
   if (
-      fId === 'ext_city'
+      fId === 'city'
   ) {
 
       const matchedObjects =
@@ -943,7 +943,7 @@ function renderDropdown(div, list, type) {
 
           const c =
             x.centre ||
-            x.ext_city ||
+            x.city ||
             x['Centre'] ||
             "";
 
@@ -961,7 +961,7 @@ function renderDropdown(div, list, type) {
           const cityName =
             String(
                 item.centre ||
-                item.ext_city ||
+                item.city ||
                 item['Centre'] ||
                 ""
             ).trim();
@@ -1059,13 +1059,13 @@ function selectLocation(l) {
   // =====================================================
 
   const cityInp =
-    document.getElementById('inp-ext_city');
+    document.getElementById('inp-city');
 
   if (cityInp) {
 
       cityInp.value =
         l.centre ||
-        l.ext_city ||
+        l.city ||
         l.Centre ||
         "";
   }
@@ -1122,7 +1122,7 @@ el.value = newValue;
   // =====================================================
 
   const resDiv =
-    document.getElementById('res-ext_city');
+    document.getElementById('res-city');
 
   if (resDiv) {
 
@@ -1223,11 +1223,11 @@ let targetValue =
 // MOBILE VERIFICATION VIA VERIFIED EMAIL
 // =====================================================
 
-if (type === 'ext_mobile') {
+if (type === 'mobile') {
 
     targetValue =
       document.getElementById(
-        'inp-ext_email'
+        'inp-email'
       ).value;
 }
 
@@ -1319,11 +1319,11 @@ async function verifyCodeInput(type, code) {
 // MOBILE VERIFICATION VIA VERIFIED EMAIL
 // =====================================================
 
-if (type === 'ext_mobile') {
+if (type === 'mobile') {
 
     targetValue =
       document.getElementById(
-        'inp-ext_email'
+        'inp-email'
       ).value;
 }
 
@@ -1533,8 +1533,8 @@ function checkAllValidations() {
             if (
                 r.field_id === 'email' ||
                 r.field_id === 'mobile' ||
-                r.field_id === 'ext_email' ||
-                r.field_id === 'ext_mobile'
+                r.field_id === 'email' ||
+                r.field_id === 'mobile'
             ) {
 
                 const panel =
@@ -1739,13 +1739,13 @@ async function submitData() {
         const updatedSection1 = {
           
           full_name: getFreshVal('ext_full_name'),
-            email: getFreshVal('ext_email'),
-            mobile: getFreshVal('ext_mobile'),
+            email: getFreshVal('email'),
+            mobile: getFreshVal('mobile'),
             organization: getFreshVal('ext_orgname'),
             designation: getFreshVal('ext_designation'),
             pincode: getFreshVal('ext_pincode'),
             full_address: getFreshVal('ext_full_address'),
-            centre: getFreshVal('ext_city'),
+            centre: getFreshVal('city'),
             zone: getFreshVal('ext_zone'),
             state: getFreshVal('ext_state'),
             country: getFreshVal('ext_country'),            
@@ -1801,13 +1801,13 @@ if (eventType === 'external') {
     ext_full_name:
       updatedSection1.full_name || "",
 
-    ext_mobile:
+    mobile:
       updatedSection1.mobile || "",
 
-    ext_email:
+    email:
       updatedSection1.email || "",
 
-    ext_city:
+    city:
       updatedSection1.centre || "",
 
     ext_district:
@@ -1842,12 +1842,12 @@ if (eventType === 'external') {
 
 const mobileField =
   eventType === 'external'
-    ? 'ext_mobile'
+    ? 'mobile'
     : 'mobile';
 
 const mobileValue =
   eventType === 'external'
-    ? masterProfile.ext_mobile
+    ? masterProfile.mobile
     : masterProfile.mobile;
 
 // =====================================================
@@ -2662,7 +2662,7 @@ if (
         value =
           formData["centre"] ??
           formData["city"] ??
-          formData["ext_city"];
+          formData["city"];
     }
 
     // MOBILE
@@ -2670,7 +2670,7 @@ if (
 
         value =
           formData["mobile"] ??
-          formData["ext_mobile"];
+          formData["mobile"];
     }
 
     // FULL NAME
@@ -2753,22 +2753,22 @@ console.log(
 function manualFormatCheck() {
 
   const emailInput =
-    document.getElementById('inp-ext_email') ||
+    document.getElementById('inp-email') ||
     document.getElementById('inp-email');
 
   const emailVal =
     emailInput.value.trim();
 
   const vBtn =
-    document.getElementById('vbtn-ext_email') ||
+    document.getElementById('vbtn-email') ||
     document.getElementById('vbtn-email');
 
   const checkBtn =
-    document.getElementById('vcheck-ext_email') ||
+    document.getElementById('vcheck-email') ||
     document.getElementById('vcheck-email');
 
   const msg =
-    document.getElementById('vmsg-ext_email') ||
+    document.getElementById('vmsg-email') ||
     document.getElementById('vmsg-email');
 
   const strictRegex =
@@ -2981,8 +2981,8 @@ async function loadExistingData(regId, mode) {
             'mobile',
             'email',
             'ext_full_name',
-            'ext_mobile',
-            'ext_email'
+            'mobile',
+            'email'
         ].includes(r.field_id)
     ) {
 
