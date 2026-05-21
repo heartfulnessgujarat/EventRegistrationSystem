@@ -2582,9 +2582,8 @@ formData.stay_allocation_code =
           selectedColumns.forEach(col => {
 
     const normalizedKey =
-       // col.replace(/^extra_/, "");
-      col.replace(/^ext_/, "");
-
+        col.replace(/^extra_/, "");
+      
     filteredData[col] =
         formData[col] ??
         formData[normalizedKey] ??
@@ -2776,19 +2775,106 @@ async function loadExistingData(regId, mode) {
         if (mode === 'edit') {
             renderForm(); 
 
-          
+          fieldRules.forEach(r => {
 
-            fieldRules.forEach(r => {
-                const el = document.getElementById(`inp-${r.field_id}`);
-                if (el && data[r.field_id] !== undefined) {
-                    el.value = data[r.field_id];
-                    // Lock core identity fields in Edit Mode
-                    if (['full_name', 'mobile', 'email'].includes(r.field_id)) {
-                        el.disabled = true;
-                        el.style.background = "#f9f9f9";
-                    }
-                }
-            });
+    const el =
+        document.getElementById(
+            `inp-${r.field_id}`
+        );
+
+    if (!el) return;
+
+    // =====================================================
+    // PRIMARY DIRECT MATCH
+    // =====================================================
+
+    let value =
+        data[r.field_id];
+
+    // =====================================================
+    // EXTERNAL FIELD REVERSE MAPPING
+    // =====================================================
+
+    if (
+        value === undefined &&
+        r.field_id.startsWith('ext_')
+    ) {
+
+        const cleanKey =
+            r.field_id.replace('ext_', '');
+
+        // ---------------------------------------------
+        // STANDARD DIRECT FALLBACK
+        // ---------------------------------------------
+
+        value = data[cleanKey];
+
+        // ---------------------------------------------
+        // SPECIAL FIELD MAPPINGS
+        // ---------------------------------------------
+
+        if (cleanKey === 'city') {
+            value = data['centre'];
+        }
+
+        if (cleanKey === 'orgname') {
+            value = data['organization'];
+        }
+
+        if (cleanKey === 'designation') {
+            value = data['designation'];
+        }
+
+        if (cleanKey === 'full_address') {
+            value = data['full_address'];
+        }
+
+        if (cleanKey === 'pincode') {
+            value = data['pincode'];
+        }
+
+        if (cleanKey === 'district') {
+            value = data['district'];
+        }
+
+        if (cleanKey === 'zone') {
+            value = data['zone'];
+        }
+    }
+
+    // =====================================================
+    // APPLY VALUE
+    // =====================================================
+
+    if (
+        value !== undefined &&
+        value !== null
+    ) {
+
+        el.value = value;
+    }
+
+    // =====================================================
+    // LOCK CORE IDENTITY FIELDS
+    // =====================================================
+
+    if (
+        [
+            'full_name',
+            'mobile',
+            'email',
+            'ext_full_name',
+            'ext_mobile',
+            'ext_email'
+        ].includes(r.field_id)
+    ) {
+
+        el.disabled = true;
+
+        el.style.background =
+            "#f9f9f9";
+    }
+});
 
 
           // =====================================================
