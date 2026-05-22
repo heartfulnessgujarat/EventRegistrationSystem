@@ -3029,7 +3029,7 @@ if (fieldId === 'stay_option') {
                 
                 input.onchange = function() {
                     if (typeof validateField === 'function') {
-                        if (validateField(this.id.replace('extra_', ''), this.value, rule.field_validation) === false) return;
+                        if (validateField(this.id.replace('inp-', ''), this.value, rule.field_validation) === false) return;
                     }
                     handleFieldChange(this, rule); //[cite: 1]
                 };
@@ -3359,7 +3359,13 @@ function updateButtonState() {
         
         if (isVisible) {
             // BRIDGE: Remove 'extra_' or 'inp-' just to find the rule match
-            const cleanId = input.id.replace('inp-', '').replace('inp-', '');
+           
+          const cleanId =
+input.id.replace('inp-', '');
+
+
+
+          
             const rule = rulesArray.find(r => r.field_id === cleanId);
             
             if (rule) {
@@ -3457,13 +3463,21 @@ if (nextSectionForButton) {
     const sectionRules = rulesArray.filter(r => r.section_number === sectionName);
 
     sectionRules.forEach((rule, index) => {
-        const currentEl = document.getElementById(rule.field_id) || document.getElementById('extra_' + rule.field_id);
+
+      const currentEl =
+document.getElementById('inp-' + rule.field_id);
+             
         
         if (currentEl && currentEl.value.trim() !== "") {
             const nextRule = sectionRules[index + 1];
             if (nextRule && nextRule.edit_behavior && nextRule.edit_behavior.includes("after previous input")) {
                 console.log(`MERS REFLOW: Unhiding ${nextRule.field_id} because ${rule.field_id} has value.`);
-                const nextEl = document.getElementById(nextRule.field_id) || document.getElementById('extra_' + nextRule.field_id);
+
+              const nextEl =
+document.getElementById('inp-' + nextRule.field_id);
+
+
+              
                 if (nextEl && nextEl.closest('.input-group')) {
                     nextEl.closest('.input-group').style.display = 'block';
                 }
@@ -3543,8 +3557,14 @@ if (rule === 'EMAIL') {
           
          //   alert("❌ " + errorMsg);
           showValidationPopup(errorMsg, "date");
+
+
+          let targetBox = document.getElementById('inp-' + id)
           
-            let targetBox = document.getElementById(id) || document.getElementById('extra_' + id); 
+        // let targetBox = document.getElementById(id) || document.getElementById('extra_' + id); 
+
+
+          
             if (targetBox) targetBox.value = "";
             updateButtonState();
             return false;
@@ -3578,8 +3598,12 @@ if (rule === 'EMAIL') {
               //  alert("❌ " + errorMsg);
 
               showValidationPopup(errorMsg, "time");
+
+           let targetBox = document.getElementById('inp-' + id)
               
-                let targetBox = document.getElementById(id) || document.getElementById('extra_' + id); 
+             //  let targetBox = document.getElementById(id) || document.getElementById('extra_' + id); 
+
+              
                 if (targetBox) targetBox.value = "";
                 updateButtonState();
                 return false;
@@ -3596,8 +3620,12 @@ if (rule === 'EMAIL') {
           
          //   alert("❌ " + errorMsg);
           showValidationPopup(errorMsg, "date");
+
+
+
+          let targetBox = document.getElementById('inp-' + id)
           
-            let targetBox = document.getElementById(id) || document.getElementById('extra_' + id); 
+         //   let targetBox = document.getElementById(id) || document.getElementById('extra_' + id); 
             if (targetBox) targetBox.value = "";
             updateButtonState();
             return false;
@@ -3629,8 +3657,12 @@ if (rule === 'EMAIL') {
              //   alert("❌ " + errorMsg);
               
               showValidationPopup(errorMsg, "time");
+
+              let targetBox = document.getElementById('inp-' + id)
               
-                let targetBox = document.getElementById(id) || document.getElementById('extra_' + id); 
+             //   let targetBox = document.getElementById(id) || document.getElementById('extra_' + id); 
+
+              
                 if (targetBox) targetBox.value = "";
                 updateButtonState();
                 return false;
