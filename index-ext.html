@@ -1976,6 +1976,20 @@ console.log(
 const oldIsWaitlist =
     oldAllocation.includes("WAITLIST");
 
+console.log(
+  "ROLLBACK DEBUG:",
+  {
+    originalData,
+    oldAllocation,
+    oldGender,
+    oldStayOption: originalData?.stay_option,
+    extraGender: originalData?.extra_gender,
+    extraStay: originalData?.extra_stay_option
+  }
+);
+
+  
+
 
 
 // =====================================================
@@ -2001,6 +2015,12 @@ oldCounterPath =
     oldGender +
     '/' +
     eventIdParam;
+
+
+  console.log(
+  "OLD COUNTER PATH FINAL:",
+  oldCounterPath
+);
 
   
     // =====================================================
