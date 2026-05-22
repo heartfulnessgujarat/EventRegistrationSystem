@@ -3916,10 +3916,8 @@ if (!formContent || formContent.style.display === 'none') {
     target: event?.target?.id
   });
   
-
-  const genderEl =
-  document.getElementById('inp-gender') ||
-  document.getElementById('gender');
+const genderEl =
+document.getElementById('inp-gender');
 
   if (!genderEl || !genderEl.value) {
     const container = document.getElementById('capacity-container');
