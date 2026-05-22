@@ -2409,8 +2409,18 @@ await syncAttendeeRegistry(
 
         // --- TRIGGER EMAIL ---
 
-      const emailUrl =
-  `${SCRIPT_URL}?action=sendEmail&regId=${encodeURIComponent(formData.registration_id)}&eventId=${eventIdParam}`;
+  const attendanceUrl =
+`https://heartfulnessgujarat.github.io/EventRegistraionSystem/attendance.html?token=${encodeURIComponent(qrToken)}`;
+
+const emailUrl =
+`${SCRIPT_URL}?action=sendEmail&regId=${
+encodeURIComponent(formData.registration_id)
+}&eventId=${eventIdParam}&attendanceUrl=${
+encodeURIComponent(attendanceUrl)
+}`;
+      
+      
+      
                
           
 fetch(emailUrl)
