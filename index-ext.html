@@ -1945,6 +1945,21 @@ if (mode === 'edit') {
    const oldGender =
     (originalData?.gender || "").toLowerCase();
 
+const oldStayOption =
+(originalData?.stay_option || "").toLowerCase();
+
+console.log(
+  "ROLLBACK DEBUG:",
+  {
+    originalData,
+    oldAllocation,
+    oldGender,
+    oldStayOption,
+    extraGender: originalData?.extra_gender,
+    extraStay: originalData?.extra_stay_option
+  }
+);  
+
     console.log(
         "MERS EDIT OLD DATA:",
         {
