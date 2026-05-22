@@ -2367,20 +2367,8 @@ formData.stay_allocation_code =
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
         // --- TRIGGER EMAIL ---
-        if (typeof SCRIPT_URL !== 'undefined' && SCRIPT_URL) {
-            const emailUrl = `${SCRIPT_URL}?action=sendEmail&regId=${encodeURIComponent(formData.registration_id)}&eventId=${eventIdParam}`;
-
-          setTimeout(() => {
-
-    fetch(emailUrl)
-      .catch(err =>
-        console.error("Email failed:", err)
-      );
-
-}, 3000);
-
-         
-          //  fetch(emailUrl).catch(err => console.error("Email failed:", err));
+               
+          fetch(emailUrl).catch(err => console.error("Email failed:", err));
         }
         
     } catch (error) {
