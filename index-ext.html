@@ -3359,7 +3359,7 @@ function updateButtonState() {
         
         if (isVisible) {
             // BRIDGE: Remove 'extra_' or 'inp-' just to find the rule match
-            const cleanId = input.id.replace('extra_', '').replace('inp-', '');
+            const cleanId = input.id.replace('inp-', '').replace('inp-', '');
             const rule = rulesArray.find(r => r.field_id === cleanId);
             
             if (rule) {
