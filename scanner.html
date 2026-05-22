@@ -129,6 +129,41 @@ eventConfig.title ||
 
   loadEventTitle();
 
+  function onScanSuccess(decodedText) {
+
+    document.getElementById("result")
+    .innerHTML =
+
+      "SCANNED TOKEN:<br><br>" +
+      decodedText;
+
+    console.log(
+      "MERS SCAN TOKEN:",
+      decodedText
+    );
+}
+
+const html5QrCode =
+    new Html5Qrcode("reader");
+
+html5QrCode.start(
+
+    { facingMode: "environment" },
+
+    {
+      fps: 10,
+      qrbox: 250
+    },
+
+    onScanSuccess
+
+).catch(err => {
+
+    console.error(
+      "QR CAMERA ERROR:",
+      err
+    );
+});
 
   
 </script>
