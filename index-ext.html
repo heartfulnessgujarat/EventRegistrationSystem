@@ -2368,8 +2368,15 @@ formData.stay_allocation_code =
 
         // --- TRIGGER EMAIL ---
                
-          fetch(emailUrl).catch(err => console.error("Email failed:", err));
-    }
+          // --- TRIGGER EMAIL ---
+
+fetch(emailUrl)
+  .catch(err =>
+      console.error(
+          "Email failed:",
+          err
+      )
+  );
         
     } catch (error) {
         console.error("CRASH:", error);
