@@ -83,8 +83,8 @@ const params =
 const eventId =
     params.get("event");
 
-const attendeeId =
-    params.get("id");
+const token =
+    params.get("token");
 
 // =====================================================
 // MAIN
@@ -101,7 +101,7 @@ async function processAttendance() {
         // VALIDATE PARAMS
         // =====================================================
 
-        if (!eventId || !attendeeId) {
+        if (!token) {
 
             statusDiv.innerHTML =
                 `<div class="error">
@@ -115,14 +115,46 @@ async function processAttendance() {
         // LOAD ATTENDEE
         // =====================================================
 
-        const attendeeSnap =
-            await db.ref(
-                'attendee_registry/' +
-                eventId +
-                '/' +
-                attendeeId
-            ).once('value');
+       // =====================================================
+// TOKEN LOOKUP
+// =====================================================
 
+const tokenSnap =
+    await db.ref(
+        'attendance_tokens/' +
+        token
+    ).once('value');
+
+if (!tokenSnap.exists()) {
+
+    statusDiv.innerHTML =
+        `<div class="error">
+            Invalid Attendance Token
+         </div>`;
+
+    return;
+}
+
+const tokenData =
+    tokenSnap.val();
+
+const attendeeId =
+    tokenData.attendee_id;
+
+const eventId =
+    tokenData.event_id;
+
+// =====================================================
+// LOAD ATTENDEE
+// =====================================================
+
+const attendeeSnap =
+    await db.ref(
+        'attendee_registry/' +
+        eventId +
+        '/' +
+        attendeeId
+    ).once('value');
         if (!attendeeSnap.exists()) {
 
             statusDiv.innerHTML =
