@@ -3043,15 +3043,10 @@ if (fieldId === 'stay_option') {
             // THE "FINAL SYNC" LOCK
             const finalInputs = document.querySelectorAll('[id^="inp-"]');
             finalInputs.forEach(input => { 
-                const cleanId =     input.id.replace('inp-', '');
+                const cleanId = input.id.replace('inp-', '');
                 mersTempData[cleanId] = input.value; 
-             //   mersTempData[input.id] = input.value;
-                if (originalData) originalData[cleanId] = input.value;
+             if (originalData) originalData[cleanId] = input.value;
             });
-
-
-
-
 
           
           const nextSection =
