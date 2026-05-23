@@ -118,6 +118,25 @@ const eventId =
 const token =
     params.get("token");
 
+
+
+        // =====================================================
+// SELF ATTENDANCE GOVERNANCE
+// =====================================================
+
+const attendanceEnabled =
+    true;
+
+const attendanceStart =
+    new Date(
+        "2026-05-23T09:00:00"
+    );
+
+const attendanceEnd =
+    new Date(
+        "2026-05-23T23:59:00"
+    );
+
 // =====================================================
 // TOKEN AUTO ATTENDANCE
 // =====================================================
@@ -145,6 +164,59 @@ async function verifyTokenAttendance() {
         document.getElementById(
             "status"
         );
+
+// =====================================================
+// GOVERNANCE CHECK
+// =====================================================
+
+const now =
+    new Date();
+
+if (!attendanceEnabled) {
+
+    statusDiv.innerHTML =
+
+    `
+    <div class="error">
+        Self Attendance Disabled
+    </div>
+    `;
+
+    return;
+}
+
+if (now < attendanceStart) {
+
+    statusDiv.innerHTML =
+
+    `
+    <div class="error">
+        Attendance Not Started Yet
+    </div>
+    `;
+
+    return;
+}
+
+if (now > attendanceEnd) {
+
+    statusDiv.innerHTML =
+
+    `
+    <div class="error">
+        Attendance Window Closed
+    </div>
+    `;
+
+    return;
+}
+
+
+
+
+
+
+    
 
     try {
 
