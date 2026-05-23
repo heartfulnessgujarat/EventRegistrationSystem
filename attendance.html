@@ -87,7 +87,7 @@ body{
 
 </div>
 
-<script>
+    <script>
 
 // =====================================================
 // FIREBASE CONFIG
@@ -104,7 +104,7 @@ const db =
     firebase.database();
 
 // =====================================================
-// READ EVENT ID
+// URL PARAMS
 // =====================================================
 
 const params =
@@ -115,8 +115,7 @@ const params =
 const eventId =
     params.get("event");
 
-
-    const token =
+const token =
     params.get("token");
 
 // =====================================================
@@ -135,6 +134,11 @@ if (token) {
 
     verifyTokenAttendance();
 }
+
+// =====================================================
+// VERIFY TOKEN ATTENDANCE
+// =====================================================
+
 async function verifyTokenAttendance() {
 
     const statusDiv =
@@ -173,7 +177,7 @@ async function verifyTokenAttendance() {
         const attendeeId =
             tokenData.attendee_id;
 
-        const eventId =
+        const tokenEventId =
             tokenData.event_id;
 
         // =====================================================
@@ -183,7 +187,7 @@ async function verifyTokenAttendance() {
         const attendeeSnap =
             await db.ref(
                 'attendee_registry/' +
-                eventId +
+                tokenEventId +
                 '/' +
                 attendeeId
             ).once('value');
@@ -204,124 +208,109 @@ async function verifyTokenAttendance() {
         const attendee =
             attendeeSnap.val();
 
-// =====================================================
-// DUPLICATE ATTENDANCE CHECK
-// =====================================================
+        // =====================================================
+        // DUPLICATE CHECK
+        // =====================================================
 
-const logsSnap =
-    await db.ref(
-        'attendance_logs/' +
-        eventId
-    ).once('value');
+        const logsSnap =
+            await db.ref(
+                'attendance_logs/' +
+                tokenEventId
+            ).once('value');
 
-if (logsSnap.exists()) {
+        if (logsSnap.exists()) {
 
-    const logs =
-        Object.values(
-            logsSnap.val()
-        );
+            const logs =
+                Object.values(
+                    logsSnap.val()
+                );
 
+            const attendeeLogs =
+                logs.filter(
 
-console.log(
-    "CURRENT attendeeId:",
-    attendeeId
-);
+                    log =>
 
-console.log(
-    "ALL LOGS:",
-    logs
-);
+                    String(
+                        log.attendee_id || ""
+                    ) ===
+                    String(
+                        attendeeId || ""
+                    )
+                );
 
-console.log(
-    "CURRENT attendeeId:",
-    attendeeId
-);
+            if (attendeeLogs.length > 0) {
 
-console.log(
-    "ALL LOGS:",
-    logs
-);
+                attendeeLogs.sort(
 
+                    (a, b) =>
 
+                    new Date(
+                        b.marked_at
+                    ) -
 
-    
+                    new Date(
+                        a.marked_at
+                    )
+                );
 
+                const latestLog =
+                    attendeeLogs[0];
 
-  const attendeeLogs =
-    logs.filter(log => {
+                const lastScanTime =
+                    new Date(
+                        latestLog.marked_at
+                    ).getTime();
 
-        console.log(
-            "COMPARE:",
-            log.attendee_id,
-            attendeeId
-        );
+                const currentTime =
+                    new Date().getTime();
 
-        return String(
-            log.attendee_id || ""
-        ) === String(
-            attendeeId || ""
-        );
-    });
-                
-                
-                
-                ===
-String(
-    attendeeId || ""
-)
+                const diffSeconds =
+                    (
+                        currentTime -
+                        lastScanTime
+                    ) / 1000;
 
+                if (diffSeconds < 60) {
 
-        
-        );
+                    statusDiv.innerHTML =
 
-    if (attendeeLogs.length > 0) {
+                    `
+                    <div class="error">
+                        Attendance Already Marked Recently
+                    </div>
+                    `;
 
-        attendeeLogs.sort(
-
-            (a, b) =>
-
-            new Date(
-                b.marked_at
-            ) -
-
-            new Date(
-                a.marked_at
-            )
-        );
-
-        const latestLog =
-            attendeeLogs[0];
-
-        const lastScanTime =
-            new Date(
-                latestLog.marked_at
-            ).getTime();
-
-        const currentTime =
-            new Date().getTime();
-
-        const diffSeconds =
-            (
-                currentTime -
-                lastScanTime
-            ) / 1000;
-
-        if (diffSeconds < 60) {
-
-            statusDiv.innerHTML =
-
-            `
-            <div class="error">
-                Attendance Already Marked Recently
-            </div>
-            `;
-
-            return;
+                    return;
+                }
+            }
         }
-    }
-}
 
-        
+        // =====================================================
+        // WRITE ATTENDANCE LOG
+        // =====================================================
+
+        await db.ref(
+
+            'attendance_logs/' +
+            tokenEventId
+
+        ).push({
+
+            attendee_id:
+                attendeeId,
+
+            attendee_name:
+                attendee.full_name || "",
+
+            attendee_type:
+                attendee.attendee_type || "",
+
+            attendance_mode:
+                "SELF",
+
+            marked_at:
+                new Date().toISOString()
+        });
 
         // =====================================================
         // SUCCESS
@@ -357,16 +346,8 @@ String(
     }
 }
 
-
-
-
-
-
-
-
-    
 // =====================================================
-// MARK ATTENDANCE
+// MANUAL MOBILE ATTENDANCE
 // =====================================================
 
 async function markAttendance() {
@@ -381,26 +362,20 @@ async function markAttendance() {
             "mobileInput"
         ).value.trim();
 
-    // =====================================================
-    // VALIDATE MOBILE
-    // =====================================================
-
     if (!mobile) {
 
         statusDiv.innerHTML =
 
-        `<div class="error">
+        `
+        <div class="error">
             Enter Mobile Number
-         </div>`;
+        </div>
+        `;
 
         return;
     }
 
     try {
-
-        // =====================================================
-        // LOAD ATTENDEES
-        // =====================================================
 
         const snap =
             await db.ref(
@@ -412,9 +387,11 @@ async function markAttendance() {
 
             statusDiv.innerHTML =
 
-            `<div class="error">
+            `
+            <div class="error">
                 No Attendees Found
-             </div>`;
+            </div>
+            `;
 
             return;
         }
@@ -422,41 +399,28 @@ async function markAttendance() {
         const attendees =
             snap.val();
 
-        // =====================================================
-        // FIND MOBILE MATCH
-        // =====================================================
-
         const attendee =
             Object.values(attendees).find(
-
 
                 a =>
 
                 String(
                     a.mobile || ""
                 ).trim() === mobile
-
             );
 
         if (!attendee) {
 
             statusDiv.innerHTML =
 
-            `<div class="error">
+            `
+            <div class="error">
                 Registration Not Found
-             </div>`;
+            </div>
+            `;
 
             return;
         }
-
-const attendeeId =
-    attendee.attendee_id;
-
-        
-
-        // =====================================================
-        // SUCCESS
-        // =====================================================
 
         statusDiv.innerHTML =
 
@@ -489,5 +453,3 @@ const attendeeId =
 }
 
 </script>
-</body>
-</html>
