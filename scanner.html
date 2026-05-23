@@ -13,9 +13,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-
-
-  
+ 
   <style>
 
     body {
@@ -58,23 +56,26 @@
 
   </div>
 
-<script>
+  <script>
 
 // =====================================================
-// FETCH EVENT TITLE
+// FIREBASE CONFIG
 // =====================================================
 
+const firebaseConfig = {
+    databaseURL:
+    "https://ferrari-reg-2026-default-rtdb.asia-southeast1.firebasedatabase.app"
+};
 
-  const firebaseConfig = { databaseURL: "https://ferrari-reg-2026-default-rtdb.asia-southeast1.firebasedatabase.app" };
-
-
-
-  firebase.initializeApp(firebaseConfig);
+firebase.initializeApp(firebaseConfig);
 
 const db =
- firebase.database();
+    firebase.database();
 
-  
+// =====================================================
+// READ EVENT
+// =====================================================
+
 const params =
     new URLSearchParams(
         window.location.search
@@ -83,8 +84,9 @@ const params =
 const eventId =
     params.get("event");
 
-
-
+// =====================================================
+// LOAD EVENT TITLE
+// =====================================================
 
 async function loadEventTitle() {
 
@@ -105,7 +107,6 @@ async function loadEventTitle() {
 
             cfg =>
             cfg.event_id === eventId
-
         );
 
     if (!eventConfig) return;
@@ -114,19 +115,17 @@ async function loadEventTitle() {
         "eventTitle"
     ).innerText =
 
-
-
-eventConfig.title ||
-"Attendance Scanner";
-
- 
+        eventConfig.title ||
+        "Attendance Scanner";
 }
 
-  loadEventTitle();
+loadEventTitle();
+
+// =====================================================
+// QR SCAN SUCCESS
+// =====================================================
 
 async function onScanSuccess(decodedText) {
-
-
 
     try {
 
@@ -137,19 +136,14 @@ async function onScanSuccess(decodedText) {
         "Checking attendee...";
 
         // =====================================================
-        // LOOKUP TOKEN
+        // LOAD TOKEN
         // =====================================================
 
-const tokenSnap =
-    await db.ref(
-       'attendance_tokens/' +
-       decodedText.trim()
-    ).once('value');
-      
-
-
-      
-      
+        const tokenSnap =
+            await db.ref(
+                'attendance_tokens/' +
+                decodedText.trim()
+            ).once('value');
 
         if (!tokenSnap.exists()) {
 
@@ -194,152 +188,114 @@ const tokenSnap =
         const attendee =
             attendeeSnap.val();
 
+        // =====================================================
+        // DUPLICATE CHECK
+        // =====================================================
 
+        const logsSnap =
+            await db.ref(
+                'attendance_logs/' +
+                eventId
+            ).once('value');
 
-      // =====================================================
-// DUPLICATE SCAN CHECK
-// =====================================================
+        if (logsSnap.exists()) {
 
-const logsSnap =
-    await db.ref(
-        'attendance_logs/' +
-        eventId
-    ).once('value');
+            const logs =
+                Object.values(
+                    logsSnap.val()
+                );
 
-if (logsSnap.exists()) {
+            const attendeeLogs =
+                logs.filter(
 
-    const logs =
-        Object.values(
-            logsSnap.val()
-        );
+                    log =>
 
+                    String(
+                        log.attendee_id || ""
+                    ) ===
+                    String(
+                        attendeeId || ""
+                    )
+                );
 
+            if (attendeeLogs.length > 0) {
 
-  console.log(
-    "CURRENT attendeeId:",
-    attendeeId
-);
+                attendeeLogs.sort(
 
-console.log(
-    "ALL LOGS:",
-    logs
-);
+                    (a, b) =>
 
-console.log(
-    "CURRENT attendeeId:",
-    attendeeId
-);
+                    new Date(
+                        b.marked_at
+                    ) -
 
-console.log(
-    "ALL LOGS:",
-    logs
-);
+                    new Date(
+                        a.marked_at
+                    )
+                );
 
+                const latestLog =
+                    attendeeLogs[0];
 
-  
+                const lastScanTime =
+                    new Date(
+                        latestLog.marked_at
+                    ).getTime();
 
-const attendeeLogs =
-    logs.filter(log => {
+                const currentTime =
+                    new Date().getTime();
 
-        console.log(
-            "COMPARE:",
-            log.attendee_id,
-            attendeeId
-        );
+                const diffSeconds =
+                    (
+                        currentTime -
+                        lastScanTime
+                    ) / 1000;
 
-        return String(
-            log.attendee_id || ""
-        ) === String(
-            attendeeId || ""
-        );
-    });
+                if (diffSeconds < 60) {
 
-  
+                    document.getElementById(
+                        "result"
+                    ).innerHTML =
 
-          
-        );
+                    "<span style='color:orange'>" +
+                    "Already Scanned Recently" +
+                    "</span>";
 
-    if (attendeeLogs.length > 0) {
-
-        attendeeLogs.sort(
-
-            (a, b) =>
-
-            new Date(
-                b.marked_at
-            ) -
-
-            new Date(
-                a.marked_at
-            )
-        );
-
-        const latestLog =
-            attendeeLogs[0];
-
-        const lastScanTime =
-            new Date(
-                latestLog.marked_at
-            ).getTime();
-
-        const currentTime =
-            new Date().getTime();
-
-        const diffSeconds =
-            (
-                currentTime -
-                lastScanTime
-            ) / 1000;
-
-        if (diffSeconds < 60) {
-
-            document.getElementById(
-                "result"
-            ).innerHTML =
-
-            "<span style='color:orange'>" +
-            "Already Scanned Recently" +
-            "</span>";
-
-            return;
+                    return;
+                }
+            }
         }
-    }
-}
 
-       
-// =====================================================
-// WRITE ATTENDANCE LOG
-// =====================================================
+        // =====================================================
+        // WRITE ATTENDANCE LOG
+        // =====================================================
 
-await db.ref(
+        await db.ref(
 
-    'attendance_logs/' +
-    eventId
+            'attendance_logs/' +
+            eventId
 
-).push({
+        ).push({
 
-    attendee_id:
-        attendeeId,
+            attendee_id:
+                attendeeId,
 
-    attendee_name:
-        attendee.full_name || "",
+            attendee_name:
+                attendee.full_name || "",
 
-    attendee_type:
-        attendee.attendee_type || "",
+            attendee_type:
+                attendee.attendee_type || "",
 
-    attendance_mode:
-        "SCANNER",
+            attendance_mode:
+                "SCANNER",
 
-    marked_at:
-        new Date().toISOString()
-});
+            marked_at:
+                new Date().toISOString()
+        });
 
+        // =====================================================
+        // SUCCESS
+        // =====================================================
 
-
-
-
-
-      
         document.getElementById(
             "result"
         ).innerHTML =
@@ -353,17 +309,12 @@ await db.ref(
 
         "<span style='color:green'>QR VERIFIED</span>";
 
-       
-
     } catch (err) {
 
         console.error(
             "SCAN ERROR:",
             err
         );
-
-
-     
 
         document.getElementById(
             "result"
@@ -373,9 +324,12 @@ await db.ref(
     }
 }
 
+// =====================================================
+// START CAMERA
+// =====================================================
+
 const html5QrCode =
     new Html5Qrcode("reader");
-
 
 html5QrCode.start(
 
@@ -388,14 +342,12 @@ html5QrCode.start(
 
     async (decodedText) => {
 
-    await onScanSuccess(decodedText);
+        await onScanSuccess(
+            decodedText
+        );
 
-    await html5QrCode.stop();
-
-}
-  
-
-  
+        await html5QrCode.stop();
+    }
 
 ).catch(err => {
 
@@ -404,9 +356,5 @@ html5QrCode.start(
         err
     );
 });
-  
-  
-</script>
 
-</body>
-</html>
+</script>
