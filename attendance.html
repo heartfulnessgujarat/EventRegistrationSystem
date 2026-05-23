@@ -204,6 +204,84 @@ async function verifyTokenAttendance() {
         const attendee =
             attendeeSnap.val();
 
+// =====================================================
+// DUPLICATE ATTENDANCE CHECK
+// =====================================================
+
+const logsSnap =
+    await db.ref(
+        'attendance_logs/' +
+        eventId
+    ).once('value');
+
+if (logsSnap.exists()) {
+
+    const logs =
+        Object.values(
+            logsSnap.val()
+        );
+
+    const attendeeLogs =
+        logs.filter(
+
+            log =>
+
+            log.attendee_id ===
+            attendee.attendee_id
+
+        );
+
+    if (attendeeLogs.length > 0) {
+
+        attendeeLogs.sort(
+
+            (a, b) =>
+
+            new Date(
+                b.marked_at
+            ) -
+
+            new Date(
+                a.marked_at
+            )
+        );
+
+        const latestLog =
+            attendeeLogs[0];
+
+        const lastScanTime =
+            new Date(
+                latestLog.marked_at
+            ).getTime();
+
+        const currentTime =
+            new Date().getTime();
+
+        const diffSeconds =
+            (
+                currentTime -
+                lastScanTime
+            ) / 1000;
+
+        if (diffSeconds < 60) {
+
+            statusDiv.innerHTML =
+
+            `
+            <div class="error">
+                Attendance Already Marked Recently
+            </div>
+            `;
+
+            return;
+        }
+    }
+}
+
+
+
+        
+
         // =====================================================
         // SUCCESS
         // =====================================================
