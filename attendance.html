@@ -277,9 +277,6 @@ if (logsSnap.exists()) {
     }
 }
 
-const attendeeId =
-    attendee.attendee_id;
-
         
 
         // =====================================================
@@ -389,9 +386,6 @@ async function markAttendance() {
             Object.values(attendees).find(
 
 
-                const attendeeId =
-    attendee.attendee_id;
-
                 a =>
 
                 String(
@@ -410,6 +404,11 @@ async function markAttendance() {
 
             return;
         }
+
+const attendeeId =
+    attendee.attendee_id;
+
+        
 
         // =====================================================
         // SUCCESS
