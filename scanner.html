@@ -198,6 +198,39 @@ const tokenSnap =
         // DISPLAY ATTENDEE
         // =====================================================
 
+// =====================================================
+// WRITE ATTENDANCE LOG
+// =====================================================
+
+await db.ref(
+
+    'attendance_logs/' +
+    eventId
+
+).push({
+
+    attendee_id:
+        attendeeId,
+
+    attendee_name:
+        attendee.full_name || "",
+
+    attendee_type:
+        attendee.attendee_type || "",
+
+    attendance_mode:
+        "SCANNER",
+
+    marked_at:
+        new Date().toISOString()
+});
+
+
+
+
+
+
+      
         document.getElementById(
             "result"
         ).innerHTML =
