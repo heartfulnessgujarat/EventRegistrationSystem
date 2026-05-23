@@ -277,17 +277,13 @@ html5QrCode.start(
         qrbox: 250
     },
 
-    (decodedText) => {
+    async (decodedText) => {
 
-      
+    await onScanSuccess(decodedText);
 
-        html5QrCode.stop();
+    await html5QrCode.stop();
 
-        onScanSuccess(decodedText);
-
-    }
-
-
+}
   
 
   
