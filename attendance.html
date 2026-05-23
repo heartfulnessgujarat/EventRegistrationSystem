@@ -159,51 +159,9 @@ async function verifyTokenAttendance() {
             "status"
         );
 
-// =====================================================
-// GOVERNANCE CHECK
-// =====================================================
 
-const now =
-    new Date();
 
-if (!attendanceEnabled) {
 
-    statusDiv.innerHTML =
-
-    `
-    <div class="error">
-        Self Attendance Disabled
-    </div>
-    `;
-
-    return;
-}
-
-if (now < attendanceStart) {
-
-    statusDiv.innerHTML =
-
-    `
-    <div class="error">
-        Attendance Not Started Yet
-    </div>
-    `;
-
-    return;
-}
-
-if (now > attendanceEnd) {
-
-    statusDiv.innerHTML =
-
-    `
-    <div class="error">
-        Attendance Window Closed
-    </div>
-    `;
-
-    return;
-}
 
 
 
