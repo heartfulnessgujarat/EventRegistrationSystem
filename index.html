@@ -1093,6 +1093,22 @@ function unlockField(id) {
   }
 
   const inp = document.getElementById(`inp-${id}`);
+
+
+// ============================================
+// RESTORE ORIGINAL VALUE BEFORE EDITING
+// ============================================
+
+if (
+    inp &&
+    inp.dataset.originalValue
+) {
+
+    inp.value =
+        inp.dataset.originalValue;
+}
+
+    
   const editLink = document.getElementById(`edit-link-${id}`);
   
   // 2. Standard Unlock Logic
