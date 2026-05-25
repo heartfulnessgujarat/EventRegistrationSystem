@@ -325,6 +325,60 @@
 
 <script>
 
+  function getDisplayValue(fieldId, value) {
+
+  // ============================================
+  // MASK EMAIL
+  // ============================================
+
+  if (
+    fieldId === 'email' &&
+    value
+  ) {
+
+    const parts = value.split('@');
+
+    if (parts.length === 2) {
+
+      const name =
+        parts[0];
+
+      const domain =
+        parts[1];
+
+      return (
+        name.substring(0, 3) +
+        '*****@' +
+        domain
+      );
+    }
+  }
+
+  // ============================================
+  // MASK MOBILE
+  // ============================================
+
+  if (
+    fieldId === 'mobile' &&
+    value
+  ) {
+
+    return (
+      value.substring(0, 2) +
+      'XXXXXX' +
+      value.substring(value.length - 2)
+    );
+  }
+
+  return value || "";
+}
+
+
+
+
+
+
+  
 function formatFirebaseDate(fbDate) {
     if (!fbDate) return "";
     try {
@@ -2232,6 +2286,57 @@ function manualFormatCheck() {
 }
 
 
+  function getMaskedDisplayValue(fieldId, value) {
+
+    if (!value) return value;
+
+    // ============================================
+    // MOBILE MASKING
+    // ============================================
+
+    if (
+        fieldId === 'mobile' ||
+        fieldId === 'ext_mobile'
+    ) {
+
+        value = String(value);
+
+        return (
+            value.substring(0, 2) +
+            "XXXXXX" +
+            value.substring(value.length - 2)
+        );
+    }
+
+    // ============================================
+    // EMAIL MASKING
+    // ============================================
+
+    if (
+        fieldId === 'email' ||
+        fieldId === 'ext_email'
+    ) {
+
+        const parts =
+            value.split('@');
+
+        if (parts.length === 2) {
+
+            return (
+                parts[0].substring(0, 3) +
+                "*****@" +
+                parts[1]
+            );
+        }
+    }
+
+    return value;
+}
+
+
+
+
+  
 async function loadExistingData(regId, mode) {
     console.log(`[DIAGNOSTIC] loadExistingData started for ID: ${regId}`);
     try {
@@ -2284,7 +2389,32 @@ async function loadExistingData(regId, mode) {
             fieldRules.forEach(r => {
                 const el = document.getElementById(`inp-${r.field_id}`);
                 if (el && data[r.field_id] !== undefined) {
-                    el.value = data[r.field_id];
+
+
+                  if (r.field_id === 'mobile') {
+
+    el.value =
+        maskMobile(
+            data[r.field_id]
+        );
+
+} else if (
+    r.field_id === 'email'
+) {
+
+    el.value =
+        maskEmail(
+            data[r.field_id]
+        );
+
+} else {
+
+    el.value =
+        data[r.field_id];
+}
+
+
+                  
                     // Lock core identity fields in Edit Mode
                     if (['full_name', 'mobile', 'email'].includes(r.field_id)) {
                         el.disabled = true;
