@@ -990,7 +990,35 @@ function selectParticipant(p) {
     if (el) {
       // Logic to fetch value from participant object p
       const masterValue = p[r.field_id] || p[r.field_id.replace('_',' ')] || "";
+ //     el.value = masterValue;
+
+
       el.value = masterValue;
+
+// ============================================
+// MASK ONLY LOCKED DISPLAY
+// ============================================
+
+if (
+    ['mobile', 'email']
+    .includes(r.field_id)
+) {
+
+    el.dataset.originalValue =
+        masterValue;
+
+    if (r.field_id === 'mobile') {
+
+        el.value =
+            maskMobile(masterValue);
+    }
+
+    if (r.field_id === 'email') {
+
+        el.value =
+            maskEmail(masterValue);
+    }
+}
       
       // Sync to originalData for change tracking
       if (typeof originalData !== 'undefined') {
