@@ -1170,7 +1170,126 @@ function selectParticipant(p) {
       const btn = document.getElementById(`vbtn-${type}`);
       btn.disabled = true;
       btn.innerText = "Sending Code...";
-      fetch(`${SCRIPT_URL}?action=sendVerificationCode&email=${encodeURIComponent(targetEmail)}&eventId=${eventId}`, { mode: 'no-cors' });
+
+      
+     // fetch(`${SCRIPT_URL}?action=sendVerificationCode&email=${encodeURIComponent(targetEmail)}&eventId=${eventId}`, { mode: 'no-cors' });
+
+      // =====================================================
+// EMAIL VERIFICATION
+// =====================================================
+
+if (type === 'email') {
+
+  fetch(
+    `${SCRIPT_URL}?action=sendVerificationCode&email=${encodeURIComponent(targetEmail)}&eventId=${eventId}`,
+    { mode: 'no-cors' }
+  );
+
+}
+
+// =====================================================
+// MOBILE VERIFICATION VIA WHATSAPP
+// =====================================================
+
+else if (type === 'mobile') {
+
+  const mobileInput =
+    document.getElementById('inp-mobile').value.trim();
+
+  const mobileNumber =
+    "91" + mobileInput;
+
+  const otp =
+    Math.floor(100000 + Math.random() * 900000).toString();
+
+  // SAVE OTP IN FIREBASE
+  await db.ref("verificationCodes/mobile_" + mobileInput).set({
+
+    code: otp,
+    timestamp: new Date().getTime()
+
+  });
+
+  // SEND WHATSAPP MESSAGE
+  await fetch(
+
+    "https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/",
+
+    {
+
+      method: "POST",
+
+      headers: {
+
+        "Content-Type": "application/json",
+
+        "authkey": "PASTE_YOUR_REAL_AUTHKEY"
+
+      },
+
+      body: JSON.stringify({
+
+        integrated_number: "919427112842",
+
+        content_type: "template",
+
+        payload: {
+
+          messaging_product: "whatsapp",
+
+          type: "template",
+
+          template: {
+
+            name: "vericode",
+
+            language: {
+
+              code: "en",
+              policy: "deterministic"
+
+            },
+
+            namespace: null,
+
+            to_and_components: [
+
+              {
+
+                to: [mobileNumber],
+
+                components: {
+
+                  body_1: {
+
+                    type: "text",
+
+                    value: otp
+
+                  }
+
+                }
+
+              }
+
+            ]
+
+          }
+
+        }
+
+      })
+
+    }
+
+  );
+
+}
+
+
+      
+      
+      
       setTimeout(() => {
         document.getElementById(`panel-${type}`).style.backgroundColor = "#e3f2fd";
         btn.style.display = "none";
