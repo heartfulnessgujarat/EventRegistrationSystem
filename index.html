@@ -1523,8 +1523,28 @@ async function submitData() {
 
         const updatedSection1 = {
             full_name: getFreshVal('full_name'),
-            email: getFreshVal('email'),
-            mobile: getFreshVal('mobile'),
+
+          email:
+    document.getElementById('email')
+        .dataset.originalValue ||
+
+    getFreshVal('email'),
+
+mobile:
+    document.getElementById('mobile')
+        .dataset.originalValue ||
+
+    getFreshVal('mobile'),
+
+
+          
+
+          
+          
+
+
+
+          
             organization: getFreshVal('organization'),
             designation: getFreshVal('designation'),
             pincode: getFreshVal('pincode'),
