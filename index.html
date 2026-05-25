@@ -1515,7 +1515,40 @@ async function submitData() {
         // --- STEP 1: FINAL DATA CAPTURE ---
         const getFreshVal = (id) => {
             const el = document.getElementById('inp-' + id) || document.getElementById(id);
-            if (el) return el.value ? el.value.trim() : "";
+
+          
+         //   if (el) return el.value ? el.value.trim() : "";
+
+
+          if (el) {
+
+    // ============================================
+    // IF FIELD IS STILL MASKED,
+    // RETURN ORIGINAL VALUE
+    // ============================================
+
+    if (
+
+        el.dataset.originalValue &&
+
+        el.dataset.maskedValue &&
+
+        el.value === el.dataset.maskedValue
+
+    ) {
+
+        return el.dataset.originalValue.trim();
+    }
+
+    return el.value
+        ? el.value.trim()
+        : "";
+}
+
+
+
+
+          
             if (typeof mersTempData !== 'undefined' && typeof mersTempData[id] !== 'undefined') return mersTempData[id];
             if (typeof originalData !== 'undefined' && typeof originalData[id] !== 'undefined') return originalData[id];
             return "";
