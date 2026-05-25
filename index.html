@@ -1257,16 +1257,76 @@ let isChanged =
     compareValue !==
     (originalData[r.field_id] || "");
 
+
+
         
+        // =====================================================
+// SKIP VALIDATION FOR LOCKED MASKED FIELDS
+// =====================================================
+
+const isMaskedLockedField =
+
+    input.disabled &&
+
+    input.dataset.originalValue &&
+
+    (
+        r.field_id === 'mobile' ||
+        r.field_id === 'email'
+    );
+
+if (isMaskedLockedField) {
+
+    input.style.border =
+        '1px solid #ced4da';
+
+    if (errDiv) {
+
+        errDiv.style.display =
+            'none';
+    }
+
+}
+
+else if (
+    !isValid &&
+    input.value.trim() !== ""
+) {
+
+    input.style.border =
+        '2px solid red';
+
+    if (errDiv) {
+
+        errDiv.innerText =
+            r.error_msg ||
+            "Invalid input";
+
+        errDiv.style.display =
+            'block';
+    }
+
+    allValid = false;
+
+}
+
+else {
+
+    input.style.border =
+        '1px solid #ced4da';
+
+    if (errDiv) {
+
+        errDiv.style.display =
+            'none';
+    }
+}
         
-        if (!isValid && input.value.trim() !== "") {
-          input.style.border = '2px solid red';
-          if (errDiv) { errDiv.innerText = r.error_msg || "Invalid input"; errDiv.style.display = 'block'; }
-          allValid = false;
-        } else {
-          input.style.border = '1px solid #ced4da';
-          if (errDiv) errDiv.style.display = 'none';
-        }
+       
+
+
+
+        
 
         if (r.field_id === 'email' || r.field_id === 'mobile') {
           const panel = document.getElementById(`panel-${r.field_id}`);
