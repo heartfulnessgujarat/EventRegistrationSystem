@@ -1228,7 +1228,8 @@ const verificationTicket = eventCode + paddedNumber;
     "verificationCodes/mobile_" + mobileInput
   ).set({
 
-    code: otp,
+    verification_ticket:
+  verificationTicket,
 
     timestamp:
       new Date().getTime()
@@ -1241,7 +1242,7 @@ const verificationTicket = eventCode + paddedNumber;
 
   fetch(
 
-    `${SCRIPT_URL}?action=sendWhatsAppOTP&mobile=${mobileInput}&otp=${otp}`,
+    `${SCRIPT_URL}?action=sendWhatsAppOTP&mobile=${mobileInput}&ticket=${verificationTicket}`,
 
     {
 
