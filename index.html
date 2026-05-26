@@ -2958,7 +2958,7 @@ function processFinalDeletion(regId, eventId, gender) {
         const cleanId = input.id.replace('extra_', '');
         mersTempData[cleanId] = input.value; 
         mersTempData[input.id] = input.value;
-        if (originalData) originalData[cleanId] = input.value; // Sync to originalData too
+     //   if (originalData) originalData[cleanId] = input.value; // Sync to originalData too
     });
 
     container.innerHTML = ""; 
@@ -3091,7 +3091,7 @@ if (fieldId === 'stay_option') {
                 const cleanId = input.id.replace('extra_', '');
                 mersTempData[cleanId] = input.value; 
                 mersTempData[input.id] = input.value;
-                if (originalData) originalData[cleanId] = input.value;
+              //  if (originalData) originalData[cleanId] = input.value;
             });
 
 
