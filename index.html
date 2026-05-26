@@ -1728,16 +1728,15 @@ if (
       // IF FIELD IS STILL MASKED,
       // RETURN ORIGINAL VALUE
       // ============================================
-  
-      if (
-  
-          el.dataset.originalValue &&
-  
-          el.dataset.maskedValue &&
-  
-          el.value === el.dataset.maskedValue
-  
-      ) {
+
+
+     if (
+
+    el.dataset.originalValue &&
+
+    el.value.includes('*')
+
+) {
   
           return el.dataset.originalValue.trim();
       }
@@ -2840,14 +2839,17 @@ if (
     // STORE MASKED VERSION ALSO
     // ============================================
 
+
+
+
+  
     if (r.field_id === 'mobile') {
 
         el.dataset.maskedValue =
             maskMobile(
                 data[r.field_id]
             );
-
-      
+    
     }
 
     if (r.field_id === 'email') {
