@@ -1242,7 +1242,7 @@ const verificationTicket = eventCode + paddedNumber;
 console.log(eventConfig);
   fetch(
 
-   `${SCRIPT_URL}?action=sendWhatsAppOTP&mobile=${mobileInput}&ticket=${verificationTicket}&eventTitle=${eventConfig[event_id].event_code}`,
+   `${SCRIPT_URL}?action=sendWhatsAppOTP&mobile=${mobileInput}&ticket=${verificationTicket}&eventTitle=${eventConfig.event_code}`,
     {
 
       method: "GET",
