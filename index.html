@@ -1256,19 +1256,40 @@ const verificationTicket = eventCode + paddedNumber;
   // =====================================================
   // CALL APPS SCRIPT
   // =====================================================
+  
 console.log(eventConfig);
-  fetch(
 
-   `${SCRIPT_URL}?action=sendWhatsAppOTP&mobile=${mobileInput}&ticket=${verificationTicket}&eventTitle=${eventConfig.event_code}`,
-    {
+//  fetch(
 
-      method: "GET",
+//   `${SCRIPT_URL}?action=sendWhatsAppOTP&mobile=${mobileInput}&ticket=${verificationTicket}&eventTitle=${eventConfig.event_code}`,
+//    {
 
-      mode: "no-cors"
+//      method: "GET",
 
-    }
+ //     mode: "no-cors"
 
-  );
+//    }
+
+//  );
+
+
+  db.ref("whatsapp_queue").push({
+
+    mobile:
+        mobileInput,
+
+    ticket:
+        verificationTicket,
+
+    eventTitle:
+        eventConfig[event_id].event_code,
+
+    status:
+        "PENDING",
+
+    created_at:
+        Date.now()
+});
 
 }
       
