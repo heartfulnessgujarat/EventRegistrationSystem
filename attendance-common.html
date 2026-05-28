@@ -720,7 +720,51 @@ function startVenueScan() {
 }
 
 
+// =====================================================
+// VALIDATE VENUE QR
+// =====================================================
 
+function validateVenueQR(
+    scannedVenueSecret
+) {
+
+    const statusDiv =
+        document.getElementById(
+            "status"
+        );
+
+    if (
+        scannedVenueSecret !==
+        venueSecret
+    ) {
+
+        statusDiv.innerHTML =
+
+        `
+        <div class="error">
+            Invalid Venue QR
+        </div>
+
+        <div class="small">
+            Please scan official event QR
+        </div>
+        `;
+
+        return;
+    }
+
+    statusDiv.innerHTML =
+
+    `
+    <div class="success">
+        Venue Verified
+    </div>
+
+    <div class="small">
+        Attendance Ready To Mark
+    </div>
+    `;
+}
 
 
 
