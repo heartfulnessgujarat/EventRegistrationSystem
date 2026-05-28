@@ -757,19 +757,37 @@ function validateVenueQR(
         return;
     }
 
+
+db.ref(
+
+    'attendance_logs/' +
+    eventId
+
+).push({
+
+    attendance_mode:
+        "COMMON_QR",
+
+    marked_at:
+        new Date().toISOString()
+});
+
+
+    
+
+
+    
     statusDiv.innerHTML =
 
-    `
-    <div class="success">
-        Venue Verified
-    </div>
+`
+<div class="success">
+    Venue Verified
+</div>
 
-    <div class="small">
-        Attendance Ready To Mark
-    </div>
-    `;
-}
-
+<div class="small">
+    Attendance Marked Successfully
+</div>
+`;
 
 
 
