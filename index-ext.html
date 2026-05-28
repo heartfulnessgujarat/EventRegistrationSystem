@@ -2424,9 +2424,10 @@ localStorage.setItem(
 
         // --- TRIGGER EMAIL ---
 
-  const attendanceUrl =
-`https://heartfulnessgujarat.github.io/EventRegistraionSystem/attendance.html?token=${encodeURIComponent(qrToken)}`;
+const attendanceUrl =
+`https://heartfulnessgujarat.github.io/EventRegistraionSystem/attendance-common.html?event=${eventIdParam}&token=${encodeURIComponent(qrToken)}`;
 
+      
 const emailUrl =
 `${SCRIPT_URL}?action=sendEmail&regId=${
 encodeURIComponent(formData.registration_id)
@@ -2434,7 +2435,10 @@ encodeURIComponent(formData.registration_id)
 encodeURIComponent(attendanceUrl)
 }`;
       
-      
+     console.log(
+    "EMAIL URL:",
+    emailUrl
+);
       
                
           
