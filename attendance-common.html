@@ -131,12 +131,16 @@ const params =
 const eventId =
     params.get("event");
 
-const token =
-    params.get("token");
+       
+// =====================================================
+// TOKEN AUTO ATTENDANCE
+// =====================================================
 
 
-
-
+const cachedToken =
+    localStorage.getItem(
+        "mers_attendance_token"
+    );
 
 
 
@@ -146,23 +150,6 @@ const token =
 
 
         
-
-// =====================================================
-// TOKEN AUTO ATTENDANCE
-// =====================================================
-
-if (token) {
-
-    document.getElementById(
-        "mobileInput"
-    ).style.display = "none";
-
-    document.querySelector(
-        "button"
-    ).style.display = "none";
-
-    verifyTokenAttendance();
-}
 
 // =====================================================
 // VERIFY TOKEN ATTENDANCE
