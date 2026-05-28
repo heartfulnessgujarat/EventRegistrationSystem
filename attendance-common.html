@@ -498,24 +498,43 @@ statusDiv.innerHTML =
 
 <br><br>
 
+
+<input
+    type="text"
+    id="venueQRInput"
+    placeholder="Paste Scanned Venue QR"
+    style="
+        width:90%;
+        padding:12px;
+        font-size:16px;
+        margin-bottom:15px;
+    "
+>
+
+<br>
+
 <button
-    onclick="validateVenueQR(venueSecret)"
+    onclick="validateVenueQR(
+
+        document.getElementById(
+            'venueQRInput'
+        ).value.trim()
+
+    )"
+
     style="
         padding:12px 20px;
         font-size:16px;
         cursor:pointer;
     "
 >
-    Simulate Venue QR Scan
+    Validate Venue QR
 </button>
+
+
+
+
 `;
-
-
-
-
-        
-
-
 
         
         
