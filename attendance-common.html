@@ -460,22 +460,9 @@ if (now > attendanceEnd) {
     return;
 }
 
+statusDiv.innerHTML = "";
 
-statusDiv.innerHTML =
-
-`
-<div
-id="reader"
-style="
-width:100%;
-max-width:350px;
-margin:auto;
-margin-top:20px;
-"
-></div>
-`;
-
-       
+               
 
 startCameraScanner();
 
