@@ -866,7 +866,8 @@ Html5Qrcode.getCameras()
     }
 
     const cameraId =
-        devices[0].id;
+      //  devices[0].id;
+    devices[devices.length - 1].id;
 
     html5QrCode.start(
 
