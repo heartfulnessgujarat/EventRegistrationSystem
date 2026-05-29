@@ -967,26 +967,8 @@ db.ref(
     officialVenueSecret
 );
 
-    // =====================================================
-    // INVALID QR
-    // =====================================================
 
-alert(
-    "COMPARE:\n[" +
-    scannedVenueSecret +
-    "]\nvs\n[" +
-    officialVenueSecret +
-    "]"
-);
-
-
-
-    
-    if (
-        scannedVenueSecret !==
-        officialVenueSecret
-    )
-    
+        
     // =====================================================
 // EXTRACT VENUE SECRET FROM URL QR
 // =====================================================
@@ -1011,11 +993,62 @@ alert(
     "AFTER EXTRACTION = " +
     scannedVenueSecret
 );
-
-
         
     }
 }
+
+
+
+
+
+
+
+
+
+
+    
+    // =====================================================
+    // INVALID QR
+    // =====================================================
+
+alert(
+    "COMPARE:\n[" +
+    scannedVenueSecret +
+    "]\nvs\n[" +
+    officialVenueSecret +
+    "]"
+);
+
+
+
+    
+    if (
+        scannedVenueSecret !==
+        officialVenueSecret
+    )
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
     
     
     
