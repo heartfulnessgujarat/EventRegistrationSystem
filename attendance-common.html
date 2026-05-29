@@ -460,10 +460,6 @@ if (now > attendanceEnd) {
     return;
 }
 
-
-
-
-        
 statusDiv.innerHTML =
 
 `
@@ -481,6 +477,29 @@ statusDiv.innerHTML =
 
 <br><br>
 
+<div
+id="reader"
+style="
+width:100%;
+max-width:350px;
+margin:auto;
+margin-bottom:20px;
+"
+></div>
+
+<button
+onclick="startCameraScanner()"
+style="
+padding:12px 20px;
+font-size:16px;
+margin-bottom:15px;
+cursor:pointer;
+"
+>
+Scan Venue QR
+</button>
+
+<br><br>
 
 <input
     type="text"
@@ -513,14 +532,10 @@ statusDiv.innerHTML =
 >
     Validate Venue QR
 </button>
-
-
-
-
 `;
 
-        
-        
+
+                
 // =====================================================
 // TEMPORARILY REMOVED
 // WAITING FOR VENUE QR VALIDATION
@@ -732,17 +747,6 @@ cursor:pointer;
 Scan Venue QR </button>
 
 <br><br>
-
-
-
-
-
-
-
-
-
-
-
 
 <input
     type="text"
@@ -969,12 +973,7 @@ db.ref(
         return;
     }
 
-
-    
-
-
-
-    
+  
 
 db.ref(
 
@@ -999,9 +998,7 @@ db.ref(
         new Date().toISOString()
 });
         
-
-
-    
+   
     statusDiv.innerHTML =
 
 `
@@ -1027,17 +1024,7 @@ db.ref(
     </div>
     `;
 });
-
-
-    
-
-
-
-
-
-
-
-    
+     
 }
 
         
