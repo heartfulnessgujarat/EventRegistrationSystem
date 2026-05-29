@@ -54,28 +54,8 @@ body{
 
 <div class="card">
 
-
-<div id="status">
-
-    <div class="small">
-        Ready to verify your attendance
-    </div>
-
-    <br><br>
-
-    <button
-        onclick="startVenueScan()"
-        style="
-            padding:12px 20px;
-            font-size:16px;
-            cursor:pointer;
-        "
-    >
-        Start Attendance Verification
-    </button>
-
-</div>
-    
+<div id="status"></div>
+        
     <div
     id="fallbackBox"
     style="
@@ -978,7 +958,8 @@ db.ref(
     marked_at:
         new Date().toISOString()
 });
-        
+
+    
    
     statusDiv.innerHTML =
 
@@ -1004,6 +985,11 @@ db.ref(
         Venue Validation Failed
     </div>
     `;
+
+
+
+
+    
 });
      
 }
