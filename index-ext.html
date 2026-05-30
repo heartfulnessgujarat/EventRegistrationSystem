@@ -3138,21 +3138,25 @@ if (originalData) {
     container.innerHTML = ""; 
     actionBtn.disabled = true;
 
-    const sectionObj = moreSections.find(s => s.section_number === targetSectionNumber);
+    const sectionFields =
+    fieldRules.filter(
+        r => r.section_number === targetSectionNumber
+    );
     
-    if (sectionObj) {
-        titleHeader.innerText = sectionObj.section_name || "Details";
+    if (sectionFields.length > 0) {
+       titleHeader.innerText =
+    targetSectionNumber || "Details";
 
-        const systemKeys = ['section_name', 'section_number', 'section_id', 'id'];
-        const fieldKeys = Object.keys(sectionObj).filter(key => 
-            !systemKeys.includes(key) && sectionObj[key] && typeof sectionObj[key] === 'string'
-        ).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
-        
-        for (const key of fieldKeys) {
-            const fieldId = sectionObj[key];
-            const rule = fieldRules.find(r => r.field_id === fieldId);
-            
-            if (rule) {
+const sectionRules = sectionFields;
+
+for (const rule of sectionRules) {
+
+    const fieldId = rule.field_id;
+
+    if (fieldId) {
+
+
+      
                 const fieldWrapper = document.createElement('div');
                 fieldWrapper.className = 'form-group';
                 fieldWrapper.id = `wrapper_extra_${fieldId}`; 
