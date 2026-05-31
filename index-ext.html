@@ -282,7 +282,7 @@ function formatFirebaseDate(fbDate) {
   let mersTempData = {};
 
   
-  let fieldRules = [], masterData = [], eventConfig = {}, moreSections = [];
+  let fieldRules = [], masterData = [], eventConfig = {}, moreSections = [], let sectionList = [];
 
 function classifyStayOption(stayLabel) {
 
@@ -606,6 +606,33 @@ console.log("%c MERS PING 1: Init sequence started. CurrentSection is: " + (type
           
             const allRules = rulesSnap.val() || {};
             fieldRules = Object.values(allRules).filter(r => String(r.event_id).toUpperCase() === eventId);
+
+          sectionList = [];
+
+fieldRules.forEach(rule => {
+
+    const sec =
+        String(
+            rule.section_number || ""
+        ).trim();
+
+    if (
+        sec &&
+        !sectionList.includes(sec)
+    ) {
+
+        sectionList.push(sec);
+
+    }
+
+});
+
+console.log(
+    "MERS SECTION LIST:",
+    sectionList
+);
+
+         
             console.log("MERS: Field Rules Loaded:", fieldRules.length);
         } catch (ruleErr) {
             console.error("MERS: Field Rules fetch error:", ruleErr);
