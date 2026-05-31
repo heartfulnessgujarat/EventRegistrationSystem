@@ -150,6 +150,16 @@
 
     
 <div id="Section1">
+
+
+  <h3 id="title-Section1"
+    style="
+      color:#1a237e;
+      text-align:center;
+      font-size:18px;
+      margin-bottom:15px;
+    ">
+</h3>
     
     <div id="dynamic-fields"></div>
 
@@ -694,6 +704,34 @@ console.log(
 
   
   function renderForm() {
+
+    const section1Rule =
+    fieldRules.find(
+        r => String(
+            r.section_number || ""
+        ).trim() === "Section1"
+    );
+
+const titleElement =
+    document.getElementById(
+        "title-Section1"
+    );
+
+if (
+    titleElement &&
+    section1Rule
+) {
+
+    titleElement.innerText =
+        section1Rule.section_name ||
+        "Details";
+}
+
+
+
+
+
+    
   const container = document.getElementById('dynamic-fields');
   container.innerHTML = '';
   
