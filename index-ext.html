@@ -3278,7 +3278,20 @@ function processFinalDeletion(regId, eventId, gender) {
 }
 
 
+  async function renderSectionFields(
+    targetSectionNumber,
+    container,
+    titleHeader
+) {
 
+    console.log(
+        "MERS RENDERER:",
+        targetSectionNumber
+    );
+
+}
+
+     
 
   async function buildExtraSections(targetSectionNumber) {
 
@@ -3312,6 +3325,10 @@ if (originalData) {
     );
     
  if (sectionFields.length > 0) {
+
+   console.log(
+    "MERS: OLD RENDER PATH"
+);
 
    const sectionRules = sectionFields;
 
