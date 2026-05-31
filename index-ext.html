@@ -3152,11 +3152,6 @@ function processFinalDeletion(regId, eventId, gender) {
 
   async function buildExtraSections(targetSectionNumber) {
 
-console.log(
-    sectionRules[0]
-);
-
-
     
     if (!targetSectionNumber) targetSectionNumber = "Section2";
 
@@ -3191,6 +3186,18 @@ if (originalData) {
     targetSectionNumber || "Details";
 
 const sectionRules = sectionFields;
+
+
+console.log(
+    sectionRules[0]
+);
+
+
+
+
+
+
+      
 
 for (const rule of sectionRules) {
 
