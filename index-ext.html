@@ -3319,6 +3319,19 @@ if (originalData) {
     container.innerHTML = ""; 
     actionBtn.disabled = true;
 
+
+
+
+
+
+
+
+
+
+    
+
+
+    
     const sectionFields =
     fieldRules.filter(
         r => r.section_number === targetSectionNumber
@@ -3342,9 +3355,6 @@ console.log(
     sectionRules[0]
 );
 
-
-
-      
 
 for (const rule of sectionRules) {
 
@@ -3420,11 +3430,6 @@ if (fieldId === 'stay_option') {
     choices = filterStayChoices(choices);
 
 }
-
-
-
-
-
                               
 
                                 // --- MERS: ROOM FILTERING LOGIC ---
@@ -3461,8 +3466,15 @@ if (fieldId === 'stay_option') {
 
                 fieldWrapper.appendChild(input);
                 container.appendChild(fieldWrapper);
+
+    
             }
         }
+
+console.log(
+    "MERS: RENDER BLOCK COMPLETE"
+);
+   
 
         actionBtn.onclick = function() {
             // THE "FINAL SYNC" LOCK
