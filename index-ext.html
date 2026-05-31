@@ -726,16 +726,24 @@ if (
         section1Rule.section_name ||
         "Details";
 }
-
-
-
-
-
     
   const container = document.getElementById('dynamic-fields');
   container.innerHTML = '';
   
   fieldRules.forEach(r => {
+
+    if (r.field_id === 'past_participant') {
+
+    console.log(
+        'PAST PARTICIPANT RULE',
+        r
+    );
+
+}
+
+
+
+    
     
     // --- MERS SURGERY START: Bulletproof Section Filter ---
     // 1. Convert the section value to a clean string
