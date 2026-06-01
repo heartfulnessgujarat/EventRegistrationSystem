@@ -716,7 +716,12 @@ if (
     
   const container = document.getElementById('dynamic-fields');
   container.innerHTML = '';
-  
+
+console.log(
+    "SECTION1 LEGACY RENDERER ACTIVE"
+);
+
+    
   fieldRules.forEach(r => {
 
     if (r.field_id === 'past_participant') {
@@ -3289,8 +3294,6 @@ function processFinalDeletion(regId, eventId, gender) {
         targetSectionNumber
     );
 
-
-
     
     const sectionFields =
     fieldRules.filter(
@@ -3300,7 +3303,7 @@ function processFinalDeletion(regId, eventId, gender) {
  if (sectionFields.length > 0) {
 
    console.log(
-     "MERS: UNIVERSAL RENDERER ACTIVE"
+     "MERS UNIVERSAL RENDERER:"
 );
 
    const sectionRules = sectionFields;
@@ -3315,15 +3318,12 @@ console.log(
     sectionRules[0]
 );
 
-
 for (const rule of sectionRules) {
 
     const fieldId = rule.field_id;
 
     if (fieldId) {
 
-
-      
                 const fieldWrapper = document.createElement('div');
                 fieldWrapper.className = 'form-group';
                 fieldWrapper.id = `wrapper_extra_${fieldId}`; 
