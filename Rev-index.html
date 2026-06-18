@@ -1,1 +1,4700 @@
-fdfd
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Event Registration 2026</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+
+  <!-- Path Selection Logic: Redirects Delete Mode to index-del.html -->
+
+<script>
+
+(async function() {
+
+  const urlParams =
+    new URLSearchParams(
+      window.location.search
+    );
+
+  const mode =
+    urlParams.get('mode');
+
+  const eventId =
+    urlParams.get('id');
+
+  const regId =
+    urlParams.get('regId');
+
+  // ==================================================
+  // DELETE MODE
+  // ==================================================
+
+  if (
+    mode === 'delete' &&
+    regId
+  ) {
+
+    console.log(
+      "Redirecting to Delete Path..."
+    );
+
+    window.location.href =
+      `index-del.html?id=${eventId}&regId=${regId}`;
+
+    return;
+
+  }
+
+  // ==================================================
+  // FETCH EVENT TYPE
+  // ==================================================
+
+  try {
+
+    const response =
+      await fetch(
+
+        `https://ferrari-reg-2026-default-rtdb.asia-southeast1.firebasedatabase.app/config/eventConfig/${eventId}/event_type.json`
+
+      );
+
+    const eventType =
+      await response.json();
+
+    console.log(
+      "Event Type:",
+      eventType
+    );
+
+    // ================================================
+    // EXTERNAL EVENT
+    // ================================================
+
+    if (eventType === "EXTERNAL") {
+
+      console.log(
+        "Redirecting to External Flow..."
+      );
+
+      window.location.href =
+        `index-ext.html?id=${eventId}`;
+
+      return;
+
+    }
+
+    // ================================================
+    // INTERNAL EVENT
+    // ================================================
+
+    console.log(
+      "Standard Registration Flow Active"
+    );
+
+  }
+
+  catch (err) {
+
+    console.error(
+      "Event Type Fetch Error:",
+      err
+    );
+
+  }
+
+})();
+</script>
+
+
+
+
+  
+
+
+
+
+
+
+
+  
+  
+  
+<style>
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 20px; margin: 0; }
+    
+    /* COMPACT MAIN CARD */
+    .card { 
+        width: 100%; 
+        max-width: 480px; 
+        background: white; 
+        padding: 0 0 30px 0; /* Flush top for the header image */
+        border-radius: 15px; 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
+        overflow: hidden; 
+    }
+
+    /* NEW: HEADER IMAGE CONTAINER */
+
+  .header-image-container {
+    width: 100%;
+    /* Removed max-height to let the image show fully */
+    overflow: hidden;
+    display: none; /* Stays hidden until Firebase data arrives */
+    border-bottom: 3px solid #1a237e;
+    background-color: #f5f5f5; /* Light grey while loading */
+}
+  
+      #event-header-img { width: 100%; height: 180px; object-fit: cover; display: block; }
+
+    /* FORM CONTENT PADDING */
+    #form-content { padding: 20px 30px; }
+
+    h2 { color: #1a237e; margin: 10px 0 5px 0; text-align: center; font-size: 22px; }
+    .subtitle { color: #666; font-size: 13px; text-align: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+    
+    /* COMPACT FIELDS: Reduced margins to solve the scroll issue */
+    .field-container { margin-bottom: 12px; position: relative; } 
+    .label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    label { font-weight: 700; font-size: 12px; color: #1a237e; }
+    .edit-link { font-size: 11px; color: #1a237e; cursor: pointer; font-weight: bold; text-decoration: underline; display: none; }
+    
+    input { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
+    input:disabled { background: #f8f9fa; color: #6c757d; }
+
+    .help-text { font-size: 10.5px; color: #5c6bc0; margin-top: 2px; font-style: italic; display: none; font-weight: 500; }
+    .error-msg-text { color: #d32f2f; font-size: 11px; margin-top: 3px; font-weight: bold; display: none; }
+
+    /* BUTTONS */
+    .primary-btn { width: 100%; padding: 14px; background: #1a237e; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 15px; }
+    .primary-btn:disabled { opacity: 0.5; background: #999; }
+
+    /* DROPDOWN & VERIFY PANELS */
+    .dropdown { border: 1px solid #ddd; max-height: 180px; overflow-y: auto; background: white; position: absolute; width: 100%; z-index: 9999; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 8px; }
+    .item { padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f1f1f1; font-size: 14px; }
+    .item:hover { background: #e8eaf6; }
+
+    .verify-panel { background: #fffde7; border: 1px solid #fbc02d; padding: 10px; border-radius: 8px; margin-top: 10px; display: none; }
+    .verify-btn { background: #fbc02d; color: #333; border: none; padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 12px; width: 100%; margin-bottom: 10px; }
+
+    /* COMPACT SUCCESS SCREEN CARD */
+    #success-screen { 
+        display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+        background: #f0f2f5; z-index: 9999; overflow-y: auto; padding: 20px; box-sizing: border-box; 
+    }
+    .thank-you-card { 
+        max-width: 550px; margin: 20px auto; background: #ffffff; padding: 30px; 
+        border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); border: 1px solid #e0e0e0; 
+    }
+    .thank-you-card img { max-width: 100% !important; height: auto !important; display: block; margin: 20px auto; border-radius: 10px; }
+
+    #processing-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 10000; text-align: center; padding-top: 25vh; }
+    .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #1a237e; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+#mers-diag-box {
+    background: #fff9c4;
+    border: 2px solid #fbc02d;
+    padding: 10px;
+    margin-bottom: 20px;
+    font-family: monospace;
+    font-size: 12px;
+    color: #333;
+    display: none; /* We will show it only in Section 2 */
+}
+
+
+
+
+  
+</style>  
+
+  
+</head>
+  
+<body>
+
+<div class="card" id="app">
+  
+
+  <div id="loading-init"><h2>Loading registration form...</h2></div>
+
+
+  <div id="form-content" style="display:none;">
+    <div id="header-img-cont" class="header-image-container">
+        <img id="event-header-img" src="" alt="Event Banner">
+    </div>
+    
+    <h2 id="title"></h2>
+
+  
+        <p class="subtitle" id="subtitle"></p>
+
+
+
+
+    
+<div id="Section1">
+    
+    <div id="dynamic-fields"></div>
+
+    
+    
+  
+  
+<div id="btns-start" style="display:none; flex-direction:column; gap:10px; padding: 20px;">
+        <button id="btn-register" class="primary-btn" disabled onclick="proceedToLogistics()">DETAILS ARE OKAY, CLICK HERE TO PROCEED FURTHER</button>
+        
+        <button class="primary-btn" style="background:#455a64;" onclick="enableEditMode()">I WANT TO EDIT DETAILS</button>
+    </div>
+
+    <button id="btn-master-update" class="primary-btn" style="display:none; margin: 0 20px 20px 20px;" disabled onclick="proceedToLogistics()">I HAVE UPDATED DETAILS, CLICK HERE TO PROCEED FURTHER</button>
+
+
+
+  
+  </div>
+
+  <div id="Section2" style="display: none; padding: 0 20px 20px 20px;">
+
+<div id="mers-diag-box" style="background: #fff9c4; border: 2px solid #fbc02d; padding: 10px; margin-bottom: 20px; font-family: monospace; font-size: 12px; color: #333;">
+    <strong>DIAGNOSTIC TOOL:</strong><br>
+    FIREBASE START: <span id="diag-fb-start">?</span><br>
+    FIREBASE END: <span id="diag-fb-end">?</span><br>
+    <hr style="border: 0; border-top: 1px solid #fbc02d;">
+    USER ARRI DATE: <span id="diag-u-arr">?</span><br>
+    USER DEPT DATE: <span id="diag-u-dep">?</span>
+</div>
+
+
+
+
+    
+    <h3 id="title-Section2" style="color: #1a237e; text-align: center; font-size: 18px; margin-bottom: 15px;"></h3>
+    
+    <div id="dynamic-sections-content"></div>
+
+    <div id="btns-section2" style="margin-top: 20px; display: flex; gap: 10px;">
+
+  
+
+    <div id="btns-section2" style="margin-top: 20px; display: flex; gap: 10px;">
+        <button id="btn-back-to-profile" class="primary-btn" style="flex: 1; background: #6c757d; margin-top:0;">
+            BACK
+        </button>
+
+<button id="btn-next-action" class="primary-btn" style="flex: 2; margin-top:0;" onclick="handleSectionNavigation()">
+    PROCEED
+</button>
+      
+      
+    </div>
+</div>  
+
+
+
+    
+<div id="extra-sections-container" style="display: none; padding: 0 20px 20px 20px;">
+
+ 
+    <div id="dynamic-sections-content">
+        </div>
+    
+    <div style="margin-top: 20px; display: flex; gap: 10px;">
+
+     
+        <button id="btn-back-to-profile" class="btn btn-secondary" style="flex: 1; background: #6c757d;">Back</button>
+        <button id="btn-final-submit" class="btn" style="flex: 2;">Confirm All & Register</button>
+    </div>
+</div>
+
+    </div> <!-- CLOSE SECTION2 -->
+<div id="success-screen">
+
+     <div id="success-content" class="thank-you-card"></div>
+</div>
+  
+    
+<div id="processing-overlay">
+    <div class="spinner"></div>
+    <h2 style="font-family: sans-serif; color: #1a237e;">Processing your registration...</h2>
+    <p style="color: #666;">Kindly do not close this window.</p>
+</div>
+
+<script>
+
+  function getDisplayValue(fieldId, value) {
+
+  // ============================================
+  // MASK EMAIL
+  // ============================================
+
+  if (
+    fieldId === 'email' &&
+    value
+  ) {
+
+    const parts = value.split('@');
+
+    if (parts.length === 2) {
+
+      const name =
+        parts[0];
+
+      const domain =
+        parts[1];
+
+      return (
+        name.substring(0, 3) +
+        '*****@' +
+        domain
+      );
+    }
+  }
+
+  // ============================================
+  // MASK MOBILE
+  // ============================================
+
+  if (
+    fieldId === 'mobile' &&
+    value
+  ) {
+
+    return (
+      value.substring(0, 2) +
+      'XXXXXX' +
+      value.substring(value.length - 2)
+    );
+  }
+
+  return value || "";
+}
+
+
+
+
+
+
+  
+function formatFirebaseDate(fbDate) {
+    if (!fbDate) return "";
+    try {
+        // This handles "1-Mar-2026" by splitting at the dashes
+        const parts = fbDate.split('-');
+        if (parts.length !== 3) return "";
+        
+        const day = parts[0].padStart(2, '0');
+        const monthStr = parts[1];
+        const year = parts[2];
+        
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const monthIndex = months.indexOf(monthStr);
+        if (monthIndex === -1) return "";
+        
+        const month = String(monthIndex + 1).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    } catch (e) {
+        console.error("Date Translation Error:", e);
+        return "";
+    }
+}
+
+
+  let verificationAttempts = { email: 0, mobile: 0 };
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzDlkvfWJGTJC36MkEEfRyTCDdMjj0s1z-GcSS3deMdfrDlyN96Qml6OuSO6cfFPQcyEQ/exec";
+
+
+                   // https://script.google.com/macros/s/AKfycbzDlkvfWJGTJC36MkEEfRyTCDdMjj0s1z-GcSS3deMdfrDlyN96Qml6OuSO6cfFPQcyEQ/exec
+
+  const firebaseConfig = { databaseURL: "https://ferrari-reg-2026-default-rtdb.asia-southeast1.firebasedatabase.app" };
+  
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  const eventId = (new URLSearchParams(window.location.search).get('id') || 'EVT001').toUpperCase();
+  
+  let mersTempData = {};
+
+  
+  let fieldRules = [], masterData = [], eventConfig = {}, moreSections = [];
+
+function classifyStayOption(stayLabel) {
+
+    const value =
+        (stayLabel || "")
+        .toLowerCase()
+        .trim();
+
+    // =====================================================
+    // DETECT TYPE
+    // =====================================================
+
+    let type = null;
+
+    if (value.includes("room")) {
+        type = "room";
+    }
+
+    if (
+        value.includes("dorm") ||
+        value.includes("dormitory")
+    ) {
+        type = "dorm";
+    }
+
+    // =====================================================
+    // DETECT WAITLIST
+    // =====================================================
+
+    const isWaitlist =
+        value.includes("waiting");
+
+    // =====================================================
+    // RETURN
+    // =====================================================
+
+    return {
+        type,
+        isWaitlist
+    };
+}
+
+
+
+
+
+
+
+
+  
+let profileSnapshotForScript = ""; // <--- ADD THIS LINE
+
+window.accommodationEditUnlocked = false;
+
+function showValidationPopup(message, type = "date") {
+
+    const existing =
+        document.getElementById("validationPopupOverlay");
+
+    if (!existing) return;
+
+    const icon =
+        document.getElementById("validationPopupIcon");
+
+    const title =
+        document.getElementById("validationPopupTitle");
+
+    const content =
+        document.getElementById("validationPopupMessage");
+
+    const btn =
+        document.getElementById("validationPopupBtn");
+
+    if (type === "date") {
+
+        icon.innerHTML = "📅";
+
+        title.innerText = "Invalid Date";
+
+        title.style.color = "#c62828";
+
+        btn.style.background = "#c62828";
+    }
+
+    else {
+
+        icon.innerHTML = "🕒";
+
+        title.innerText = "Invalid Time";
+
+        title.style.color = "#1565c0";
+
+        btn.style.background = "#1565c0";
+    }
+
+    content.innerHTML = "❌ " + message;
+
+    existing.style.display = "flex";
+
+    btn.onclick = function () {
+
+        existing.style.display = "none";
+    };
+}
+
+// =====================================================
+// MERS CUSTOM WARNING POPUP
+// =====================================================
+
+const mersPopup = document.createElement("div");
+
+mersPopup.id = "mersCustomPopup";
+
+mersPopup.innerHTML = `
+
+<div id="mersPopupOverlay" style="
+position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background: rgba(0,0,0,0.45);
+display: none;
+justify-content: center;
+
+align-items: flex-start;
+padding-top: 500px;
+
+z-index: 99999;
+">
+
+  <div style="
+  background: white;
+  width: 90%;
+  max-width: 500px;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+  font-family: Arial, sans-serif;
+  ">
+
+    <div style="
+    font-size: 20px;
+    font-weight: bold;
+    color: #d32f2f;
+    margin-bottom: 15px;
+    ">
+      Accommodation Edit Warning
+    </div>
+
+    <div id="mersPopupContent" style="
+    line-height: 1.7;
+    color: #333;
+    font-size: 15px;
+    ">
+    </div>
+
+    <div style="
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 25px;
+    ">
+
+      <button id="mersPopupCancel" style="
+      background: #9e9e9e;
+      color: white;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 6px;
+      cursor: pointer;
+      ">
+        Cancel
+      </button>
+
+      <button id="mersPopupProceed" style="
+      background: #ef6c00;
+      color: white;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 6px;
+      cursor: pointer;
+      ">
+        Proceed
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+`;
+
+document.body.appendChild(mersPopup);
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  let originalData = {}; 
+  let verificationStates = { email: false, mobile: false };
+  window.accommodationEditUnlocked
+
+/** --- START: GATEKEEPER HELPER FUNCTIONS --- **/
+function getISTDate() {
+  const now = new Date();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + istOffset);
+  istTime.setHours(0, 0, 0, 0); 
+  return istTime;
+}
+
+function parseCustomDate(dateStr) {
+  if (!dateStr || typeof dateStr !== 'string' || dateStr.trim() === "") return null;
+  const months = {
+    "Jan": 0, "Feb": 1, "Mar": 2, "Apr": 3, "May": 4, "Jun": 5,
+    "Jul": 6, "Aug": 7, "Sep": 8, "Oct": 9, "Nov": 10, "Dec": 11
+  };
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return null;
+  const day = parseInt(parts[0], 10);
+  const month = months[parts[1]];
+  const year = parseInt(parts[2], 10);
+  if (isNaN(day) || month === undefined || isNaN(year)) return null;
+  return new Date(year, month, day);
+}
+
+function blockUIWithNotice(message) {
+  document.body.innerHTML = `
+    <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f8f9fa; font-family: sans-serif;">
+      <div style="text-align: center; padding: 40px; border-radius: 12px; background: white; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 90%;">
+        <div style="font-size: 50px; margin-bottom: 20px;">🗓️</div>
+        <h2 style="color: #333; margin-bottom: 15px;">Registration Notice</h2>
+        <p style="font-size: 18px; color: #555; line-height: 1.5;">${message}</p>
+      </div>
+    </div>`;
+  throw new Error("Registration Locked: " + message);
+}
+/** --- END: GATEKEEPER HELPER FUNCTIONS --- **/
+
+
+
+  
+  async function init() {
+
+console.log("%c MERS PING 1: Init sequence started. CurrentSection is: " + (typeof currentSection !== 'undefined' ? currentSection : 'UNDEFINED'), "color: orange;");
+
+    
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const mode = (urlParams.get('mode') || 'new').toLowerCase();
+        const regId = urlParams.get('regId');
+
+        // 1. Fetch Config from Firebase
+        const configSnap = await db.ref('config/eventConfig').once('value');
+        const allConfigs = configSnap.val() || {};
+        eventConfig = allConfigs[eventId];
+        
+        if (!eventConfig) {
+            document.getElementById('loading-init').innerHTML = "<h2>Event Not Found</h2>";
+            return;
+        }
+
+        // 2. DATE CHECK (Gatekeeper Tier 1)
+        const today = getISTDate();
+        const startDate = parseCustomDate(eventConfig.reg_start_date);
+        const endDate = parseCustomDate(eventConfig.reg_end_date);
+
+        if (startDate && endDate) {
+            if (today < startDate || today > endDate) {
+                blockUIWithNotice(eventConfig.reg_close_msg || "Registration is currently closed.");
+                return; 
+            }
+        }
+
+// 3. CAPACITY CHECK (Gatekeeper Tier 2 - Now using Active Seats)
+        if (mode === 'new') {
+            // We now point to 'active_seats' instead of 'counters' 
+            // to allow people to fill seats released by cancellations.
+            const seatSnap = await db.ref('active_seats/' + eventId).once('value');
+            const currentOccupancy = Number(seatSnap.val() || 0); 
+            const maxCapacity = Number(eventConfig.hall_capacity || 0);
+
+            console.log(`[CAPACITY CHECK] Occupancy: ${currentOccupancy} / Max: ${maxCapacity}`);
+
+            if (maxCapacity > 0 && currentOccupancy >= maxCapacity) {
+                blockUIWithNotice(eventConfig.hall_capacity_full_msg || "Hall Capacity is full.");
+                return; 
+            }
+        }
+
+
+
+      
+        // 4. LOAD UI COMPONENTS
+        const [thankSnap, bannerSnap] = await Promise.all([
+            db.ref('htmlStorage/' + eventId + '/thank').once('value'),
+            db.ref('htmlStorage/' + eventId + '/banner').once('value')
+        ]);
+
+        eventConfig.final_html = thankSnap.val() || "<h2>Registration Successful!</h2>";
+        const bannerHtml = bannerSnap.val(); 
+
+        document.getElementById('title').innerHTML = eventConfig.title || "Registration";
+
+        const container = document.getElementById('header-img-cont');
+        if (bannerHtml && container) {
+            container.innerHTML = bannerHtml;
+            container.style.display = 'block';
+        } else if (container) {
+            container.style.display = 'none';
+        }
+      
+        document.getElementById('subtitle').innerHTML = eventConfig.subtitle || "";
+        
+        // --- MERS: DATA BRIDGE ---
+        
+        // 1. Load Field Rules (Filtering for this specific Event ID)
+        try {
+            const rulesSnap = await db.ref('config/fieldRules').once('value');
+            const allRules = rulesSnap.val() || {};
+            fieldRules = Object.values(allRules).filter(r => String(r.event_id).toUpperCase() === eventId);
+            console.log("MERS: Field Rules Loaded:", fieldRules.length);
+        } catch (ruleErr) {
+            console.error("MERS: Field Rules fetch error:", ruleErr);
+            fieldRules = [];
+        }
+
+        // 2. Load More Sections (Correcting path to camelCase 'moreSections')
+        try {
+            const sectionsSnap = await db.ref('config/moreSections').once('value');
+            if (sectionsSnap.exists()) {
+                const allSections = sectionsSnap.val() || {};
+                moreSections = Object.values(allSections);
+                console.log("MERS: moreSections Loaded from Firebase:", moreSections.length);
+            } else {
+                console.warn("MERS: No data found at 'config/moreSections'.");
+                moreSections = [];
+            }
+        } catch (secErr) {
+            console.error("MERS: moreSections fetch error:", secErr);
+            moreSections = [];
+        }
+
+        // --- END MERS DATA BRIDGE ---
+        
+        // --- ROUTING LOGIC ---
+        if (mode === 'edit' || mode === 'delete') {
+            if (regId) {
+                loadExistingData(regId, mode); 
+            } else {
+                alert("Invalid Link: Registration ID missing.");
+                location.href = window.location.pathname + "?id=" + eventId;
+            }
+        } else {
+            // Normal New Registration
+            renderForm();
+            document.getElementById('loading-init').style.display = 'none';
+            document.getElementById('form-content').style.display = 'block';
+        }
+        
+    } catch (e) { 
+        console.error("Initialization Error:", e);
+        document.getElementById('loading-init').innerHTML = "<h2>Error loading form. Please refresh.</h2>";
+    }
+
+  //  if (section2) {
+   //     section2.prepend(diag);
+  //  }
+    
+}
+
+  
+  function renderForm() {
+  const container = document.getElementById('dynamic-fields');
+  container.innerHTML = '';
+  
+  fieldRules.forEach(r => {
+    
+    // --- MERS SURGERY START: Bulletproof Section Filter ---
+    // 1. Convert the section value to a clean string
+    const secValue = r.section_number ? String(r.section_number).trim() : "";
+    
+    // 2. LOGIC: If a field is NOT explicitly Section1, skip it.
+    // This will catch "Section2", "Section3", and even blank values.
+    if (secValue !== "Section1") {
+      return; 
+    }
+    // --- MERS SURGERY END ---
+
+    const div = document.createElement('div');
+    div.className = 'field-container';
+    div.id = `cont-${r.field_id}`;
+    div.style.display = (r.initial_state === 'Hidden') ? 'none' : 'block';
+    const needsEditLink = ['Editable', 'Editable_Verify', 'Editable_Lookup'].includes(r.edit_behavior);
+    
+    div.innerHTML = `
+      <div class="label-row">
+        <label>${r.display_label || r.field_id}</label>
+        ${needsEditLink ? `<span class="edit-link" id="edit-link-${r.field_id}" style="display:none;" onclick="unlockField('${r.field_id}')">Edit</span>` : ''}
+      </div>
+      <input type="text" id="inp-${r.field_id}" oninput="onInputChange('${r.field_id}', this.value)" disabled autocomplete="off">
+      <div class="help-text" id="help-${r.field_id}">${r.field_help_text || ''}</div>
+      <div class="error-msg-text" id="err-${r.field_id}"></div>
+      <div class="dropdown" id="res-${r.field_id}"></div>
+      <div id="vmsg-${r.field_id}" style="font-size:13px; margin-top:5px; font-weight:bold; display:none;"></div>
+      ${(r.field_id === 'email' || r.field_id === 'mobile') ? `
+        <div class="verify-panel" id="panel-${r.field_id}">
+          
+          ${r.field_id === 'email' ? `
+            <button type="button" class="verify-btn" id="vcheck-email" 
+              style="background:#455a64; color:white; margin-bottom:10px;" 
+              onclick="manualFormatCheck()">Check Email Format</button>
+          ` : ''}
+
+          <button class="verify-btn" id="vbtn-${r.field_id}" 
+            style="display: ${r.field_id === 'email' ? 'none' : 'block'};" 
+            onclick="sendCode('${r.field_id}')"></button>
+          
+          <div id="box-${r.field_id}" style="display:none;">
+            <input type="text" placeholder="Enter 6-digit code" id="code-${r.field_id}" oninput="verifyCodeInput('${r.field_id}', this.value)">
+            <div id="resend-container-${r.field_id}" style="margin-top:8px;"></div>
+          </div>
+        </div>
+      ` : ''}
+    `;
+    container.appendChild(div);
+    if (r.field_id === 'full_name') {
+      div.style.display = 'block';
+      document.getElementById('inp-full_name').disabled = false;
+    }
+  });
+}
+
+
+ 
+  async function onInputChange(fId, val) {
+  if (fId === 'full_name' || fId === 'centre') handleSearch(fId, val);
+  checkAllValidations();
+}
+
+  
+function renderDropdown(div, list, type) {
+  div.innerHTML = '';
+  
+  if (list.length > 0) {
+    div.style.display = 'block';
+    
+    list.forEach(item => {
+      const d = document.createElement('div');
+      d.className = 'item'; 
+      
+      // 1. SURGICAL FIX: Display the correct text based on type
+      // If it's a 'loc' object, show the 'centre' property.
+      // If it's a name string, show the string.
+      const displayValue = (type === 'loc') ? (item.centre || item) : item;
+      d.textContent = displayValue; 
+      
+      d.onclick = () => {
+        if (type === 'loc') {
+          // 2. THE CHAIN REACTION: 
+          // We already have the full object (item) from handleSearch!
+          // No need to search masterData again. Just pass it directly.
+          selectLocation(item); 
+          
+        } else {
+          // This remains the same for the initial Name search
+          const person = masterData.find(x => {
+            const name = x.full_name || x['Full Name'] || "";
+            return String(name).trim() === item;
+          });
+          if (person) {
+            selectParticipant(person); 
+          }
+        }
+        div.style.display = 'none';
+      };
+      div.appendChild(d);
+    });
+  } else { 
+    div.style.display = 'none'; 
+  }
+}
+
+
+async function handleSearch(fId, val) {
+  const resDiv = document.getElementById(`res-${fId}`);
+  if (val.length < 3) { resDiv.style.display = 'none'; return; }
+  
+  const rule = fieldRules.find(r => r.field_id === fId);
+  const lookupTab = rule ? rule.lookup_tab : "Master_Internal_DB"; // Fallback to Master if rule is loading
+
+  /** * THE "SCENARIO B" FIX: 
+   * During an Email Edit, masterData.length is exactly 1 (the user's record).
+   * We force a fetch if we are searching a lookup field like 'centre'
+   * to ensure the system "wakes up" and sees the whole database.
+   */
+  if (lookupTab && (masterData.length <= 1 || fId === 'centre')) { 
+
+// OLD LINE: const snap = await db.ref(lookupTab).once('value');
+// NEW SURGICAL UPDATE:
+const snap = await db.ref('masters/' + lookupTab).once('value');
+    
+    
+    
+    const raw = snap.val() || {};
+    masterData = Array.isArray(raw) ? raw : Object.values(raw);
+  }
+
+  const searchVal = val.toLowerCase();
+
+  // --- FULL NAME SEARCH LOGIC ---
+  if (fId === 'full_name') {
+    const allMatches = masterData
+      .filter(x => {
+        const n = x.full_name || x['Full Name'] || "";
+        return String(n).toLowerCase().includes(searchVal);
+      })
+      .map(x => String(x.full_name || x['Full Name'] || "").trim());
+
+    const uniqueNames = [...new Set(allMatches)];
+    renderDropdown(resDiv, uniqueNames.slice(0, 8), 'name');
+
+  // --- CENTRE SEARCH LOGIC ---
+  } else if (fId === 'centre') {
+    const matchedObjects = masterData.filter(x => {
+      // Direct property access as per your verified column titles
+      const c = x.centre || x['Centre'] || ""; 
+      return String(c).toLowerCase().includes(searchVal);
+    });
+
+    // UNIQUE: Ensure cities like "Navsari" only appear once in the dropdown
+    const uniqueMap = new Map();
+    matchedObjects.forEach(item => {
+      const cityName = String(item.centre || item['Centre'] || "").trim();
+      if (cityName && !uniqueMap.has(cityName.toLowerCase())) {
+        uniqueMap.set(cityName.toLowerCase(), item);
+      }
+    });
+
+    const finalUniqueList = Array.from(uniqueMap.values());
+    renderDropdown(resDiv, finalUniqueList.slice(0, 8), 'loc');
+  }
+}
+
+
+
+function selectParticipant(p) {
+  // --- MERS CRITICAL UPDATE: LOCK NAME INTO MEMORY ---
+  // This ensures the "Blocked Package" data is saved even if the input is disabled.
+  if (typeof mersTempData !== 'undefined') {
+    mersTempData.full_name = p.full_name || p['Full Name'] || "";
+  }
+  // --------------------------------------------------
+
+  fieldRules.forEach(r => {
+    const el = document.getElementById(`inp-${r.field_id}`);
+    const cont = document.getElementById(`cont-${r.field_id}`);
+    const editLink = document.getElementById(`edit-link-${r.field_id}`);
+    
+    if (el) {
+      // Logic to fetch value from participant object p
+      const masterValue = p[r.field_id] || p[r.field_id.replace('_',' ')] || "";
+ //     el.value = masterValue;
+
+
+      el.value = masterValue;
+  
+  // ============================================
+  // MASK ONLY LOCKED DISPLAY
+  // ============================================
+  
+  if (
+      ['mobile', 'email']
+      .includes(r.field_id)
+  ) {
+  
+      el.dataset.originalValue =
+          masterValue;
+  
+      if (r.field_id === 'mobile') {
+  
+          el.value =
+              maskMobile(masterValue);
+        el.dataset.maskedValue =
+        el.value;
+      }
+
+
+
+
+
+    if (r.field_id === 'email') {
+
+    el.value =
+        maskEmail(masterValue);
+
+    el.dataset.maskedValue =
+        el.value;
+}
+
+
+
+
+
+
+
+    
+  }
+        
+        // Sync to originalData for change tracking
+        if (typeof originalData !== 'undefined') {
+          originalData[r.field_id] = masterValue;
+        }
+        
+        // UI: Handle Container Visibility (Section 1)
+        if (cont) {
+          cont.style.display = (r.initial_state === 'Hidden') ? 'none' : 'block';
+        }
+        
+        // UI: Block the field and hide the Edit link
+        el.disabled = true;
+        if (editLink) {
+          editLink.style.display = 'none';
+        }
+      }
+    });
+  
+    // UI: Reset search results and show navigation buttons
+    const resName = document.getElementById('res-full_name');
+    if (resName) resName.style.display = 'none';
+    
+    const btnsStart = document.getElementById('btns-start');
+    if (btnsStart) btnsStart.style.display = 'flex';
+    
+    // Ensure the primary ID field is explicitly disabled
+    const inpFullName = document.getElementById('inp-full_name');
+    if (inpFullName) inpFullName.disabled = true;
+    
+    // Trigger validation check to enable "DETAILS ARE OKAY"
+    if (typeof checkAllValidations === 'function') {
+      checkAllValidations();
+    }
+  }
+  
+  
+  
+  
+  function selectLocation(l) {
+    if (!l) return;
+  
+    // 1. Update the Centre field itself
+    const centreInp = document.getElementById('inp-centre');
+    if (centreInp) {
+      centreInp.value = l.centre || l.Centre || "";
+    }
+  
+    // 2. DYNAMIC VLOOKUP: Look at Field_Rules instead of a hard-coded list
+    // We find all fields that are set to 'Locked' and have a lookup_tab
+    const dependentFields = fieldRules.filter(r => r.edit_behavior === 'Locked');
+  
+    dependentFields.forEach(rule => {
+      const fId = rule.field_id;
+      const el = document.getElementById(`inp-${fId}`);
+      
+      if (el) {
+        // Get the value from the Master Database object (l) 
+        // using the field_id as the key (e.g., l['state'])
+        const newValue = l[fId] || l[fId.charAt(0).toUpperCase() + fId.slice(1)] || '';
+        el.value = newValue;
+      }
+    });
+  
+    // 3. UI Cleanup
+    const resDiv = document.getElementById('res-centre');
+    if (resDiv) resDiv.style.display = 'none';
+  
+    // 4. Final Validation
+    checkAllValidations();
+  }
+  
+  
+    
+  function enableEditMode() {
+      document.getElementById('btns-start').style.display = 'none';
+      document.getElementById('btn-master-update').style.display = 'block';
+      
+      fieldRules.forEach(r => {
+          const editLink = document.getElementById(`edit-link-${r.field_id}`);
+          const helpEl = document.getElementById(`help-${r.field_id}`);
+          const canBeEdited = ['Editable', 'Editable_Verify', 'Editable_Lookup'].includes(r.edit_behavior);
+          
+          // Only show the edit link if it's editable AND NOT the full_name field
+          if (editLink && canBeEdited && r.field_id !== 'full_name') {
+              editLink.style.display = 'inline';
+          }
+          
+          if (helpEl && helpEl.innerText.trim() !== "") {
+              helpEl.style.display = 'block';
+          }
+      });
+  }
+  
+  function unlockField(id) {
+    // 1. HARD GUARD: Never unlock the full_name
+    if (id === 'full_name') {
+      alert("Full Name is locked and cannot be changed.");
+      return; 
+    }
+  
+    const inp = document.getElementById(`inp-${id}`);
+  
+  
+  // ============================================
+  // RESTORE ORIGINAL VALUE BEFORE EDITING
+  // ============================================
+  
+  if (
+      inp &&
+      inp.dataset.originalValue
+  ) {
+  
+      inp.value =
+          inp.dataset.originalValue;
+  }
+  
+      
+    const editLink = document.getElementById(`edit-link-${id}`);
+    
+    // 2. Standard Unlock Logic
+    inp.disabled = false;
+    inp.focus();
+    if (editLink) editLink.style.display = 'none';
+  
+    // 3. CENTRE SEARCH FIX: Re-bind search logic AND refresh master list
+    if (id === 'centre') {
+      inp.setAttribute("oninput", "handleSearch('centre', this.value)");
+      masterData = []; // <--- THIS IS THE ONLY ADDITION: Forces a fresh fetch from Firebase
+    }
+  
+    // 4. Existing Email Verification Logic (Preserved)
+    if (id === 'email') {
+      const checkBtn = document.getElementById('vcheck-email');
+      if (checkBtn) checkBtn.style.display = 'block';
+      const vBtn = document.getElementById('vbtn-email');
+      if (vBtn) vBtn.style.display = 'none';
+      const msg = document.getElementById('vmsg-email');
+      if (msg) msg.style.display = 'none';
+    }
+  }
+   
+      
+ 
+  async function sendCode(type) {
+    
+      verificationAttempts[type] = 0;
+      const msg = document.getElementById(`vmsg-${type}`);
+      if (msg) msg.style.display = "none";
+      const targetEmail = (type === 'email') ? document.getElementById('inp-email').value : originalData['email'];
+      const btn = document.getElementById(`vbtn-${type}`);
+      btn.disabled = true;
+      btn.innerText = "Sending Code...";
+
+      
+     // fetch(`${SCRIPT_URL}?action=sendVerificationCode&email=${encodeURIComponent(targetEmail)}&eventId=${eventId}`, { mode: 'no-cors' });
+
+      // =====================================================
+// EMAIL VERIFICATION
+// =====================================================
+
+if (type === 'email') {
+
+  fetch(
+    `${SCRIPT_URL}?action=sendVerificationCode&email=${encodeURIComponent(targetEmail)}&eventId=${eventId}`,
+    { mode: 'no-cors' }
+  );
+
+}
+
+
+
+
+  // =====================================================
+// MOBILE VERIFICATION VIA WHATSAPP
+// =====================================================
+
+else if (type === 'mobile') {
+
+  const mobileInput =
+    document.getElementById('inp-mobile').value.trim();
+
+ // =====================================================
+// GENERATE VERIFICATION TICKET
+// =====================================================
+
+// event_code already loaded from Firebase/eventConfig
+const eventCode = eventConfig.event_code || "VC";
+
+// Generate random number between 1 and 99
+const randomNumber = Math.floor(Math.random() * 99) + 1;
+
+// Convert to 2-digit format
+const paddedNumber = String(randomNumber).padStart(2, "0");
+
+// Final ticket
+const verificationTicket = eventCode + paddedNumber;
+
+
+  console.log("Generated Ticket:", verificationTicket);
+
+  // =====================================================
+  // SAVE OTP IN FIREBASE
+  // =====================================================
+
+  await db.ref(
+    "verificationCodes/mobile_" + mobileInput
+  ).set({
+
+    verification_ticket:
+  verificationTicket,
+
+    timestamp:
+      new Date().getTime()
+
+  });
+
+  // =====================================================
+  // CALL APPS SCRIPT
+  // =====================================================
+  
+console.log(eventConfig);
+
+//  fetch(
+
+//   `${SCRIPT_URL}?action=sendWhatsAppOTP&mobile=${mobileInput}&ticket=${verificationTicket}&eventTitle=${eventConfig.event_code}`,
+//    {
+
+//      method: "GET",
+
+ //     mode: "no-cors"
+
+//    }
+
+//  );
+
+fetch(
+
+ `${SCRIPT_URL}?action=sendWhatsAppOTP&mobile=${mobileInput}&ticket=${verificationTicket}&eventTitle=${eventConfig.event_code}`,
+
+ {
+
+   method: "GET",
+
+   mode: "no-cors"
+
+ }
+
+);
+
+
+
+
+
+  
+
+}
+      
+      
+      setTimeout(() => {
+        document.getElementById(`panel-${type}`).style.backgroundColor = "#e3f2fd";
+        btn.style.display = "none";
+        document.getElementById(`box-${type}`).style.display = "block";
+        const codeInp = document.getElementById(`code-${type}`);
+        if (codeInp) { codeInp.value = ""; codeInp.disabled = false; }
+        startResendTimer(type);
+      }, 1500);
+    }
+  
+    function startResendTimer(type) {
+      const container = document.getElementById(`resend-container-${type}`);
+      let seconds = 30;
+      const interval = setInterval(() => {
+        seconds--;
+        if (seconds > 0) { container.innerHTML = `<span class="timer-text">Resend in ${seconds}s</span>`; } 
+        else { clearInterval(interval); container.innerHTML = `<span class="resend-link" onclick="resendCode('${type}')">Resend Code</span>`; }
+      }, 1000);
+    }
+  
+    function resendCode(type) {
+      document.getElementById(`box-${type}`).style.display = "none";
+      document.getElementById(`vbtn-${type}`).style.display = "block";
+      sendCode(type);
+    }
+  
+    async function verifyCodeInput(type, code) {
+      if (   (type === 'email' && code.trim().length === 6) ||   (type === 'mobile' && code.trim().length >= 4) ) {
+
+
+        
+      //  const emailKey = ((type === 'email') ? document.getElementById('inp-email').value : originalData['email']).replace(/[.#$[\]]/g, "_");
+   
+     //   const snap = await db.ref("verificationCodes/" + emailKey).once('value');
+
+
+
+
+        let verifyKey = "";
+
+if (type === 'email') {
+
+  verifyKey =
+    document.getElementById('inp-email')
+    .value
+    .replace(/[.#$[\]]/g, "_");
+
+}
+
+else if (type === 'mobile') {
+
+  verifyKey =
+    "mobile_" +
+    document.getElementById('inp-mobile')
+    .value
+    .trim();
+
+}
+
+const snap =
+  await db.ref("verificationCodes/" + verifyKey).once('value');
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+
+        
+        const data = snap.val();
+        const msg = document.getElementById(`vmsg-${type}`);
+        const panel = document.getElementById(`panel-${type}`);
+        const codeInp = document.getElementById(`code-${type}`);
+
+
+
+        
+     //   if (data && data.verification_ticket === code && (new Date().getTime() - data.timestamp < 300000)) {
+
+        let matched = false;
+
+// =====================================================
+// EMAIL VERIFICATION
+// =====================================================
+
+if (
+  type === 'email' &&
+  data &&
+  data.code === code
+) {
+
+  matched = true;
+}
+
+// =====================================================
+// MOBILE VERIFICATION
+// =====================================================
+
+if (
+  type === 'mobile' &&
+  data &&
+  data.verification_ticket === code
+) {
+
+  matched = true;
+}
+
+// =====================================================
+// FINAL VALIDATION
+// =====================================================
+
+if (
+  matched &&
+  (new Date().getTime() - data.timestamp < 300000)
+) {
+
+
+
+
+          
+          msg.innerText = "Verified ✅"; msg.style.color = "#2e7d32"; msg.style.display = "block";
+          if (panel) panel.style.display = "none";
+          document.getElementById(`inp-${type}`).disabled = true;
+          verificationStates[type] = true;
+          verificationAttempts[type] = 0;
+          checkAllValidations();
+        } else {
+          verificationAttempts[type]++;
+          if (verificationAttempts[type] >= 3) {
+            msg.innerText = "Too many failed attempts."; msg.style.color = "#d32f2f"; msg.style.display = "block";
+            codeInp.disabled = true; codeInp.value = "LOCKED";
+          } else {
+            msg.innerText = `Invalid Code. Attempt ${verificationAttempts[type]} of 3.`;
+            msg.style.color = "#d32f2f"; msg.style.display = "block";
+            setTimeout(() => { codeInp.value = ""; codeInp.focus(); }, 1000);
+          }
+          verificationStates[type] = false;
+        }
+      }
+    }
+  
+  
+  
+  function checkAllValidations() {
+      let allValid = true;
+      fieldRules.forEach(r => {
+        const input = document.getElementById(`inp-${r.field_id}`);
+        const errDiv = document.getElementById(`err-${r.field_id}`);
+        if (input) {
+          let isValid = validateField(r.field_id, input.value, r.field_validation);
+        //  let isChanged = input.value !== (originalData[r.field_id] || "");
+  
+  let compareValue = input.value;
+  
+  // ============================================
+  // USE ORIGINAL VALUE FOR MASKED FIELDS
+  // ============================================
+  
+  
+  if (
+  
+      input.disabled &&
+  
+      ['mobile', 'email']
+      .includes(r.field_id) &&
+  
+      input.dataset.originalValue
+  
+  ) {
+  
+      compareValue =
+          input.dataset.originalValue;
+  }
+     
+          
+  
+  let isChanged =
+      compareValue !==
+      (originalData[r.field_id] || "");
+  
+  
+  
+          
+          // =====================================================
+  // SKIP VALIDATION FOR LOCKED MASKED FIELDS
+  // =====================================================
+  
+  const isMaskedLockedField =
+  
+      input.disabled &&
+  
+      input.dataset.originalValue &&
+  
+      (
+          r.field_id === 'mobile' ||
+          r.field_id === 'email'
+      );
+  
+  if (isMaskedLockedField) {
+  
+      input.style.border =
+          '1px solid #ced4da';
+  
+      if (errDiv) {
+  
+          errDiv.style.display =
+              'none';
+      }
+  
+  }
+  
+  else if (
+      !isValid &&
+      input.value.trim() !== ""
+  ) {
+  
+      input.style.border =
+          '2px solid red';
+  
+      if (errDiv) {
+  
+          errDiv.innerText =
+              r.error_msg ||
+              "Invalid input";
+  
+          errDiv.style.display =
+              'block';
+      }
+  
+      allValid = false;
+  
+  }
+  
+  else {
+  
+      input.style.border =
+          '1px solid #ced4da';
+  
+      if (errDiv) {
+  
+          errDiv.style.display =
+              'none';
+      }
+  }
+         
+           if (r.field_id === 'email' || r.field_id === 'mobile') {
+            const panel = document.getElementById(`panel-${r.field_id}`);
+            const vBtn = document.getElementById(`vbtn-${r.field_id}`);
+            const msg = document.getElementById(`vmsg-${r.field_id}`);
+  
+  
+  
+  
+  
+  
+  
+  // =====================================================
+  // MASKED + LOCKED STATE
+  // =====================================================
+  
+  const isMaskedLockedField =
+  
+    input.disabled &&
+  
+    input.dataset.originalValue &&
+  
+    (
+      r.field_id === 'mobile' ||
+      r.field_id === 'email'
+    );
+  
+  if (isMaskedLockedField) {
+  
+    if (panel)
+      panel.style.display = 'none';
+  
+    if (msg)
+      msg.style.display = 'none';
+  }
+  
+  // =====================================================
+  // VERIFIED STATE
+  // =====================================================
+  
+  else if (verificationStates[r.field_id]) {
+  
+    if (msg)
+      msg.style.display = 'block';
+  
+    if (panel)
+      panel.style.display = 'none';
+  }
+  
+  // =====================================================
+  // NEEDS VERIFICATION
+  // =====================================================
+  
+  else if (isValid && isChanged) {
+  
+    vBtn.innerText =
+      `Click here to send Verification Code to ${input.value}`;
+  
+    panel.style.display = 'block';
+  
+    if (msg)
+      msg.style.display = 'none';
+  
+    allValid = false;
+  }
+  
+  // =====================================================
+  // DEFAULT
+  // =====================================================
+  
+  else {
+  
+    if (panel)
+      panel.style.display = 'none';
+  
+    if (!isChanged && msg)
+      msg.style.display = 'none';
+  }
+            
+           }
+            
+          if (input.value.trim() === "" && r.initial_state === 'Visible') allValid = false;
+        }
+      });
+  
+      const masterBtn = document.getElementById('btn-master-update');
+      const regBtn = document.getElementById('btn-register');
+      if (masterBtn) masterBtn.disabled = !allValid;
+      if (regBtn) regBtn.disabled = !allValid;
+    }
+  
+    // 1. THE PAGE TURNER: Moves between Section 1, 2, and 3
+  async function handleSectionNavigation() {
+      console.log("%c MERS PING 3: handleSectionNavigation() was just called!", "color: blue; font-weight: bold;");
+      try {
+          if (typeof currentSection === 'undefined') window.currentSection = 1;
+          
+          // UI Transition: Show loader
+          document.getElementById('app').style.display = 'none';
+          document.getElementById('processing-overlay').style.display = 'block';
+  
+          if (window.currentSection === 1) {
+              // Move to Section 2
+              window.currentSection = 2;
+              await buildExtraSections(2);
+              
+              // Reflow Section 2 based on exact Field_Rule naming
+              if (typeof reflowSectionSequence === "function") {
+                  reflowSectionSequence("Section2"); 
+              } else {
+                  updateButtonState();
+              }
+  
+          } else if (window.currentSection === 2) {
+              // Move to Section 3
+              window.currentSection = 3;
+              await buildExtraSections(3);
+              
+              // --- WATERFALL REFLOW TRIGGER ---
+              // Recovers visibility of previously answered questions in Section 3
+              // Using exact spelling "Section3" from your Field_Rule configuration
+              if (typeof reflowSectionSequence === "function") {
+                  reflowSectionSequence("Section3"); 
+              } else {
+                  updateButtonState();
+              }
+          }
+          
+          // UI Transition: Hide loader
+          document.getElementById('processing-overlay').style.display = 'none';
+          document.getElementById('app').style.display = 'block';
+          
+          // Reset scroll position for the new section
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          
+      } catch (error) {
+          console.error("MERS Navigation Error:", error);
+          document.getElementById('processing-overlay').style.display = 'none';
+          document.getElementById('app').style.display = 'block';
+      }
+  }
+  
+  
+  function maskMobile(mobile) {
+   if (!mobile) return "";
+  
+   mobile = String(mobile).trim();
+  
+   if (mobile.length < 4) return mobile;
+  
+   return mobile.substring(0, 2) +
+          "XXXXXX" +
+          mobile.substring(mobile.length - 2);
+  }
+  
+  function maskEmail(email) {
+   if (!email || !email.includes("@")) return email;
+  
+   const parts = email.split("@");
+   const name = parts[0];
+   const domain = parts[1];
+  
+   if (name.length <= 3) {
+     return name.charAt(0) + "***@" + domain;
+   }
+  
+   return name.substring(0, 3) +
+          "*****@" +
+          domain;
+  }  
+  
+  
+  
+    
+    
+  async function submitData() {
+      console.log("%c [DIAGNOSTIC] submitData started! ", "background: #222; color: #bada55; font-size: 14px;");
+  
+      try {
+          const urlParams = new URLSearchParams(window.location.search);
+          const mode = (urlParams.get('mode') || 'new').toLowerCase();
+          
+          // --- STEP 1: FINAL DATA CAPTURE ---
+          const getFreshVal = (id) => {
+              const el = document.getElementById('inp-' + id) || document.getElementById(id);
+  
+            
+           //   if (el) return el.value ? el.value.trim() : "";
+  
+  
+            if (el) {
+  
+      // ============================================
+      // IF FIELD IS STILL MASKED,
+      // RETURN ORIGINAL VALUE
+      // ============================================
+
+
+    if (
+
+    el.dataset.originalValue &&
+
+    el.dataset.maskedValue &&
+
+    el.value === el.dataset.maskedValue
+
+)
+     
+     
+     {
+  
+          return el.dataset.originalValue.trim();
+      }
+  
+      return el.value
+          ? el.value.trim()
+          : "";
+  }
+  
+  
+  
+  
+            
+              if (typeof mersTempData !== 'undefined' && typeof mersTempData[id] !== 'undefined') return mersTempData[id];
+              if (typeof originalData !== 'undefined' && typeof originalData[id] !== 'undefined') return originalData[id];
+              return "";
+          };
+  
+          const updatedSection1 = {
+              full_name: getFreshVal('full_name'),
+  
+            
+            email: getFreshVal('email'),
+  mobile: getFreshVal('mobile'),
+  
+            
+              organization: getFreshVal('organization'),
+              designation: getFreshVal('designation'),
+              pincode: getFreshVal('pincode'),
+              full_address: getFreshVal('full_address'),
+              centre: getFreshVal('centre'),
+              zone: getFreshVal('zone'),
+              district: getFreshVal('district'),
+              state: getFreshVal('state'),
+              country: getFreshVal('country')
+          };
+  
+  // =====================================================
+  // MASKED VALUES FOR EMAIL COMMUNICATION
+  // =====================================================
+  
+  const maskedMobile =
+   maskMobile(updatedSection1.mobile);
+  
+  const maskedEmail =
+   maskEmail(updatedSection1.email);
+  
+  
+  
+        
+  
+        // =====================================================
+  // PROFILE CHANGE AUDIT
+  // =====================================================
+  
+  let changedFields = [];
+  
+  Object.keys(updatedSection1).forEach(key => {
+  
+      const oldVal =
+          String(
+              originalData[key] || ""
+          ).trim();
+  
+      const newVal =
+          String(
+              updatedSection1[key] || ""
+          ).trim();
+  
+      if (oldVal !== newVal) {
+  
+          changedFields.push(key);
+      }
+  });
+  
+  if (changedFields.length > 0) {
+  
+      const formattedFields =
+  
+          changedFields
+          .map(field =>
+  
+              field
+              .replace(/_/g, " ")
+              .replace(/\b\w/g,
+                  c => c.toUpperCase()
+              )
+          )
+          .join(", ");
+  
+      updatedSection1.profile_update_remark =
+  
+          formattedFields +
+  
+          " updated on " +
+  
+          new Date()     .toLocaleDateString(         'en-GB',         {             day: '2-digit',             month: 'short',             year: 'numeric'         }     )     .replace(/ /g, '-')     .toUpperCase() +
+  
+          " via " +
+  
+          eventId;
+  }
+          
+          if (!updatedSection1.full_name) {
+              throw new Error("Critical Error: 'full_name' is missing. Please ensure Section 1 is filled.");
+          }
+  
+          const overlay = document.getElementById('processing-overlay');
+          if (overlay) overlay.style.display = 'block';
+  
+          // --- STEP 2: UPDATE MASTER DATABASE (EVENT-TYPE AWARE) ---
+          const masterRef = db.ref('masters/Master_Internal_DB');
+          const eventType = (typeof eventConfig !== 'undefined' && eventConfig.event_type) 
+                            ? eventConfig.event_type.toLowerCase() 
+                            : 'internal'; 
+  
+          if (eventType === 'internal') {
+              const nameSearch = await masterRef.orderByChild('full_name').equalTo(updatedSection1.full_name).once('value');
+              if (nameSearch.exists()) {
+                  const masterKey = Object.keys(nameSearch.val())[0];
+                  await masterRef.child(masterKey).update(updatedSection1);
+              } else {
+                  const mobSearch = await masterRef.orderByChild('mobile').equalTo(updatedSection1.mobile).once('value');
+                  if (mobSearch.exists()) {
+                      const mobKey = Object.keys(mobSearch.val())[0];
+                      await masterRef.child(mobKey).update(updatedSection1);
+                  } else {
+                      await masterRef.push(updatedSection1);
+                  }
+              }
+          } else {
+              const mobSearch = await masterRef.orderByChild('mobile').equalTo(updatedSection1.mobile).once('value');
+              if (mobSearch.exists()) {
+                  const mobKey = Object.keys(mobSearch.val())[0];
+                  await masterRef.child(mobKey).update(updatedSection1);
+              } else {
+                  await masterRef.push(updatedSection1);
+              }
+          }
+  
+          // --- STEP 3: CONSTRUCT FINAL REGISTRATION OBJECT (DUP-FIX) ---
+          let finalRegId = urlParams.get('regId');
+          const eventIdParam = typeof eventId !== 'undefined' ? eventId : (urlParams.get('id') || "EVT001");
+  
+          // Merge all data
+          let formData = {
+              ...originalData,
+              ...mersTempData,
+              ...updatedSection1
+          };
+  
+          // DUP ENTRY FIX: Explicitly consolidate clean keys into "extra_" keys
+          const keysToConsolidate = ['arrival_date', 'arrival_time', 'depart_date', 'depart_time', 'gender', 'travel_mode', 'stay_option'];
+  
+          keysToConsolidate.forEach(key => {
+              const extraKey = 'extra_' + key;
+              // If the clean key exists, move its value to the extra_ key and delete the clean one
+              if (formData[key]) {
+                  formData[extraKey] = formData[key]; 
+                  delete formData[key]; 
+              }
+          });
+  
+          if (!finalRegId || mode === 'new') {
+              const now = new Date();
+              const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+              const day = String(now.getUTCDate()).padStart(2, '0');
+              const month = monthNames[now.getUTCMonth()];
+              const year = now.getUTCFullYear();
+              const timePart = `${String(now.getUTCHours()).padStart(2, '0')}${String(now.getUTCMinutes()).padStart(2, '0')}${String(now.getUTCSeconds()).padStart(2, '0')}${String(now.getUTCMilliseconds()).padStart(3, '0')}`;
+              finalRegId = `${eventIdParam}-REG-${day}-${month}-${year}-${timePart}-000`;
+          }
+  
+          formData.registration_id = finalRegId;
+          formData.event_id = eventIdParam;
+          formData.timestamp = new Date().toLocaleString();
+  
+  // =====================================================
+  // MASKED VALUES FOR EMAIL COMMUNICATION
+  // =====================================================
+  
+  formData.masked_mobile = maskedMobile;
+  formData.masked_email = maskedEmail;
+  
+  
+  
+  
+  
+        
+       //   formData.registration_status = (mode === 'new') ? "CONFIRMED" : "EDITED ON " + new Date().toLocaleString();
+  
+        formData.registration_status =
+    (mode === 'new')
+  
+      ? "REGISTERED ON " +
+        new Date().toLocaleString()
+  
+      : "EDITED ON " +
+        new Date().toLocaleString();
+  
+        formData.stay_allocation_code = "";
+  
+        
+        // ===== ACCOMMODATION COUNTER TYPE DETECTION =====
+  
+  const selectedGender = (formData.extra_gender || "").toLowerCase();
+  
+  const selectedStay = (formData.extra_stay_option || "").toLowerCase();
+  
+  let confirmedCounterPath = "";
+  
+        let waitlistCounterPath = "";
+  let stayAllocationCode = "";
+  
+        // =====================================================
+  console.log("FINAL selectedStay =", selectedStay);
+  
+  // RESET PATHS SAFELY
+  confirmedCounterPath = "";
+  waitlistCounterPath = "";
+  
+  
+  
+  // =====================================================
+  // CENTRALIZED STAY CLASSIFICATION
+  // =====================================================
+  
+  const stayInfo =
+      classifyStayOption(selectedStay);
+  
+  // =====================================================
+  // ROOM LOGIC
+  // =====================================================
+  
+  if (stayInfo.type === "room") {
+  
+      // ROOM WAITLIST
+      if (stayInfo.isWaitlist) {
+  
+          waitlistCounterPath =
+              'counters/waitlist_counters/room_' +
+              selectedGender +
+              '/' +
+              eventIdParam;
+      }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+        
+        
+      // ROOM CONFIRMED
+      else {
+  
+          confirmedCounterPath =
+              'counters/confirmed_counters/room_' +
+              selectedGender +
+              '/' +
+              eventIdParam;
+      }
+  }
+  
+  // =====================================================
+  // DORM LOGIC
+  // =====================================================
+  
+  if (stayInfo.type === "dorm") {
+  
+      // DORM WAITLIST
+      if (stayInfo.isWaitlist) {
+  
+          waitlistCounterPath =
+              'counters/waitlist_counters/dorm_' +
+              selectedGender +
+              '/' +
+              eventIdParam;
+      }
+  
+      // DORM CONFIRMED
+      else {
+  
+          confirmedCounterPath =
+              'counters/confirmed_counters/dorm_' +
+              selectedGender +
+              '/' +
+              eventIdParam;
+      }
+  }
+  
+       
+  console.log(
+      "MERS COUNTER PATH CHECK:",
+      {
+          selectedGender,
+          selectedStay,
+          confirmedCounterPath,
+          waitlistCounterPath,
+          formGender: formData.extra_gender,
+          originalGender: originalData?.extra_gender
+      }
+  );
+  
+        
+        // =====================================================
+  // EDIT MODE → RELEASE OLD ACCOMMODATION
+  // =====================================================
+  
+  if (mode === 'edit') {
+  
+      console.log(
+          "MERS EDIT: Releasing old accommodation allocation..."
+      );
+  
+      const oldAllocation =
+          originalData?.stay_allocation_code || "";
+  
+      const oldGender =
+          (originalData?.extra_gender || "").toLowerCase();
+  
+      console.log(
+          "MERS EDIT OLD DATA:",
+          {
+              oldAllocation,
+              oldGender
+          }
+      );
+  
+      let oldCounterPath = "";
+  
+    const oldIsRoom =
+      oldAllocation.includes("ROOM");
+  
+  const oldIsWaitlist =
+      oldAllocation.includes("WAITLIST");
+  
+  
+  
+  // =====================================================
+  // BUILD OLD COUNTER PATH
+  // =====================================================
+  
+  const oldFacility =
+      oldIsRoom
+      ? "room"
+      : "dorm";
+  
+  const oldCounterType =
+      oldIsWaitlist
+      ? "waitlist_counters"
+      : "confirmed_counters";
+  
+  oldCounterPath =
+      'counters/' +
+      oldCounterType +
+      '/' +
+      oldFacility +
+      '_' +
+      oldGender +
+      '/' +
+      eventIdParam;
+  
+  
+  
+  
+  
+  
+  
+  
+    
+      // =====================================================
+      // DECREMENT OLD COUNTER
+      // =====================================================
+  
+      if (oldCounterPath) {
+  
+          await db.ref(oldCounterPath)
+          .transaction((current) => {
+  
+              current = current || 0;
+  
+              return current > 0
+                  ? current - 1
+                  : 0;
+          });
+  
+          console.log(
+              "MERS EDIT: Old allocation released:",
+              oldCounterPath
+          );
+      }
+  }
+  
+  // =====================================================
+  // EDIT MODE → ASSIGN NEW ACCOMMODATION
+  // =====================================================
+  
+  if (mode === 'edit') {
+  
+      console.log(
+          "MERS EDIT: Assigning NEW accommodation..."
+      );
+  
+      // =====================================================
+      // CONFIRMED COUNTER
+      // =====================================================
+  
+  // =====================================================
+  // RECALCULATE LIVE AVAILABILITY
+  // =====================================================
+  
+  const latestAvailability =
+      await getStayAvailability(
+          eventIdParam,
+          selectedGender
+      );
+  
+  console.log(
+      "MERS EDIT: Latest availability after release:",
+      latestAvailability
+  );
+  
+  // =====================================================
+  // DETERMINE LIVE STATUS
+  // =====================================================
+  
+  
+    
+  const wantsRoom =
+    stayInfo.type === "room";
+  
+    if (!stayInfo.type) {
+  
+      console.log(
+          "MERS EDIT: Outside stay detected. No accommodation counter update required."
+      );
+  
+      stayAllocationCode =
+          "OUTSIDE-STAY";
+  }
+  
+  
+    
+  // =====================================================
+  // ROOM LOGIC
+  // =====================================================
+  
+   // if (wantsRoom) {
+  
+     else if (wantsRoom) {
+  
+      // ROOM AVAILABLE
+      if (latestAvailability.roomSeats > 0) {
+  
+          const confirmResult =
+              await db.ref(confirmedCounterPath)
+              .transaction((current) => {
+  
+                  return (current || 0) + 1;
+  
+              });
+  
+          const confirmCount =
+              confirmResult.snapshot.val();
+  
+          stayAllocationCode =
+              `ROOM-CONFIRM#${confirmCount}`;
+  
+          console.log(
+              "MERS EDIT: Assigned ROOM CONFIRM:",
+              stayAllocationCode
+          );
+  
+      }
+  
+      // ROOM WAITLIST
+      else {
+  
+          const waitlistResult =
+              await db.ref(waitlistCounterPath)
+              .transaction((current) => {
+  
+                  return (current || 0) + 1;
+  
+              });
+  
+          const waitlistCount =
+              waitlistResult.snapshot.val();
+  
+          stayAllocationCode =
+              `ROOM-WAITLIST#${waitlistCount}`;
+  
+          console.log(
+              "MERS EDIT: Assigned ROOM WAITLIST:",
+              stayAllocationCode
+          );
+      }
+  }
+  
+  // =====================================================
+  // DORM LOGIC
+  // =====================================================
+  
+  else {
+  
+      // DORM AVAILABLE
+      if (latestAvailability.dormSeats > 0) {
+  
+          const confirmResult =
+              await db.ref(confirmedCounterPath)
+              .transaction((current) => {
+  
+                  return (current || 0) + 1;
+  
+              });
+  
+          const confirmCount =
+              confirmResult.snapshot.val();
+  
+          stayAllocationCode =
+              `DORM-CONFIRM#${confirmCount}`;
+  
+          console.log(
+              "MERS EDIT: Assigned DORM CONFIRM:",
+              stayAllocationCode
+          );
+  
+      }
+  
+      // DORM WAITLIST
+      else {
+  
+          const waitlistResult =
+              await db.ref(waitlistCounterPath)
+              .transaction((current) => {
+  
+                  return (current || 0) + 1;
+  
+              });
+  
+          const waitlistCount =
+              waitlistResult.snapshot.val();
+  
+          stayAllocationCode =
+              `DORM-WAITLIST#${waitlistCount}`;
+  
+          console.log(
+              "MERS EDIT: Assigned DORM WAITLIST:",
+              stayAllocationCode
+          );
+      }
+  }
+  
+    }
+  // --- STEP 4: SAVE DATA & CONDITIONAL COUNTER ---
+          if (mode === 'new') {
+              console.log("MERS: Processing counters for Event:", eventIdParam);
+  
+              // A. ID Sequence (Unique Serial - Never goes down)
+              const counterRef = db.ref('counters/' + eventIdParam);
+              const transactionResult = await counterRef.transaction((v) => (v || 0) + 1);
+  
+              if (transactionResult.committed) {
+                  const paddedCount = String(transactionResult.snapshot.val()).padStart(3, '0');
+                  const idParts = formData.registration_id.split('-');
+                  idParts[idParts.length - 1] = paddedCount;
+                  formData.registration_id = idParts.join('-');
+                  console.log("MERS: New ID assigned:", formData.registration_id);
+              }
+  
+              // B. ACTIVE SEATS (Capacity Control - Created/Updated here)
+              try {
+                 
+                
+                const activeSeatsRef = db.ref('active_seats/' + eventIdParam);
+  
+  const activeResult = await activeSeatsRef.transaction((current) => {
+      return (current || 0) + 1;
+  });
+  
+  
+  
+                
+                  console.log("MERS: active_seats incremented successfully.");
+  
+  
+                // ===== CONFIRMED ACCOMMODATION COUNTER UPDATE =====
+  
+  
+  if (confirmedCounterPath) {
+  
+      const confirmResult =
+        await db.ref(confirmedCounterPath)
+        .transaction((current) => {
+  
+          return (current || 0) + 1;
+  
+        });
+  
+      const confirmCount =
+        confirmResult.snapshot.val();
+  
+      // =====================================================
+      // BUILD STAY ALLOCATION CODE
+      // =====================================================
+  
+     const stayLabel =
+        stayInfo.type === "room"
+        ? "ROOM"
+        : "DORM";
+  
+      stayAllocationCode =
+        `${stayLabel}-CONFIRM#${confirmCount}`;
+  
+      console.log(
+        "MERS: stayAllocationCode =",
+        stayAllocationCode
+      );
+  
+      console.log(
+        "MERS: confirmed accommodation counter incremented."
+      );
+  }
+                
+                
+  
+  
+                
+  // ===== WAITLIST COUNTER INCREMENT =====
+  
+  if (waitlistCounterPath) {
+  
+      const waitlistResult =
+        await db.ref(waitlistCounterPath)
+        .transaction((current) => {
+  
+          return (current || 0) + 1;
+  
+        });
+  
+      const waitlistCount =
+        waitlistResult.snapshot.val();
+  
+      // =====================================================
+      // BUILD STAY ALLOCATION CODE
+      // =====================================================
+  
+     const stayLabel =
+        stayInfo.type === "room"
+        ? "ROOM"
+        : "DORM";
+  
+    
+      stayAllocationCode =
+        `${stayLabel}-WAITLIST#${waitlistCount}`;
+  
+      console.log(
+        "MERS: stayAllocationCode =",
+        stayAllocationCode
+      );
+  
+      console.log(
+        "MERS: waitlist counter incremented."
+      );
+  }
+  
+  
+                            
+  for (const path of counterPaths) {
+  
+      const refObj = db.ref(path + eventIdParam);
+  
+      const snap = await refObj.once('value');
+  
+      if (!snap.exists()) {
+          await refObj.set(0);
+          console.log("MERS: initialized ->", path + eventIdParam);
+      }
+  }
+  
+  
+                
+  
+                console.log("STEP-1 PASSED");
+  
+  console.log("eventConfig.final_html exists?", !!eventConfig.final_html);
+  
+  console.log("About to call showSuccessScreen()");
+  
+                console.log("TYPE OF showSuccessScreen:", typeof showSuccessScreen);
+  
+  showSuccessScreen();
+  
+  
+                
+              } catch (seatErr) {
+                  console.error("MERS: active_seats transaction failed:", seatErr);
+              }
+          }
+  
+  
+  // =====================================================
+  // SAVE FINAL STAY ALLOCATION CODE
+  // =====================================================
+  
+  formData.stay_allocation_code =
+    stayAllocationCode;
+  
+  
+  
+  
+  
+        
+          await db.ref('registrations/' + eventIdParam + '/' + formData.registration_id).set(formData);
+  
+        await updateLiveRegDataProjection(
+      formData,
+      eventIdParam
+  );
+  
+        
+  
+          // --- STEP 5: UI TRANSITION ---
+          ['Section1', 'Section2', 'Section3', 'btn-next-action', 'btn-back-to-profile'].forEach(id => {
+              const el = document.getElementById(id);
+              if (el) el.style.display = 'none';
+          });
+          
+          if (document.querySelector('.event-header')) document.querySelector('.event-header').style.display = 'none';
+  
+      
+  
+          const contentDiv = document.getElementById('success-content');
+  
+       
+          if (contentDiv) {
+  
+            const finalHTML = (typeof eventConfig !== 'undefined' && eventConfig.final_html) 
+      ? eventConfig.final_html 
+      : "<h2>Registration Successful!</h2>";
+  
+   contentDiv.innerHTML = finalHTML;
+  
+  
+  
+            
+          }
+  
+          document.getElementById('success-screen').style.display = 'block';
+          if (overlay) overlay.style.display = 'none';
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+  
+          // --- TRIGGER EMAIL ---
+          if (typeof SCRIPT_URL !== 'undefined' && SCRIPT_URL) {
+              const emailUrl = `${SCRIPT_URL}?action=sendEmail&regId=${encodeURIComponent(formData.registration_id)}&eventId=${eventIdParam}`;
+             // fetch(emailUrl).catch(err => console.error("Email failed:", err));
+  
+            fetch(emailUrl, {
+      mode: 'no-cors'
+  }).catch(err => console.error("Email failed:", err));
+          }
+          
+      } catch (error) {
+          console.error("CRASH:", error);
+          alert("Save Failed: " + error.message);
+          if (document.getElementById('processing-overlay')) {
+              document.getElementById('processing-overlay').style.display = 'none';
+          }
+      }
+  }
+  
+  
+    async function updateLiveRegDataProjection(
+      formData,
+      eventIdParam
+  ) {
+  
+      try {
+  
+          console.log(
+              "MERS LIVE REG: Projection update started..."
+          );
+  
+          // ============================================
+          // READ CONFIG
+          // ============================================
+  
+          const configSnap =
+              await db.ref(
+                  'config/liveRegData'
+              ).once('value');
+  
+          if (!configSnap.exists()) {
+  
+              console.log(
+                  "MERS LIVE REG: No config found."
+              );
+  
+              return;
+          }
+  
+          const allConfigs =
+              configSnap.val();
+  
+          // ============================================
+          // LOOP CONFIGS
+          // ============================================
+  
+  
+  
+        for (const eventKey in allConfigs) {
+  
+      const teamConfigs =
+          allConfigs[eventKey] || {};
+  
+      for (const teamKey in teamConfigs) {
+  
+          const config =
+              teamConfigs[teamKey];
+  
+            
+  
+              // Skip inactive rows
+              if (
+                  String(config.is_active)
+                  .toUpperCase() !== "YES"
+              ) {
+                  continue;
+              }
+  
+              // Skip other events
+              if (
+                  config.event_id !== eventIdParam
+              ) {
+                  continue;
+              }
+  
+              // ============================================
+              // BUILD FILTERED PROJECTION
+              // ============================================
+  
+              let selectedColumns = [];
+  
+              try {
+  
+                  selectedColumns =
+                      JSON.parse(
+                          config.selected_columns
+                      );
+  
+              } catch (jsonErr) {
+  
+                  console.error(
+                      "MERS LIVE REG: Invalid JSON:",
+                      config.selected_columns
+                  );
+  
+                  continue;
+              }
+  
+              const filteredData = {};
+  
+  
+            selectedColumns.forEach(col => {
+  
+      const normalizedKey =
+          col.replace(/^extra_/, "");
+  
+      filteredData[col] =
+          formData[col] ??
+          formData[normalizedKey] ??
+          "";
+  
+  });
+  
+  
+  
+  
+  
+  
+            
+  
+              // Always preserve registration_id
+              filteredData.registration_id =
+                  formData.registration_id;
+  
+              // ============================================
+              // WRITE TO FIREBASE
+              // ============================================
+  
+              const projectionPath =
+                  'liveRegData/' +
+                  eventIdParam +
+                  '/' +
+                  config.team_name +
+                  '/' +
+                  formData.registration_id;
+  
+  
+  
+  
+        await db.ref(projectionPath)
+  .set(filteredData);
+  
+  console.log(
+   "MERS LIVE REG: Updated:",
+   projectionPath
+  );
+  
+      }
+  
+  }
+  
+  } catch (err) {
+  
+  
+  
+  
+  
+        
+        
+  
+        
+  
+  
+        
+  
+          console.error(
+              "MERS LIVE REG ERROR:",
+              err
+          );
+      }
+  }
+    
+    
+  function manualFormatCheck() {
+    const emailInput = document.getElementById('inp-email');
+    const emailVal = emailInput.value.trim(); 
+    const vBtn = document.getElementById('vbtn-email');
+    const checkBtn = document.getElementById('vcheck-email');
+    const msg = document.getElementById('vmsg-email');
+  
+    const strictRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,6}$/;
+  
+    if (strictRegex.test(emailVal)) {
+      checkBtn.style.display = 'none';
+      vBtn.style.display = 'block';
+      vBtn.innerText = `Format accepted, click here to send verification code to ${emailVal}`;
+      emailInput.style.border = '1px solid #ced4da';
+      if (msg) {
+        msg.innerText = "Format Accepted ✅";
+        msg.style.color = "#2e7d32";
+        msg.style.display = "block";
+      }
+    } else {
+      let errorNote = "Please check for typos or extra characters.";
+      if (!emailVal.includes("@")) errorNote = "Missing '@' symbol.";
+      else if (!emailVal.includes(".")) errorNote = "Missing a dot (e.g., .com).";
+      else if (/\s/.test(emailVal)) errorNote = "Spaces are not allowed within the email.";
+  
+      alert("❌ FORMAT ISSUE\n\n" + errorNote);
+      vBtn.style.display = 'none';
+      emailInput.style.border = '2px solid red';
+      emailInput.focus();
+    }
+  }
+  
+  
+    function getMaskedDisplayValue(fieldId, value) {
+  
+      if (!value) return value;
+  
+      // ============================================
+      // MOBILE MASKING
+      // ============================================
+  
+      if (
+          fieldId === 'mobile' ||
+          fieldId === 'ext_mobile'
+      ) {
+  
+          value = String(value);
+  
+          return (
+              value.substring(0, 2) +
+              "XXXXXX" +
+              value.substring(value.length - 2)
+          );
+      }
+  
+      // ============================================
+      // EMAIL MASKING
+      // ============================================
+  
+      if (
+          fieldId === 'email' ||
+          fieldId === 'ext_email'
+      ) {
+  
+          const parts =
+              value.split('@');
+  
+          if (parts.length === 2) {
+  
+              return (
+                  parts[0].substring(0, 3) +
+                  "*****@" +
+                  parts[1]
+              );
+          }
+      }
+  
+      return value;
+  }
+  
+  
+  
+  
+    
+  async function loadExistingData(regId, mode) {
+      console.log(`[DIAGNOSTIC] loadExistingData started for ID: ${regId}`);
+      try {
+          const urlParams = new URLSearchParams(window.location.search);
+          const eventIdParam = urlParams.get('id') || "EVT001"; // Fetch current event ID
+  
+          // PATH A: Check the Master Internal DB (This uses unique push keys)
+          let snap = await db.ref('masters/Master_Internal_DB/' + regId).once('value');
+          let data = snap.val();
+  
+          // PATH B: Check the Event-Specific registrations folder (MERS FOLDER LOGIC)
+          if (!data) {
+              console.log(`MERS: Checking folder: registrations/${eventIdParam}/${regId}`);
+              snap = await db.ref('registrations/' + eventIdParam + '/' + regId).once('value');
+              data = snap.val();
+          }
+  
+          // PATH C: FALLBACK (Check root registrations just in case of old legacy data)
+          if (!data) {
+              console.log("MERS: Checking root registrations fallback...");
+              snap = await db.ref('registrations/' + regId).once('value');
+              data = snap.val();
+          }
+  
+          if (!data) {
+              console.error("MERS: Registration REALLY not found for ID: " + regId);
+              // Professional UI Error instead of a simple alert
+              const initLoading = document.getElementById('loading-init');
+              if (initLoading) {
+                  initLoading.innerHTML = `
+                      <div style="border: 2px solid #cc0000; padding: 20px; background: #fff5f5; border-radius: 8px; text-align: center;">
+                          <h3 style="color: #cc0000;">Registration Not Found</h3>
+                          <p>We could not find ID: <strong>${regId}</strong></p>
+                          <p>Please ensure you are using the correct link from your email.</p>
+                      </div>`;
+              }
+              return;
+          }
+  
+          // --- SUCCESS: DATA FOUND ---
+          originalData = data;
+          // Note: Use encodeURIComponent for safety, but we are moving away from snapshot logic
+          profileSnapshotForScript = encodeURIComponent(JSON.stringify(data));
+  
+          if (mode === 'edit') {
+              renderForm(); 
+  
+            
+  
+              fieldRules.forEach(r => {
+                  const el = document.getElementById(`inp-${r.field_id}`);
+                  if (el && data[r.field_id] !== undefined) {
+  
+  
+                 //  el.value = data[r.field_id];
+  
+  
+  
+                    el.value = data[r.field_id];
+  
+  // ============================================
+  // MASK ONLY LOCKED DISPLAY
+  // ============================================
+
+
+if (
+    ['mobile', 'email']
+    .includes(r.field_id)
+) {
+
+    el.dataset.originalValue =
+        data[r.field_id];
+
+    // ============================================
+    // STORE MASKED VERSION ALSO
+    // ============================================
+
+
+
+
+  
+    if (r.field_id === 'mobile') {
+
+        el.dataset.maskedValue =
+            maskMobile(
+                data[r.field_id]
+            );
+    
+    }
+
+    if (r.field_id === 'email') {
+
+        el.dataset.maskedValue =
+            maskEmail(
+                data[r.field_id]
+            );
+    }
+
+    // ============================================
+    // DISPLAY MASKED VALUE ONLY
+    // ============================================
+
+    if (el.disabled) {
+
+        el.value =
+            el.dataset.maskedValue;
+    }
+}
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    // Lock core identity fields in Edit Mode
+                      if (['full_name', 'mobile', 'email'].includes(r.field_id)) {
+                          el.disabled = true;
+                          el.style.background = "#f9f9f9";
+                      }
+                  }
+              });
+  
+  
+            // =====================================================
+// MERS: TRIGGER SECTION 2 REACTIVE FLOW IN EDIT MODE
+// =====================================================
+
+
+
+
+          triggerGenderRefresh();
+
+
+
+          
+          
+            document.getElementById('loading-init').style.display = 'none';
+            document.getElementById('form-content').style.display = 'block';
+
+            const startBtnsContainer = document.getElementById('btns-start');
+            if (startBtnsContainer) startBtnsContainer.style.display = 'flex';
+
+            const regBtn = document.getElementById('btn-register');
+            if (regBtn) {
+                regBtn.disabled = false;
+                regBtn.style.opacity = "1";
+                regBtn.innerText = "DETAILS ARE OKAY, CLICK HERE TO PROCEED FURTHER";
+            }
+            
+            if (typeof updateButtonState === 'function') updateButtonState();
+        }
+    } catch (e) {
+        console.error("MERS Entry Error:", e);
+    }
+}
+
+
+
+function processFinalDeletion(regId, eventId, gender) {
+  google.script.run
+    .withSuccessHandler(function() {
+      // After successful deletion, update the live counters
+      // This calls the server-side updateLiveTracker we just created
+      google.script.run.updateLiveTracker(eventId, gender, 'hall', 'subtract');
+      google.script.run.updateLiveTracker(eventId, gender, 'stay', 'subtract');
+      
+      console.log("Database cleaned and Live Tracker updated.");
+      alert("Registration Cancelled. Space is now available for others.");
+    })
+    .deleteFirebaseData(`registrations/${eventId}/${regId}`); 
+}
+
+
+
+
+  async function buildExtraSections(targetSectionNumber) {
+    if (!targetSectionNumber) targetSectionNumber = "Section2";
+
+    const container = document.getElementById('dynamic-sections-content');
+    const titleHeader = document.getElementById('title-Section2');
+    const actionBtn = document.getElementById('btn-next-action'); 
+    const backBtn = document.getElementById('btn-back-to-profile');
+
+    // --- 1. SYNC CURRENT SECTION INPUTS BEFORE REDRAWING ---
+    const currentInputs = document.querySelectorAll('[id^="extra_"]');
+    currentInputs.forEach(input => { 
+        const cleanId = input.id.replace('extra_', '');
+        mersTempData[cleanId] = input.value; 
+        mersTempData[input.id] = input.value;
+        if (originalData) originalData[cleanId] = input.value; // Sync to originalData too
+    });
+
+    container.innerHTML = ""; 
+    actionBtn.disabled = true;
+
+    const sectionObj = moreSections.find(s => s.section_number === targetSectionNumber);
+    
+    if (sectionObj) {
+        titleHeader.innerText = sectionObj.section_name || "Details";
+
+        const systemKeys = ['section_name', 'section_number', 'section_id', 'id'];
+        const fieldKeys = Object.keys(sectionObj).filter(key => 
+            !systemKeys.includes(key) && sectionObj[key] && typeof sectionObj[key] === 'string'
+        ).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
+        
+        for (const key of fieldKeys) {
+            const fieldId = sectionObj[key];
+            const rule = fieldRules.find(r => r.field_id === fieldId);
+            
+            if (rule) {
+                const fieldWrapper = document.createElement('div');
+                fieldWrapper.className = 'form-group';
+                fieldWrapper.id = `wrapper_extra_${fieldId}`; 
+                fieldWrapper.style.marginBottom = "20px";
+                fieldWrapper.style.textAlign = "left";
+
+                const inputId = `extra_${fieldId}`;
+                let valToSet = "";
+                
+                if (originalData && (originalData[fieldId] !== undefined || originalData[inputId] !== undefined)) {
+                    valToSet = originalData[fieldId] || originalData[inputId];
+                } else {
+                    valToSet = mersTempData[inputId] || "";
+                }
+
+                if (valToSet && valToSet !== "") {
+                    fieldWrapper.style.display = 'block';
+                } else {
+                    fieldWrapper.style.display = (rule.initial_state === "Hidden") ? 'none' : 'block';
+                }
+
+                const isMandatory = (rule.field_validation && rule.field_validation !== "NULL" && rule.field_validation !== "N/A");
+                const label = document.createElement('label');
+                label.innerHTML = `<strong>${rule.display_label || fieldId} ${isMandatory ? '<span style="color:red">*</span>' : ''}</strong>`;
+                fieldWrapper.appendChild(label);
+
+                let input;
+
+               if (rule.edit_behavior && rule.edit_behavior.includes('Editable_lookup_Dropdown')) {
+
+                  
+                    input = document.createElement('select');
+                    input.className = 'form-control';
+                    input.id = inputId;
+                    
+                    const placeholder = document.createElement('option');
+                    placeholder.text = "-- Select --"; placeholder.value = "";
+                    input.appendChild(placeholder);
+
+                    if (rule.lookup_tab && rule.lookup_column) {
+
+
+                      
+                        try {
+                            const lookupSnap = await db.ref(`masters/${rule.lookup_tab}`).once('value');
+                            const lookupData = lookupSnap.val();
+                            if (lookupData) {
+
+                              
+                                let choices = Object.values(lookupData).map(row => row[rule.lookup_column]).filter(v => v);
+
+                              // --- STEP 2: CHOICE ELIMINATION LOGIC ---
+
+
+
+
+if (fieldId === 'stay_option') {
+
+    choices = filterStayChoices(choices);
+
+}
+
+
+
+
+
+                              
+
+                                // --- MERS: ROOM FILTERING LOGIC ---
+                                // Only filters if global availability data exists and field name relates to rooms
+                                choices = filterRoomChoices(fieldId, choices);
+
+                                [...new Set(choices)].forEach(choice => {
+                                    const opt = document.createElement('option');
+                                    opt.value = choice; opt.text = choice;
+                                    input.appendChild(opt);
+                                });
+                            }
+                        } catch (e) { console.error("Lookup Error", e); }
+                    }
+                } else {
+                    input = document.createElement('input');
+                    const fieldLower = fieldId.toLowerCase();
+                    input.type = fieldLower.includes('date') ? 'date' : (fieldLower.includes('time') ? 'time' : 'text');
+                    input.className = 'form-control';
+                    input.id = inputId;
+                }
+
+                input.value = valToSet;
+                input.dataset.mandatory = isMandatory;                  
+                
+                input.onchange = function() {
+                    if (typeof validateField === 'function') {
+                        if (validateField(this.id.replace('extra_', ''), this.value, rule.field_validation) === false) return;
+                    }
+                    handleFieldChange(this, rule); //[cite: 1]
+                };
+
+                input.oninput = function() { updateButtonState(); };
+
+                fieldWrapper.appendChild(input);
+                container.appendChild(fieldWrapper);
+            }
+        }
+
+        actionBtn.onclick = function() {
+            // THE "FINAL SYNC" LOCK
+            const finalInputs = document.querySelectorAll('[id^="extra_"]');
+            finalInputs.forEach(input => { 
+                const cleanId = input.id.replace('extra_', '');
+                mersTempData[cleanId] = input.value; 
+                mersTempData[input.id] = input.value;
+                if (originalData) originalData[cleanId] = input.value;
+            });
+
+
+
+
+
+          
+          const nextSection =
+    getNextSection(targetSectionNumber);
+
+if (nextSection) {
+
+    buildExtraSections(nextSection);
+
+} else {
+
+    console.log(
+        "MERS: Finalizing Submission with updated values..."
+    );
+
+    submitData();
+}
+
+
+
+
+
+
+          
+ 
+          
+        };
+
+        if (backBtn) {
+
+
+          const previousSection =
+    getPreviousSection(targetSectionNumber);
+
+backBtn.onclick = () => {
+
+    if (previousSection) {
+
+        buildExtraSections(previousSection);
+
+        if (
+            previousSection === "Section2"
+        ) {
+
+            refreshSection2BusinessLogic();
+
+        }
+
+    } else {
+
+        document.getElementById('Section2').style.display =
+            'none';
+
+        document.getElementById('Section1').style.display =
+            'block';
+    }
+};
+
+
+          
+        }
+
+   //     actionBtn.innerText = (targetSectionNumber === "Section2") ? "PROCEED TO TRAVEL DETAILS" : "CONFIRM & REGISTER";
+
+
+
+
+
+const nextSectionForLabel =
+    getNextSection(targetSectionNumber);
+
+if (nextSectionForLabel) {
+
+    const nextSectionObj =
+        moreSections.find(
+            s => s.section_number === nextSectionForLabel
+        );
+
+    actionBtn.innerText =
+        `PROCEED TO ${(
+            nextSectionObj?.section_name ||
+            "NEXT SECTION"
+        ).toUpperCase()}`;
+
+} else {
+
+    actionBtn.innerText =
+        "CONFIRM & REGISTER";
+}
+
+
+
+
+
+
+      
+      
+        setTimeout(() => { updateButtonState(); }, 800);
+    }
+}
+
+
+
+
+  
+
+  
+async function handleFieldChange(inputElement, rule) {
+    const val = inputElement.value;
+    const fId = rule.field_id;
+    const section = rule.section_number; 
+
+    updateButtonState(); 
+    if (!val) return;
+
+    try {
+        // Run the validation
+        validateField(fId, val, rule.field_validation);
+    } catch (err) {
+        // If it fails (Section 3), alert and stop
+        alert("❌ " + err);
+        inputElement.value = ""; 
+        updateButtonState();
+        return; 
+    }
+
+    // --- WATERFALL (Section 3 One-by-One) ---
+    // This finds the next question in the current section and reveals it
+    const currentSectionQuestions = fieldRules.filter(r => r.section_number === section);
+    const currentIndex = currentSectionQuestions.findIndex(r => r.field_id === fId);
+    const nextRule = currentSectionQuestions[currentIndex + 1];
+
+    if (nextRule) {
+        const nextWrapper = document.getElementById(`wrapper_extra_${nextRule.field_id}`);
+        if (nextWrapper) {
+            nextWrapper.style.display = 'block';
+            nextWrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
+    // --- SECTION 1 & 2 SPECIAL BEHAVIOR ---
+    if (rule.edit_behavior === 'Editable_Verify') {
+        // This keeps your Mobile/Email verification working as before
+        if (typeof handleVerification === "function") {
+            handleVerification(fId, val);
+        }
+    }
+
+    updateButtonState();
+}
+
+  
+
+  
+function showSuccessScreen() {
+
+console.log("SHOW SUCCESS SCREEN ENTERED");
+
+
+  
+    // Hide the main form card
+    
+    // Show the success overlay/screen
+    const successDiv = document.getElementById('success-screen');
+    if (successDiv) {
+        successDiv.style.display = 'block';
+        
+        // Scroll to top so they see the message
+        window.scrollTo(0, 0);
+        
+        // If you have a personalized message logic, it triggers here
+        console.log("MERS: Success screen visible.");
+    }
+}
+
+
+
+
+// ==========================================
+// 1. SECTION TRANSITION LOGIC (CONSOLIDATED)
+// ==========================================
+
+/**
+ * NEW: THE BRIDGE FUNCTION
+ * Captures Section 1 values from the screen and stores them in temporary memory
+ */
+
+
+function syncSection1Data() {
+    console.log("MERS: Syncing Section 1 (Prefixed with inp-)...");
+    
+    const getS1Val = (id) => {
+        // Only applies the 'inp-' prefix for Section 1 fields
+        const el = document.getElementById('inp-' + id);
+        return el ? el.value.trim() : "";
+    };
+
+    const freshSection1 = {
+        full_name: getS1Val('full_name'),
+        email: getS1Val('email'),
+        mobile: getS1Val('mobile'),
+        organization: getS1Val('organization'),
+        designation: getS1Val('designation'),
+        pincode: getS1Val('pincode'),
+        full_address: getS1Val('full_address')
+    };
+
+    if (typeof mersTempData !== 'undefined') {
+        Object.assign(mersTempData, freshSection1);
+    }
+    
+    console.log("MERS: Section 1 Sync Complete:", freshSection1);
+}
+
+
+  
+/**
+ * Handles moving from Section 1 to Section 2
+ */
+function proceedToLogistics() {
+    console.log("MERS: Transitioning to Section 2...");
+
+    // === SYNC BLOCK ===
+    // This will now find the function above and execute it successfully
+    if (typeof syncSection1Data === "function") {
+        syncSection1Data();
+    } else {
+        console.warn("MERS: syncSection1Data function not found. Skipping sync.");
+    }
+    // ==================
+
+    // UI Transitions
+    const s1 = document.getElementById('Section1');
+    if (s1) s1.style.display = 'none';
+
+    const s2 = document.getElementById('Section2');
+    if (s2) s2.style.display = 'block';
+
+// =====================================================
+// FORCE LIVE SECTION 2 AVAILABILITY REFRESH
+// =====================================================
+
+refreshSection2BusinessLogic();
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Trigger the STABLE builder for dynamic logistics
+    if (typeof buildExtraSections === "function") {
+        buildExtraSections('Section2');
+    } else {
+        console.warn("MERS: buildExtraSections function not defined yet.");
+    }
+}
+
+// Back Button Logic
+const backBtn = document.getElementById('btn-back-to-profile');
+if (backBtn) {
+    backBtn.onclick = function() {
+        console.log("MERS: Returning to Section 1...");
+        
+        // Hide all logistics sections
+        const s3 = document.getElementById('Section3');
+        const s2 = document.getElementById('Section2');
+        const s1 = document.getElementById('Section1');
+        
+        if (s3) s3.style.display = 'none';
+        if (s2) s2.style.display = 'none';
+        if (s1) s1.style.display = 'block';
+        
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+}
+
+
+
+
+
+
+  
+// ==========================================
+// 2. SYSTEM INITIALIZATION
+// ==========================================
+
+
+
+// Ensure this is called only once at the end of your logic definitions
+
+
+
+
+function updateButtonState() {
+    console.log("%c MERS DIAG: updateButtonState triggered ", "background: #222; color: #bada55");
+    const actionBtn = document.getElementById('btn-next-action');
+    if (!actionBtn) return;
+
+    const allInputs = document.querySelectorAll('input, select, textarea');
+    const rulesArray = Array.isArray(fieldRules) ? fieldRules : Object.values(fieldRules);
+    
+    let dynamicSectionName = "";
+    let totalVisibleRequired = 0;
+    let totalFilled = 0;
+    let diagData = [];
+
+    // 1. Identify the current section using the "Hybrid Bridge"
+    for (let input of allInputs) {
+        const group = input.closest('.form-group') || input.closest('.input-group');
+        const isVisible = group && group.style.display !== 'none';
+        
+        if (isVisible) {
+            // BRIDGE: Remove 'extra_' or 'inp-' just to find the rule match
+            const cleanId = input.id.replace('extra_', '').replace('inp-', '');
+            const rule = rulesArray.find(r => r.field_id === cleanId);
+            
+            if (rule) {
+                // Once we find one rule, we know which section we are validating
+                if (!dynamicSectionName) dynamicSectionName = rule.section_number;
+                
+                // Only validate fields for the ACTIVE section
+                if (rule.section_number === dynamicSectionName) {
+                    totalVisibleRequired++;
+                    const val = input.value.trim();
+                    if (val !== "" && val !== "-- Select --") {
+                        totalFilled++;
+                    }
+                    diagData.push({ 
+                        ID: input.id, 
+                        RuleMatch: rule.field_id, 
+                        Value: val 
+                    });
+                }
+            }
+        }
+    }
+
+    // 2. Log the "X-RAY" for debugging
+    if (diagData.length > 0) {
+        console.log(`--- MERS X-RAY: [${dynamicSectionName}] ---`);
+        console.table(diagData);
+    }
+
+    // 3. Button Text Update
+    const currentNum = window.currentSection || 1;
+
+
+  const nextSectionForButton =
+    getNextSection(dynamicSectionName);
+
+if (nextSectionForButton) {
+
+    const nextSectionObj =
+        moreSections.find(
+            s => s.section_number === nextSectionForButton
+        );
+
+    actionBtn.innerText =
+        `PROCEED TO ${(
+            nextSectionObj?.section_name ||
+            "NEXT SECTION"
+        ).toUpperCase()}`;
+
+} else {
+
+    actionBtn.innerText =
+        "CONFIRM & REGISTER";
+}
+
+
+  
+    // 4. THE UNLOCK LOGIC
+    // If we are in a section with dynamic rules (Sect 2 or 3)
+    if (totalVisibleRequired > 0) {
+        if (totalFilled === totalVisibleRequired) {
+            actionBtn.disabled = false;
+            actionBtn.style.opacity = "1";
+            actionBtn.style.cursor = "pointer";
+        } else {
+            actionBtn.disabled = true;
+            actionBtn.style.opacity = "0.5";
+            actionBtn.style.cursor = "not-allowed";
+        }
+    } else {
+        // Fallback for Section 1 (Profile)
+        if (currentNum === 1) {
+            actionBtn.disabled = false;
+            actionBtn.style.opacity = "1";
+        } else {
+            // Safety lock if we are lost between sections
+            actionBtn.disabled = true;
+            actionBtn.style.opacity = "0.5";
+        }
+    }
+}
+
+
+
+/**
+ * REVISED: Dynamic Waterfall Reflow
+ * This function follows the EXACT spelling in your Firebase/Google Sheet.
+ * @param {string} sectionName - Pass the exact value from your Sheet (e.g., "Section3")
+ */
+
+  function reflowSectionSequence(sectionName) {
+    console.log("%c MERS REFLOW: Starting " + sectionName, "color: orange; font-weight: bold;");
+    
+    const rulesArray = Array.isArray(fieldRules) ? fieldRules : Object.values(fieldRules);
+    const sectionRules = rulesArray.filter(r => r.section_number === sectionName);
+
+    sectionRules.forEach((rule, index) => {
+        const currentEl = document.getElementById(rule.field_id) || document.getElementById('extra_' + rule.field_id);
+        
+        if (currentEl && currentEl.value.trim() !== "") {
+            const nextRule = sectionRules[index + 1];
+            if (nextRule && nextRule.edit_behavior && nextRule.edit_behavior.includes("after previous input")) {
+                console.log(`MERS REFLOW: Unhiding ${nextRule.field_id} because ${rule.field_id} has value.`);
+                const nextEl = document.getElementById(nextRule.field_id) || document.getElementById('extra_' + nextRule.field_id);
+                if (nextEl && nextEl.closest('.input-group')) {
+                    nextEl.closest('.input-group').style.display = 'block';
+                }
+            }
+        }
+    });
+    updateButtonState();
+}
+
+  
+
+
+
+
+  function translateToISO(val) {
+    if (!val) return "";
+    const str = String(val).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+    if (str.includes('-')) {
+        const parts = str.split('-');
+        if (parts.length === 3) {
+            const day = parts[0].padStart(2, '0');
+            const monthStr = parts[1].toLowerCase().substring(0, 3);
+            const year = parts[2].length === 2 ? "20" + parts[2] : parts[2];
+            const monthsMap = {
+                jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
+                jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12'
+            };
+            const month = monthsMap[monthStr] || parts[1].padStart(2, '0');
+            return year + "-" + month + "-" + day;
+        }
+    }
+    if (str.includes(':')) {
+        const tParts = str.split(':');
+        return tParts[0].padStart(2, '0') + ":" + tParts[1].padStart(2, '0');
+    }
+    return str;
+}
+
+function validateField(id, value, rule) {
+    const val = value ? value.trim() : "";
+    const rulesArray = Array.isArray(fieldRules) ? fieldRules : Object.values(fieldRules);
+    const ruleObj = rulesArray.find(r => r.field_id === id);
+    const errorMsg = ruleObj ? ruleObj.error_msg : "Invalid Entry";
+
+    if (!rule || rule === 'NULL' || val === "") {
+        return val !== "";
+    }
+
+    if (rule === 'MOB') return /^[6-9]\d{9}$/.test(val);
+    if (rule === 'PIN') return /^\d{6}$/.test(val);
+    if (rule === 'EMAIL') return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+
+    // --- ARRIVAL DATE (ESD) - UNTOUCHED ---
+    if (rule.includes("ESD")) {
+        const isoInput = translateToISO(val);
+        const isoConfig = translateToISO(eventConfig.event_start_date);
+        if (isoInput && isoConfig && isoInput > isoConfig) {
+
+          
+         //   alert("❌ " + errorMsg);
+          showValidationPopup(errorMsg, "date");
+          
+            let targetBox = document.getElementById(id) || document.getElementById('extra_' + id); 
+            if (targetBox) targetBox.value = "";
+            updateButtonState();
+            return false;
+        }
+    }
+
+
+
+// --- SMART ARRIVAL TIME (T SHOULD BE <EST) ---
+    if (rule.includes("T SHOULD BE <EST")) {
+        const dateEl = document.getElementById('arrival_date') || document.getElementById('extra_arrival_date');
+        const userArrivalDate = dateEl ? dateEl.value : "";
+
+        // Normalize Dates to ISO (YYYY-MM-DD) for accurate comparison
+        const userDateISO = translateToISO(userArrivalDate);
+        const eventDateISO = translateToISO(eventConfig.event_start_date);
+
+        // SCENARIO B: If Arrival Date is earlier than Event Start Date, it is ALWAYS VALID.
+        if (userDateISO < eventDateISO) {
+            return true; 
+        }
+
+        // SCENARIO A: If Arrival Date is the SAME as Event Start Date, check the Time.
+        if (userDateISO === eventDateISO) {
+            const isoInputTime = translateToISO(val); // User entered time
+            const isoConfigTime = translateToISO(eventConfig.event_start_time); // Config start time
+
+            // Trigger error only if Arrival Time is NOT earlier than Start Time
+            if (isoInputTime >= isoConfigTime) {
+              
+              //  alert("❌ " + errorMsg);
+
+              showValidationPopup(errorMsg, "time");
+              
+                let targetBox = document.getElementById(id) || document.getElementById('extra_' + id); 
+                if (targetBox) targetBox.value = "";
+                updateButtonState();
+                return false;
+            }
+        }
+    }
+
+      
+    // --- DEPARTURE DATE (EED) - UNTOUCHED ---
+    if (rule.includes("EED")) {
+        const isoInput = translateToISO(val);
+        const isoConfig = translateToISO(eventConfig.event_end_date);
+        if (isoInput && isoConfig && isoInput < isoConfig) {
+          
+         //   alert("❌ " + errorMsg);
+          showValidationPopup(errorMsg, "date");
+          
+            let targetBox = document.getElementById(id) || document.getElementById('extra_' + id); 
+            if (targetBox) targetBox.value = "";
+            updateButtonState();
+            return false;
+        }
+    }
+// --- SMART DEPARTURE TIME (T SHOULD BE >EET) ---
+    if (rule.includes("T SHOULD BE >EET")) {
+        const dateEl = document.getElementById('depart_date') || document.getElementById('extra_depart_date');
+        const userDepartDate = dateEl ? dateEl.value : "";
+
+        // Normalize Dates for comparison
+        const userDateISO = translateToISO(userDepartDate);
+        const eventEndDateISO = translateToISO(eventConfig.event_end_date);
+
+        // SCENARIO B: If Departure Date is LATER than Event End Date, it is ALWAYS VALID.
+        if (userDateISO > eventEndDateISO) {
+            return true;
+        }
+
+        // SCENARIO A: If Departure Date is the SAME as Event End Date, check the Time.
+        if (userDateISO === eventEndDateISO) {
+            const isoInputTime = translateToISO(val); // User entered departure time
+            const isoConfigTime = translateToISO(eventConfig.event_end_time); // Config end time
+
+            // Trigger error if Departure Time is NOT later than Event End Time
+            // (i.e., if they try to leave before or exactly at the end time)
+            if (isoInputTime <= isoConfigTime) {
+              
+             //   alert("❌ " + errorMsg);
+              
+              showValidationPopup(errorMsg, "time");
+              
+                let targetBox = document.getElementById(id) || document.getElementById('extra_' + id); 
+                if (targetBox) targetBox.value = "";
+                updateButtonState();
+                return false;
+            }
+        }
+    }
+
+ 
+    return true;
+} 
+
+
+init();
+
+
+
+/**
+ * NEW: MERS Live Availability Engine (Rooms + Dorms - Gender Aware)
+ */
+
+
+
+async function getStayAvailability(eventId, gender) {
+
+  const db = firebase.database();
+
+  // ✅ USE EXISTING GLOBAL CONFIG
+  const config = eventConfig;
+
+  if (!config) {
+    throw new Error("Event config not loaded");
+  }
+
+  // =====================================================
+  // NORMALIZE GENDER SAFELY
+  // =====================================================
+
+  const normalizedGender =
+    (gender || "")
+      .trim()
+      .toLowerCase();
+
+  // =====================================================
+  // CONFIG
+  // =====================================================
+
+  const roomCapacity =
+    Number(config.room_capacity) || 0;
+
+  const personsPerRoom =
+    Number(config.persons_per_room) || 2;
+
+  const maleDormCap =
+    Number(config.male_dorm_capacity) || 0;
+
+  const femaleDormCap =
+    Number(config.female_dorm_capacity) || 0;
+
+  const maleDormSize =
+    Number(config.male_dorm_persons_per_dorm) || 0;
+
+  const femaleDormSize =
+    Number(config.female_dorm_persons_per_dorm) || 0;
+
+  // =====================================================
+  // FETCH CONFIRMED COUNTERS
+  // =====================================================
+
+  const [
+    maleRoomSnap,
+    femaleRoomSnap,
+    maleDormSnap,
+    femaleDormSnap
+  ] = await Promise.all([
+
+    db.ref(
+      'counters/confirmed_counters/room_male/' +
+      eventId
+    ).once('value'),
+
+    db.ref(
+      'counters/confirmed_counters/room_female/' +
+      eventId
+    ).once('value'),
+
+    db.ref(
+      'counters/confirmed_counters/dorm_male/' +
+      eventId
+    ).once('value'),
+
+    db.ref(
+      'counters/confirmed_counters/dorm_female/' +
+      eventId
+    ).once('value')
+
+  ]);
+
+  const maleRoom =
+    maleRoomSnap.val() || 0;
+
+  const femaleRoom =
+    femaleRoomSnap.val() || 0;
+
+  const maleDorm =
+    maleDormSnap.val() || 0;
+
+  const femaleDorm =
+    femaleDormSnap.val() || 0;
+
+  // =====================================================
+  // DORM CALCULATION
+  // =====================================================
+
+  const maleDormTotal =
+    maleDormCap * maleDormSize;
+
+  const femaleDormTotal =
+    femaleDormCap * femaleDormSize;
+
+  const dormSeats =
+    normalizedGender === "male"
+
+      ? Math.max(0, maleDormTotal - maleDorm)
+
+      : Math.max(0, femaleDormTotal - femaleDorm);
+
+  // =====================================================
+  // ROOM CALCULATION
+  // =====================================================
+
+  let roomSeats = 0;
+
+  if (normalizedGender === "male") {
+
+    // Female occupied rooms block male usage
+    const femaleRoomsOccupied =
+      Math.ceil(
+        femaleRoom / personsPerRoom
+      );
+
+    // Remaining rooms usable for males
+    const roomsAvailableForMale =
+      Math.max(
+        0,
+        roomCapacity - femaleRoomsOccupied
+      );
+
+    // Maximum seats males can use
+    const maxMaleSeats =
+      roomsAvailableForMale *
+      personsPerRoom;
+
+    // Remaining usable male seats
+    roomSeats =
+      maxMaleSeats - maleRoom;
+
+  } else {
+
+    // Male occupied rooms block female usage
+    const maleRoomsOccupied =
+      Math.ceil(
+        maleRoom / personsPerRoom
+      );
+
+    // Remaining rooms usable for females
+    const roomsAvailableForFemale =
+      Math.max(
+        0,
+        roomCapacity - maleRoomsOccupied
+      );
+
+    // Maximum seats females can use
+    const maxFemaleSeats =
+      roomsAvailableForFemale *
+      personsPerRoom;
+
+    // Remaining usable female seats
+    roomSeats =
+      maxFemaleSeats - femaleRoom;
+  }
+
+  // =====================================================
+  // SAFETY
+  // =====================================================
+
+  roomSeats =
+    Math.max(0, roomSeats);
+
+  // =====================================================
+  // WAITLIST COUNTERS
+  // =====================================================
+
+  let roomWaitlist = 0;
+  let dormWaitlist = 0;
+
+  // ===== ROOM WL =====
+
+  if (normalizedGender === 'male') {
+
+    const roomWLSnap =
+      await db.ref(
+        'counters/waitlist_counters/room_male/' +
+        eventId
+      ).once('value');
+
+    roomWaitlist =
+      roomWLSnap.val() || 0;
+
+  } else {
+
+    const roomWLSnap =
+      await db.ref(
+        'counters/waitlist_counters/room_female/' +
+        eventId
+      ).once('value');
+
+    roomWaitlist =
+      roomWLSnap.val() || 0;
+  }
+
+  // ===== DORM WL =====
+
+  if (normalizedGender === 'male') {
+
+    const dormWLSnap =
+      await db.ref(
+        'counters/waitlist_counters/dorm_male/' +
+        eventId
+      ).once('value');
+
+    dormWaitlist =
+      dormWLSnap.val() || 0;
+
+  } else {
+
+    const dormWLSnap =
+      await db.ref(
+        'counters/waitlist_counters/dorm_female/' +
+        eventId
+      ).once('value');
+
+    dormWaitlist =
+      dormWLSnap.val() || 0;
+  }
+
+  // =====================================================
+  // RETURN
+  // =====================================================
+
+  return {
+    roomSeats,
+    dormSeats,
+    roomWaitlist,
+    dormWaitlist
+  };
+}
+
+
+  
+
+async function updateStayOptions(event) {
+
+// ✅ Run  when gender field changes  and also when section 2 is live..either from section 1 or from section 3 or for edit mode...
+
+ 
+ 
+ //  if (!targetId.includes('gender')) return;
+
+
+if (!shouldRunStayRefresh(event)) {
+    return;
+}
+  
+
+const formContent = document.getElementById('form-content');
+
+if (!formContent || formContent.style.display === 'none') {
+    return;
+}
+  
+  console.log("updateStayOptions fired →", {
+    section: window.currentSection,
+    target: event?.target?.id
+  });
+  
+
+  const genderEl =
+    document.getElementById('extra_gender') ||
+    document.getElementById('inp-gender') ||
+    document.getElementById('gender');
+
+  if (!genderEl || !genderEl.value) {
+    const container = document.getElementById('capacity-container');
+    if (container) container.style.display = 'none';
+    return;
+  }
+
+  // ✅ Create / Find Capacity Box
+  let container = document.getElementById('capacity-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'capacity-container';
+    container.style = `
+      margin: 15px 0;
+      font-weight: bold;
+      padding: 12px;
+      border-radius: 8px;
+      border: 2px solid #c8e6c9;
+      background-color: #f1f8e9;
+      font-family: sans-serif;
+    `;
+    genderEl.parentNode.insertBefore(container, genderEl.nextSibling);
+  }
+
+  container.style.display = 'block';
+  container.innerHTML = '<div style="color: #2e7d32;">Checking live availability...</div>';
+
+  try {
+
+    const status = await getStayAvailability(eventId, genderEl.value);
+
+
+    // ✅ Show availability
+container.innerHTML = `
+
+  <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #c8e6c9; padding-bottom: 5px; margin-bottom: 5px;">
+
+    <span><b>Current Available Seats for Room:</b></span>
+
+    <span style="color: ${status.roomSeats > 0 ? '#2e7d32' : '#d32f2f'};">
+
+${status.roomSeats > 0
+  ? status.roomSeats + ' Seats'
+  : 'WL-' + ((status.roomWaitlist || 0) + 1)}
+
+    </span>
+
+  </div>
+
+  <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+
+    <span><b>Current Available Seats for Dorm:</b></span>
+
+    <span style="color: ${status.dormSeats > 0 ? '#2e7d32' : '#d32f2f'};">
+
+${status.dormSeats > 0
+  ? status.dormSeats + ' Seats'
+  : 'WL-' + ((status.dormWaitlist || 0) + 1)}
+
+    </span>
+
+  </div>
+
+  ${
+    window.location.search.includes("edit")
+
+    ? `
+
+   
+    
+    
+    
+
+
+
+    
+
+    `
+
+    : ""
+
+  }
+
+`;
+
+
+    // ✅ WAIT for dropdown render, then update safely
+    setTimeout(() => {
+
+     const stayEl =
+  document.getElementById('extra_stay_option') ||
+  document.getElementById('inp-extra_stay_option');
+
+console.log(
+  "MERS STAY FIELD:",
+  stayEl
+);
+
+      if (!stayEl || stayEl.tagName !== 'SELECT') return;
+
+
+// =====================================================
+// CREATE EDIT STAY OPTION BUTTON
+// =====================================================
+
+if (
+  window.location.search.includes("edit") &&
+  !document.getElementById("btn-edit-stay-option")
+) {
+
+  const btn = document.createElement("button");
+
+  btn.id = "btn-edit-stay-option";
+
+  btn.type = "button";
+
+  btn.innerText = "Edit Stay Option";
+
+  btn.style.background = "#ef6c00";
+  btn.style.color = "white";
+  btn.style.border = "none";
+  btn.style.padding = "6px 10px";
+  btn.style.borderRadius = "6px";
+  btn.style.cursor = "pointer";
+  btn.style.fontWeight = "bold";
+  btn.style.fontSize = "12px";
+  btn.style.marginLeft = "10px";
+
+  const wrapper = document.createElement("div");
+
+  wrapper.style.display = "flex";
+  wrapper.style.alignItems = "center";
+  wrapper.style.marginTop = "8px";
+
+  stayEl.parentNode.insertBefore(
+    wrapper,
+    stayEl
+  );
+
+  wrapper.appendChild(stayEl);
+
+  wrapper.appendChild(btn);
+
+  // =====================================================
+// FIRST CONFIRMATION
+// =====================================================
+
+btn.onclick = function () {
+
+  const currentStay =
+    stayEl.value || "your current stay option";
+
+  const originalAllocationCode =
+  originalData?.stay_allocation_code || "";
+
+
+
+// =====================================================
+// BUILD DYNAMIC POPUP CONTENT
+// =====================================================
+
+const popupOverlay =
+  document.getElementById("mersPopupOverlay");
+
+const popupContent =
+  document.getElementById("mersPopupContent");
+
+const popupCancel =
+  document.getElementById("mersPopupCancel");
+
+const popupProceed =
+  document.getElementById("mersPopupProceed");
+
+// ---------------------------------------------
+// CURRENT STAY TYPE
+// ---------------------------------------------
+
+const currentStayLower =
+  currentStay.toLowerCase();
+
+let alternateStayType = "Dormitory";
+
+if (
+  currentStayLower.includes("dorm")
+) {
+  alternateStayType = "Room";
+}
+
+// ---------------------------------------------
+// GET CURRENT ALTERNATE STATUS
+// ---------------------------------------------
+
+let alternateStatusText =
+  "Checking latest availability...";
+
+const availabilityBox =
+  document.getElementById(
+    "mersStayAvailability"
+  );
+
+if (availabilityBox) {
+
+  const availabilityText =
+    availabilityBox.innerText;
+
+  if (
+    alternateStayType === "Room"
+  ) {
+
+    const roomMatch =
+      availabilityText.match(
+        /Available Seats for Room:\s*(.*)/i
+      );
+
+    if (roomMatch) {
+      alternateStatusText =
+        roomMatch[1];
+    }
+  }
+
+  if (
+    alternateStayType === "Dormitory"
+  ) {
+
+    const dormMatch =
+      availabilityText.match(
+        /Available Seats for Dorm:\s*(.*)/i
+      );
+
+    if (dormMatch) {
+      alternateStatusText =
+        dormMatch[1];
+    }
+  }
+}
+
+
+
+
+
+  
+// ---------------------------------------------
+// POPUP HTML
+// ---------------------------------------------
+
+popupContent.innerHTML = `
+
+<div style="line-height:1.5;">
+
+Your current accommodation status is
+<b>${originalAllocationCode}</b>.
+
+
+<br><br>
+
+You are about to change your stay option to
+<b>${alternateStayType}</b>.
+
+<br><br>
+
+Please check the current
+<b>${alternateStayType}</b>
+availability shown above this popup before proceeding further, because you may lose your current accommodation allocation.
+
+<br><br>
+
+<b>Do you want to continue?</b>
+
+</div>
+`;
+  
+  
+// SHOW POPUP
+popupOverlay.style.display = "flex";
+
+// CANCEL BUTTON
+popupCancel.onclick = function () {
+
+  popupOverlay.style.display = "none";
+};
+
+// PROCEED BUTTON
+popupProceed.onclick = function () {
+
+  popupOverlay.style.display = "none";
+
+  // =====================================================
+  // ENABLE ACCOMMODATION EDIT MODE
+  // =====================================================
+
+  window.accommodationEditUnlocked = true;
+
+  refreshSection2BusinessLogic();
+
+  btn.style.display = "none";
+};
+
+// STOP EXECUTION HERE
+return;
+
+  
+};
+}
+    
+
+      const currentValue = stayEl.value;
+
+      let newOptions = [];
+
+      // Room logic
+      if (status.roomSeats > 0) {
+        newOptions.push("Room");
+      } else {
+        newOptions.push("Room (Waiting List)");
+      }
+
+      // Dorm logic
+      if (status.dormSeats > 0) {
+        newOptions.push("Dormitory");
+      } else {
+        newOptions.push("Dormitory (Waiting List)");
+      }
+
+      // Always include outside option
+      newOptions.push("I will arrange my own stay outside the venue");
+
+      
+console.log(
+  "MERS UNLOCK FLAG:",
+  window.accommodationEditUnlocked
+);
+
+if (
+
+        
+  !window.accommodationEditUnlocked &&
+  window.location.search.includes("edit")
+) {
+
+  console.log(
+    "MERS: Protected Mode active. Original stay option preserved."
+  );
+
+  stayEl.disabled = true;
+
+  stayEl.setAttribute(
+    "disabled",
+    "disabled"
+  );
+
+  stayEl.style.pointerEvents =
+    "none";
+
+  stayEl.style.background =
+    "#f5f5f5";
+
+  stayEl.style.opacity =
+    "0.8";
+
+  return;
+
+}
+
+      
+      // Replace options safely
+      stayEl.innerHTML = '';
+
+      // Add placeholder (prevents auto-selection)
+const placeholder = document.createElement('option');
+placeholder.value = "";
+placeholder.textContent = "-- Select --";
+placeholder.disabled = true;
+placeholder.selected = true;
+
+stayEl.appendChild(placeholder);
+
+     
+
+      newOptions.forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt;
+        option.textContent = opt;
+        stayEl.appendChild(option);
+      });
+
+      // Restore previous selection if still valid
+      if (newOptions.includes(currentValue)) {
+        stayEl.value = currentValue;
+      }
+
+      // =====================================================
+// ENABLE DROPDOWN AFTER UNLOCK
+// =====================================================
+
+stayEl.disabled = false;
+
+stayEl.removeAttribute("disabled");
+
+stayEl.style.pointerEvents = "auto";
+
+stayEl.style.opacity = "1";
+
+stayEl.style.background = "";
+
+console.log(
+  "MERS FINAL DROPDOWN STATE:",
+  {
+    disabled: stayEl.disabled,
+    pointerEvents: stayEl.style.pointerEvents,
+    value: stayEl.value
+  }
+);
+
+
+      
+      
+// 👉 ADD THIS LINE HERE (exactly here)
+
+if (stayEl.value && !stayEl.dataset.updated) {
+  stayEl.dataset.updated = "true";
+  stayEl.dispatchEvent(new Event('change', { bubbles: true }));
+}
+      
+
+console.log("MERS: Dropdown updated correctly");
+
+    }, 200);
+
+    console.log("MERS: Capacity + Options updated for", genderEl.value);
+
+  } catch (error) {
+    container.innerHTML = '<div style="color: #d32f2f;">Error loading availability</div>';
+    console.error("MERS Error:", error);
+  }
+}
+
+
+
+  function shouldRunStayRefresh(event) {
+
+    const targetId =
+        event?.target?.id || '';
+
+    // =====================================================
+    // ALLOW MANUAL SECTION-2 REFRESH
+    // =====================================================
+
+    const forcedRefresh =
+        event?.type === 'mers-section-refresh';
+
+    return (
+        targetId.includes('gender') ||
+        forcedRefresh
+    );
+}
+
+function refreshSection2BusinessLogic() {
+
+    setTimeout(() => {
+
+        updateStayOptions({
+            type: 'mers-section-refresh'
+        });
+
+    }, 800);
+}
+
+function triggerGenderRefresh() {
+
+    setTimeout(() => {
+
+        const genderField =
+            document.getElementById("inp-gender");
+
+        if (genderField) {
+
+            genderField.dispatchEvent(
+                new Event("change")
+            );
+
+            console.log(
+                "MERS EDIT MODE: Gender change event triggered."
+            );
+
+        }
+
+    }, 300);
+}
+
+
+
+  function filterStayChoices(choices) {
+
+    if (!window.availability) {
+        return choices;
+    }
+
+    const roomSeats =
+        window.availability.roomSeats || 0;
+
+    const dormSeats =
+        window.availability.dormSeats || 0;
+
+    return choices.filter(choice => {
+
+        const c = choice.toLowerCase();
+
+        // Always keep outside stay
+        if (c.includes('outside')) {
+            return true;
+        }
+
+        // ROOM logic
+        if (c.includes('room')) {
+
+            if (
+                roomSeats > 0 &&
+                !c.includes('waiting')
+            ) {
+                return true;
+            }
+
+            if (
+                roomSeats === 0 &&
+                c.includes('waiting')
+            ) {
+                return true;
+            }
+
+            return false;
+        }
+
+        // DORM logic
+        if (c.includes('dorm')) {
+
+            if (
+                dormSeats > 0 &&
+                !c.includes('waiting')
+            ) {
+                return true;
+            }
+
+            if (
+                dormSeats === 0 &&
+                c.includes('waiting')
+            ) {
+                return true;
+            }
+
+            return false;
+        }
+
+        return true;
+    });
+}
+
+
+function filterRoomChoices(fieldId, choices) {
+
+    if (
+        !window.availability ||
+        !fieldId.toLowerCase().includes('room')
+    ) {
+        return choices;
+    }
+
+    return choices.filter(choice => {
+
+        const choiceLower =
+            choice.toLowerCase();
+
+        // Hide Room options
+        if (
+            window.availability.room === false &&
+            choiceLower.includes('room')
+        ) {
+            return false;
+        }
+
+        // Hide Waiting options
+        if (
+            window.availability.waiting === false &&
+            choiceLower.includes('waiting')
+        ) {
+            return false;
+        }
+
+        return true;
+    });
+}
+
+
+
+function getSectionIndex(sectionNumber) {
+
+    return moreSections.findIndex(
+        s => s.section_number === sectionNumber
+    );
+}
+
+function getNextSection(currentSection) {
+
+    const currentIndex =
+        getSectionIndex(currentSection);
+
+    if (currentIndex === -1) {
+        return null;
+    }
+
+    const nextSection =
+        moreSections[currentIndex + 1];
+
+    return nextSection
+        ? nextSection.section_number
+        : null;
+}
+
+function getPreviousSection(currentSection) {
+
+    const currentIndex =
+        getSectionIndex(currentSection);
+
+    if (currentIndex <= 0) {
+        return null;
+    }
+
+    const previousSection =
+        moreSections[currentIndex - 1];
+
+    return previousSection
+        ? previousSection.section_number
+        : null;
+}
+
+
+  
+  
+
+  
+
+// ✅ Keep this listener (unchanged)
+document.addEventListener('change', updateStayOptions);
+console.log("MERS DIAG: Section 2 Listener Active via Delegation");
+  
+</script>
+
+    <!-- VALIDATION POPUP -->
+
+<div id="validationPopupOverlay"
+     style="
+        display:none;
+        position:fixed;
+        top:0;
+        left:0;
+        width:100%;
+        height:100%;
+        background:rgba(0,0,0,0.45);
+        z-index:999999;
+        justify-content:center;
+    //    align-items:flex-end;
+        align-items:center;
+      //  padding-bottom:310px;
+  
+       ">
+
+    <div style="
+        background:white;
+        width:320px;
+
+      margin-top:500px;
+      
+        border-radius:16px;
+        padding:24px;
+        text-align:center;
+        box-shadow:0 4px 20px rgba(0,0,0,0.25);
+    ">
+
+        <div id="validationPopupIcon"
+             style="
+                font-size:52px;
+             ">
+            📅
+        </div>
+
+        <div id="validationPopupTitle"
+             style="
+                margin-top:10px;
+                font-size:22px;
+                font-weight:bold;
+                color:#c62828;
+             ">
+            Invalid Date
+        </div>
+
+        <div id="validationPopupMessage"
+             style="
+                margin-top:16px;
+                font-size:15px;
+                line-height:1.5;
+                color:#333;
+             ">
+        </div>
+
+        <button id="validationPopupBtn"
+                style="
+                    margin-top:24px;
+                    padding:10px 22px;
+                    border:none;
+                    border-radius:8px;
+                    background:#c62828;
+                    color:white;
+                    font-size:15px;
+                    cursor:pointer;
+                ">
+            OK
+        </button>
+
+    </div>
+
+</div>
+
+    
+</body>
+</html>
