@@ -756,6 +756,30 @@ console.log("%c MERS PING 1: Init sequence started. CurrentSection is: " + (type
             const allRules = rulesSnap.val() || {};
             fieldRules = Object.values(allRules).filter(r => String(r.event_id).toUpperCase() === eventId);
             console.log("MERS: Field Rules Loaded:", fieldRules.length);
+
+
+
+const jumpSnap =
+    await db.ref(
+        'config/sectionJumpRules'
+    ).once('value');
+
+sectionJumpRules =
+    Object.values(
+        jumpSnap.val() || {}
+    );
+
+console.log(
+    'MERS: Section Jump Rules Loaded:',
+    sectionJumpRules.length
+);
+          
+
+
+
+
+
+          
         } catch (ruleErr) {
             console.error("MERS: Field Rules fetch error:", ruleErr);
             fieldRules = [];
@@ -847,33 +871,14 @@ function renderParticipantClassification() {
         fieldRules.length
     );
 
-try {
 
-    const jumpSnap =
-        await db.ref(
-            'config/sectionJumpRules'
-        ).once('value');
 
-    sectionJumpRules =
-        Object.values(
-            jumpSnap.val() || {}
-        );
 
-    console.log(
-        'MERS: Section Jump Rules Loaded:',
-        sectionJumpRules.length
-    );
 
-} catch(err){
 
-    console.error(
-        'MERS: Section Jump Rules Error',
-        err
-    );
 
-    sectionJumpRules = [];
 
-}
+  
 
 
 
