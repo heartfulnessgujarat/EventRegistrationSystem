@@ -1087,13 +1087,27 @@ console.log(
     
     // --- MERS SURGERY START: Bulletproof Section Filter ---
     // 1. Convert the section value to a clean string
-    const secValue = r.section_number ? String(r.section_number).trim() : "";
+
+
+
+// TEMP DIAGNOSTIC
+
+console.log(
+    "Render Candidate:",
+    r.section_id,
+    r.field_id
+);
+
+if (
+    r.section_id !== 'SEARCH_PROFILE'
+) {
+    return;
+}
     
-    // 2. LOGIC: If a field is NOT explicitly Section1, skip it.
-    // This will catch "Section2", "Section3", and even blank values.
-    if (secValue !== "Section1") {
-      return; 
-    }
+
+
+
+    
     // --- MERS SURGERY END ---
 
     const div = document.createElement('div');
