@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Event Registration 2026</title>
+  <title>EvproceedToLogistics()ent Registration 2026</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
@@ -3279,19 +3279,35 @@ function processFinalDeletion(regId, eventId, gender) {
     container.innerHTML = ""; 
     actionBtn.disabled = true;
 
-    const sectionObj = moreSections.find(s => s.section_number === targetSectionNumber);
-    
-    if (sectionObj) {
-        titleHeader.innerText = sectionObj.section_name || "Details";
 
-        const systemKeys = ['section_name', 'section_number', 'section_id', 'id'];
-        const fieldKeys = Object.keys(sectionObj).filter(key => 
-            !systemKeys.includes(key) && sectionObj[key] && typeof sectionObj[key] === 'string'
-        ).sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
-        
-        for (const key of fieldKeys) {
-            const fieldId = sectionObj[key];
-            const rule = fieldRules.find(r => r.field_id === fieldId);
+
+const sectionRules =
+    fieldRules.filter(
+        r =>
+            r.section_id ===
+            targetSectionNumber
+    );
+
+if (sectionRules.length > 0) {
+
+      
+
+
+
+  
+  
+
+      titleHeader.innerText =
+    targetSectionNumber;
+
+for (const rule of sectionRules) {
+
+    const fieldId =
+        rule.field_id;
+
+
+
+          
             
             if (rule) {
                 const fieldWrapper = document.createElement('div');
