@@ -4928,52 +4928,73 @@ function filterRoomChoices(fieldId, choices) {
 }
 
 
+function getAllDynamicSections() {
+
+    const sections = [...new Set(
+
+        fieldRules
+            .filter(r =>
+                r.section_id &&
+                r.section_id.startsWith('Section')
+            )
+            .map(r => r.section_id)
+
+    )];
+
+    sections.sort((a, b) => {
+
+        const numA =
+            parseInt(a.replace('Section', ''));
+
+        const numB =
+            parseInt(b.replace('Section', ''));
+
+        return numA - numB;
+
+    });
+
+    return sections;
+}
 
 function getSectionIndex(sectionNumber) {
 
-    return moreSections.findIndex(
-        s => s.section_number === sectionNumber
+    const sections =
+        getAllDynamicSections();
+
+    return sections.indexOf(
+        sectionNumber
     );
 }
 
 function getNextSection(currentSection) {
 
+    const sections =
+        getAllDynamicSections();
+
     const currentIndex =
-        getSectionIndex(currentSection);
+        sections.indexOf(currentSection);
 
     if (currentIndex === -1) {
         return null;
     }
 
-    const nextSection =
-        moreSections[currentIndex + 1];
-
-    return nextSection
-        ? nextSection.section_number
-        : null;
+    return sections[currentIndex + 1] || null;
 }
 
 function getPreviousSection(currentSection) {
 
+    const sections =
+        getAllDynamicSections();
+
     const currentIndex =
-        getSectionIndex(currentSection);
+        sections.indexOf(currentSection);
 
     if (currentIndex <= 0) {
         return null;
     }
 
-    const previousSection =
-        moreSections[currentIndex - 1];
-
-    return previousSection
-        ? previousSection.section_number
-        : null;
+    return sections[currentIndex - 1];
 }
-
-
-  
-  
-
   
 
 // ✅ Keep this listener (unchanged)
