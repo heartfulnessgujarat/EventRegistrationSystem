@@ -3947,6 +3947,18 @@ actionBtn.innerText =
 }
 
 function validateField(id, value, rule) {
+
+console.log(
+    "VALIDATE CALLED",
+    {
+        field: id,
+        value: value,
+        rule: rule
+    }
+);
+
+
+  
     const val = value ? value.trim() : "";
     const rulesArray = Array.isArray(fieldRules) ? fieldRules : Object.values(fieldRules);
     const ruleObj = rulesArray.find(r => r.field_id === id);
