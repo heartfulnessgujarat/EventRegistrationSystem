@@ -3305,9 +3305,12 @@ console.log(
 if (sectionRules.length > 0) {
 
         
-
-      titleHeader.innerText =
+const currentSectionName =
+    sectionRules[0]?.section_name ||
     targetSectionNumber;
+
+titleHeader.innerText =
+    currentSectionName;
 
 for (const rule of sectionRules) {
 
