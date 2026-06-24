@@ -3918,6 +3918,11 @@ actionBtn.innerText =
     const rulesArray = Array.isArray(fieldRules) ? fieldRules : Object.values(fieldRules);
     const sectionRules = rulesArray.filter(r => r.section_number === sectionName);
 
+    console.log(
+    "REFLOW SECTION RULES:",
+    sectionRules
+);
+
     sectionRules.forEach((rule, index) => {
         const currentEl = document.getElementById(rule.field_id) || document.getElementById('extra_' + rule.field_id);
         
