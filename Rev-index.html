@@ -3409,7 +3409,11 @@ if (valToSet && valToSet !== "") {
     }
 }
 
-
+// Apply calculated visibility
+fieldWrapper.style.display =
+    showField
+        ? "block"
+        : "none";
               
 
               
