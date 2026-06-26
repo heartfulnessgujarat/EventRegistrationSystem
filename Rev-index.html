@@ -3664,26 +3664,84 @@ async function handleFieldChange(inputElement, rule) {
 
     // --- WATERFALL (Section 3 One-by-One) ---
     // This finds the next question in the current section and reveals it
-    
+
+
+
+
   const currentSectionQuestions =
-    fieldRules.filter(r => r.section_id === section);
+    fieldRules.filter(
+        r => r.section_id === section
+    );
 
-
-
-  console.log(
+console.log(
     "CURRENT SECTION QUESTIONS:",
-    currentSectionQuestions.map(r => r.field_id)
+    currentSectionQuestions
 );
-    const currentIndex = currentSectionQuestions.findIndex(r => r.field_id === fId);
-    const nextRule = currentSectionQuestions[currentIndex + 1];
 
-    if (nextRule) {
-        const nextWrapper = document.getElementById(`wrapper_extra_${nextRule.field_id}`);
-        if (nextWrapper) {
-            nextWrapper.style.display = 'block';
-            nextWrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
+const currentIndex =
+    currentSectionQuestions.findIndex(
+        r => r.field_id === fId
+    );
+
+console.log(
+    "CURRENT INDEX:",
+    currentIndex
+);
+
+const nextRule =
+    currentSectionQuestions[currentIndex + 1];
+
+console.log(
+    "NEXT RULE:",
+    nextRule
+);
+
+if (nextRule) {
+
+    const nextWrapper =
+        document.getElementById(
+            `wrapper_extra_${nextRule.field_id}`
+        );
+
+    console.log(
+        "NEXT WRAPPER:",
+        nextWrapper
+    );
+
+    if (nextWrapper) {
+
+        console.log(
+            "UNHIDING:",
+            nextRule.field_id
+        );
+
+        nextWrapper.style.display = "block";
+
+        nextWrapper.scrollIntoView({
+            behavior: "smooth",
+            block: "center"
+        });
+
+    } else {
+
+        console.log(
+            "WRAPPER NOT FOUND:",
+            `wrapper_extra_${nextRule.field_id}`
+        );
     }
+
+} else {
+
+    console.log(
+        "NO NEXT RULE FOUND"
+    );
+}
+
+
+
+
+
+  
 
     // --- SECTION 1 & 2 SPECIAL BEHAVIOR ---
     if (rule.edit_behavior === 'Editable_Verify') {
