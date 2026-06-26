@@ -3639,7 +3639,8 @@ actionBtn.innerText =
 async function handleFieldChange(inputElement, rule) {
     const val = inputElement.value;
     const fId = rule.field_id;
-    const section = rule.section_number; 
+   
+  const section = rule.section_id;
 
   console.log(
     "SECTION DETECTED:",
@@ -3663,7 +3664,16 @@ async function handleFieldChange(inputElement, rule) {
 
     // --- WATERFALL (Section 3 One-by-One) ---
     // This finds the next question in the current section and reveals it
-    const currentSectionQuestions = fieldRules.filter(r => r.section_number === section);
+    
+  const currentSectionQuestions =
+    fieldRules.filter(r => r.section_id === section);
+
+
+
+  console.log(
+    "CURRENT SECTION QUESTIONS:",
+    currentSectionQuestions.map(r => r.field_id)
+);
     const currentIndex = currentSectionQuestions.findIndex(r => r.field_id === fId);
     const nextRule = currentSectionQuestions[currentIndex + 1];
 
