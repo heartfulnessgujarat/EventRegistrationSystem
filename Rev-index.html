@@ -3653,11 +3653,6 @@ actionBtn.innerText =
     }
 }
 
-
-
-
-  
-
   
 async function handleFieldChange(inputElement, rule) {
     const val = inputElement.value;
@@ -3719,45 +3714,45 @@ console.log(
     nextRule
 );
 
+
 if (nextRule) {
 
-    const nextWrapper =
-        document.getElementById(
-            `wrapper_extra_${nextRule.field_id}`
-        );
-
     console.log(
-        "NEXT WRAPPER:",
-        nextWrapper
+        "NEXT RULE VISIBILITY:",
+        nextRule.visibility_rule
     );
 
-    if (nextWrapper) {
+    if (
+        nextRule.visibility_rule ===
+        "AFTER_PREVIOUS_COMPLETED"
+    ) {
+
+        const nextWrapper =
+            document.getElementById(
+                `wrapper_extra_${nextRule.field_id}`
+            );
 
         console.log(
-            "UNHIDING:",
-            nextRule.field_id
+            "NEXT WRAPPER:",
+            nextWrapper
         );
 
-        nextWrapper.style.display = "block";
+        if (nextWrapper) {
 
+            console.log(
+                "UNHIDING:",
+                nextRule.field_id
+            );
 
-      console.log(
-    "AFTER UNHIDE:",
-    nextWrapper.style.display,
-    nextWrapper.outerHTML
-);
+            nextWrapper.style.display = "block";
 
-        nextWrapper.scrollIntoView({
-            behavior: "smooth",
-            block: "center"
-        });
+            nextWrapper.scrollIntoView({
+                behavior: "smooth",
+                block: "center"
+            });
 
-    } else {
+        }
 
-        console.log(
-            "WRAPPER NOT FOUND:",
-            `wrapper_extra_${nextRule.field_id}`
-        );
     }
 
 } else {
@@ -3766,10 +3761,6 @@ if (nextRule) {
         "NO NEXT RULE FOUND"
     );
 }
-
-
-
-
 
   
 
