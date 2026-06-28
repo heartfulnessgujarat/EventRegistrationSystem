@@ -3259,7 +3259,6 @@ function processFinalDeletion(regId, eventId, gender) {
 
 
 
-
   async function buildExtraSections(targetSectionNumber) {
     if (!targetSectionNumber) targetSectionNumber = "Section2";
 
@@ -3293,9 +3292,6 @@ console.log(
     "SECTION RULES FOUND:",
     sectionRules
 );
-
-
-
 
     
     actionBtn.disabled = true;
@@ -3361,21 +3357,12 @@ console.log(
     "initial=",
     rule.initial_state
 );
-
              
 // ----------------------------------------------------
 // MERS V2 : Metadata-driven initial visibility
 // ----------------------------------------------------
 
 let showField = true;
-
-
-
-
-
-
-
-
 
 
 // Existing registrations always show populated fields
@@ -3416,30 +3403,6 @@ if (valToSet && valToSet !== "") {
     }
 
 }
-
-// Apply calculated visibility
-fieldWrapper.style.display =
-    showField
-        ? "block"
-        : "none";
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   
 // Apply calculated visibility
 fieldWrapper.style.display =
@@ -3447,8 +3410,7 @@ fieldWrapper.style.display =
         ? "block"
         : "none";
               
-
-              
+             
 
                 const isMandatory = (rule.field_validation && rule.field_validation !== "NULL" && rule.field_validation !== "N/A");
                 const label = document.createElement('label');
@@ -3495,8 +3457,7 @@ if (fieldId === 'stay_option') {
     choices = filterStayChoices(choices);
 
 }
-
-                              
+                             
 
                                 // --- MERS: ROOM FILTERING LOGIC ---
                                 // Only filters if global availability data exists and field name relates to rooms
@@ -3545,9 +3506,6 @@ if (fieldId === 'stay_option') {
                 if (originalData) originalData[cleanId] = input.value;
             });
 
-
-
-
 console.log(
     "CURRENT SECTION:",
     targetSectionNumber
@@ -3574,18 +3532,7 @@ if (nextSection) {
     submitData();
 }
 
-
-
-
-
-
-          
-
-
-
-          
- 
-          
+         
         };
 
         if (backBtn) {
@@ -3660,70 +3607,81 @@ actionBtn.innerText =
         "CONFIRM & REGISTER";
 }
 
-
-
-
-
-
-      
-      
+     
         setTimeout(() => { updateButtonState(); }, 800);
     }
 }
 
-  
 async function handleFieldChange(inputElement, rule) {
+
     const val = inputElement.value;
     const fId = rule.field_id;
-   
-  const section = rule.section_id;
+    const section = rule.section_id;
 
-  console.log(
-    "SECTION DETECTED:",
-    section,
-    rule.section_id
-);
+    console.log(
+        "SECTION DETECTED:",
+        section,
+        rule.section_id
+    );
 
-    updateButtonState(); 
+    updateButtonState();
+
     if (!val) return;
 
+    // -----------------------------
+    // Validation
+    // -----------------------------
     try {
-        // Run the validation
-        validateField(fId, val, rule.field_validation);
+
+        validateField(
+            fId,
+            val,
+            rule.field_validation
+        );
+
     } catch (err) {
-        // If it fails (Section 3), alert and stop
+
         alert("❌ " + err);
-        inputElement.value = ""; 
+
+        inputElement.value = "";
+
         updateButtonState();
-        return; 
+
+        return;
+
     }
 
-    // --- WATERFALL (Section 3 One-by-One) ---
-    // This finds the next question in the current section and reveals it
+    // -----------------------------
+    // Metadata-driven visibility
+    // -----------------------------
+    refreshSectionVisibility(section);
 
-refreshSectionVisibility(section);
-      
-    );
-}
+    // -----------------------------
+    // Verification behaviour
+    // -----------------------------
+    if (
+        rule.edit_behavior ===
+        "Editable_Verify"
+    ) {
 
-  
+        if (
+            typeof handleVerification ===
+            "function"
+        ) {
 
-    // --- SECTION 1 & 2 SPECIAL BEHAVIOR ---
-    if (rule.edit_behavior === 'Editable_Verify') {
-        // This keeps your Mobile/Email verification working as before
-        if (typeof handleVerification === "function") {
-            handleVerification(fId, val);
+            handleVerification(
+                fId,
+                val
+            );
+
         }
+
     }
 
-
-  // TEMPORARY TEST
-// updateButtonState();
-  
-  
 }
 
 
+  
   function refreshSectionVisibility(sectionId) {
 
     const sectionRules =
