@@ -3384,13 +3384,27 @@ if (valToSet && valToSet !== "") {
 
     }
     // Subsequent fields follow previous-answer metadata
-    else if (
-        rule.edit_behavior &&
-        rule.edit_behavior.includes(
-            "after previous input"
-        )
-    ) {
 
+else if (
+    rule.visibility_rule ===
+    "AFTER_PREVIOUS_COMPLETED"
+) {
+
+    const prevValue =
+        originalData?.[previousRule.field_id] ||
+        mersTempData?.[previousRule.field_id] ||
+        document.getElementById(
+            "extra_" + previousRule.field_id
+        )?.value ||
+        "";
+
+    showField =
+        prevValue.trim() !== "";
+
+}
+
+
+  
         const prevValue =
             originalData?.[previousRule.field_id] ||
             mersTempData?.[previousRule.field_id] ||
