@@ -3683,82 +3683,8 @@ async function handleFieldChange(inputElement, rule) {
     // --- WATERFALL (Section 3 One-by-One) ---
     // This finds the next question in the current section and reveals it
 
-
-
-
-  const currentSectionQuestions =
-    fieldRules.filter(
-        r => r.section_id === section
-    );
-
-console.log(
-    "CURRENT SECTION QUESTIONS:",
-    currentSectionQuestions
-);
-
-const currentIndex =
-    currentSectionQuestions.findIndex(
-        r => r.field_id === fId
-    );
-
-console.log(
-    "CURRENT INDEX:",
-    currentIndex
-);
-
-const nextRule =
-    currentSectionQuestions[currentIndex + 1];
-
-console.log(
-    "NEXT RULE:",
-    nextRule
-);
-
-
-if (nextRule) {
-
-    console.log(
-        "NEXT RULE VISIBILITY:",
-        nextRule.visibility_rule
-    );
-
-    if (
-        nextRule.visibility_rule ===
-        "AFTER_PREVIOUS_COMPLETED"
-    ) {
-
-        const nextWrapper =
-            document.getElementById(
-                `wrapper_extra_${nextRule.field_id}`
-            );
-
-        console.log(
-            "NEXT WRAPPER:",
-            nextWrapper
-        );
-
-        if (nextWrapper) {
-
-            console.log(
-                "UNHIDING:",
-                nextRule.field_id
-            );
-
-            nextWrapper.style.display = "block";
-
-            nextWrapper.scrollIntoView({
-                behavior: "smooth",
-                block: "center"
-            });
-
-        }
-
-    }
-
-} else {
-
-    console.log(
-        "NO NEXT RULE FOUND"
+refreshSectionVisibility(section);
+      
     );
 }
 
@@ -3776,13 +3702,93 @@ if (nextRule) {
   // TEMPORARY TEST
 // updateButtonState();
   
+  
+}
 
 
+  function refreshSectionVisibility(sectionId) {
+
+    const sectionRules =
+        fieldRules.filter(
+            r => r.section_id === sectionId
+        );
+
+    sectionRules.forEach((rule, index) => {
+
+        const wrapper =
+            document.getElementById(
+                "wrapper_extra_" + rule.field_id
+            );
+
+        if (!wrapper) return;
+
+        let show = false;
+
+        //--------------------------------------------------
+        // Rule 1 : ALWAYS
+        //--------------------------------------------------
+
+        if (
+            rule.visibility_rule === "ALWAYS"
+        ) {
+
+            show = true;
+
+        }
+
+        //--------------------------------------------------
+        // Rule 2 : AFTER_PREVIOUS_COMPLETED
+        //--------------------------------------------------
+
+        else if (
+            rule.visibility_rule ===
+            "AFTER_PREVIOUS_COMPLETED"
+        ) {
+
+            if (index === 0) {
+
+                show = true;
+
+            } else {
+
+                const prevField =
+                    sectionRules[index - 1];
+
+                const prevValue =
+                    document.getElementById(
+                        "extra_" + prevField.field_id
+                    )?.value || "";
+
+                show =
+                    prevValue.trim() !== "";
+
+            }
+
+        }
+
+        //--------------------------------------------------
+        // Default
+        //--------------------------------------------------
+
+        else {
+
+            show =
+                rule.initial_state !== "Hidden";
+
+        }
+
+        wrapper.style.display =
+            show
+                ? "block"
+                : "none";
+
+    });
+
+}
 
 
 
   
-}
     
 function showSuccessScreen() {
 
