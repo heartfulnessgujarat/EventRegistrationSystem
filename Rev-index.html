@@ -3451,7 +3451,7 @@ const previousRule =
                 const fieldWrapper = document.createElement('div');
                 fieldWrapper.className = 'form-group';
               
-            //    fieldWrapper.id = `wrapper_extra_${fieldId}`; 
+            //    fieldWrapper.id = `wrapper_${fieldId}`; 
 
               fieldWrapper.id =
     `wrapper_${fieldId}`;
@@ -3803,7 +3803,7 @@ function getFieldValue(fieldId) {
 
         const wrapper =
             document.getElementById(
-                "wrapper_extra_" +
+                "wrapper_" +
                 rule.field_id
             );
 
