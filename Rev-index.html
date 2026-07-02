@@ -3439,6 +3439,10 @@ function applyLookupFilterRule(
 
 
 
+
+
+
+
   //----------------------------------------------------
 // MERS V2 : Accommodation Rule
 //----------------------------------------------------
@@ -3448,10 +3452,60 @@ function filterAccommodationChoices(
     choices
 ) {
 
-    return choices;
+    if (!window.availability) {
+        return choices;
+    }
+
+    return choices.filter(choice => {
+
+        const c =
+            choice.toLowerCase();
+
+        //----------------------------------------
+        // ROOM
+        //----------------------------------------
+
+        if (
+            c === "room" &&
+            window.availability.room === false
+        ) {
+            return false;
+        }
+
+        if (
+            c === "room (waiting list)" &&
+            window.availability.room === true
+        ) {
+            return false;
+        }
+
+        //----------------------------------------
+        // DORMITORY
+        //----------------------------------------
+
+        if (
+            c === "dormitory" &&
+            window.availability.dorm === false
+        ) {
+            return false;
+        }
+
+        if (
+            c === "dormitory (waiting list)" &&
+            window.availability.dorm === true
+        ) {
+            return false;
+        }
+
+        //----------------------------------------
+
+        return true;
+
+    });
 
 }
 
+  
   async function buildExtraSections(targetSectionNumber) {
     if (!targetSectionNumber) targetSectionNumber = "Section2";
 
