@@ -4803,9 +4803,7 @@ if (!formContent || formContent.style.display === 'none') {
   
 
   const genderEl =
-    document.getElementById('extra_gender') ||
-    document.getElementById('inp-gender') ||
-    document.getElementById('gender');
+    getFieldElement("gender");
 
   if (!genderEl || !genderEl.value) {
     const container = document.getElementById('capacity-container');
