@@ -3407,6 +3407,35 @@ function shouldFieldBeVisible(
 
 }
 
+
+  //----------------------------------------------------
+// MERS V2 : Metadata-driven Lookup Filter Engine
+//----------------------------------------------------
+
+function applyLookupFilterRule(
+    ruleName,
+    fieldId,
+    choices
+) {
+
+    if (!ruleName) return choices;
+
+    switch (ruleName) {
+
+        case "ACCOMMODATION":
+
+            return filterAccommodationChoices(
+                fieldId,
+                choices
+            );
+
+        default:
+
+            return choices;
+
+    }
+
+}
  
 
   async function buildExtraSections(targetSectionNumber) {
@@ -3578,6 +3607,13 @@ if (fieldId === 'stay_option') {
                                 // --- MERS: ROOM FILTERING LOGIC ---
                                 // Only filters if global availability data exists and field name relates to rooms
                                 choices = filterRoomChoices(fieldId, choices);
+
+
+                              choices = applyLookupFilterRule(
+    rule.lookup_filter_rule,
+    fieldId,
+    choices
+);
 
                                 [...new Set(choices)].forEach(choice => {
                                     const opt = document.createElement('option');
