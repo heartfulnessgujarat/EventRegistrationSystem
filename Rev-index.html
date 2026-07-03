@@ -1423,66 +1423,65 @@ function selectParticipant(p) {
           }
       });
   }
-  
   function unlockField(id) {
 
-console.log("unlockField called:", id);
+    console.log("unlockField called:", id);
 
-  //  const inp = getFieldElement(`inp-${id}`);
+    // 1. HARD GUARD: Never unlock the full_name
+    if (id === 'full_name') {
+        alert("Full Name is locked and cannot be changed.");
+        return;
+    }
+
+    const inp = getFieldElement(`inp-${id}`);
 
     console.log("Input found:", inp);
 
-
-
-    
-    // 1. HARD GUARD: Never unlock the full_name
-    if (id === 'full_name') {
-      alert("Full Name is locked and cannot be changed.");
-      return; 
+    // Safety check
+    if (!inp) {
+        console.error("unlockField: Input element not found for:", id);
+        return;
     }
-  
-    const inp = getFieldElement(`inp-${id}`);
-  
-  
-  // ============================================
-  // RESTORE ORIGINAL VALUE BEFORE EDITING
-  // ============================================
-  
-  if (
-      inp &&
-      inp.dataset.originalValue
-  ) {
-  
-      inp.value =
-          inp.dataset.originalValue;
-  }
-  
-      
+
+    // ============================================
+    // RESTORE ORIGINAL VALUE BEFORE EDITING
+    // ============================================
+
+    if (
+        inp.dataset.originalValue
+    ) {
+        inp.value = inp.dataset.originalValue;
+    }
+
     const editLink = document.getElementById(`edit-link-${id}`);
-    
+
     // 2. Standard Unlock Logic
     inp.disabled = false;
     inp.focus();
-    if (editLink) editLink.style.display = 'none';
-  
+
+    if (editLink) {
+        editLink.style.display = 'none';
+    }
+
     // 3. CENTRE SEARCH FIX: Re-bind search logic AND refresh master list
     if (id === 'centre') {
-      inp.setAttribute("oninput", "handleSearch('centre', this.value)");
-      masterData = []; // <--- THIS IS THE ONLY ADDITION: Forces a fresh fetch from Firebase
+        inp.setAttribute("oninput", "handleSearch('centre', this.value)");
+        masterData = [];   // Forces a fresh fetch from Firebase
     }
-  
-    // 4. Existing Email Verification Logic (Preserved)
+
+    // 4. Existing Email Verification Logic
     if (id === 'email') {
-      const checkBtn = document.getElementById('vcheck-email');
-      if (checkBtn) checkBtn.style.display = 'block';
-      const vBtn = document.getElementById('vbtn-email');
-      if (vBtn) vBtn.style.display = 'none';
-      const msg = document.getElementById('vmsg-email');
-      if (msg) msg.style.display = 'none';
+
+        const checkBtn = document.getElementById('vcheck-email');
+        if (checkBtn) checkBtn.style.display = 'block';
+
+        const vBtn = document.getElementById('vbtn-email');
+        if (vBtn) vBtn.style.display = 'none';
+
+        const msg = document.getElementById('vmsg-email');
+        if (msg) msg.style.display = 'none';
     }
-  }
-   
-      
+}    
  
   async function sendCode(type) {
     
