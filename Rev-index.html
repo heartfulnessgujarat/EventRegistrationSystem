@@ -4033,6 +4033,19 @@ function getFieldValue(fieldId) {
 
         if (!wrapper) return;
 
+      console.log(
+    "VISIBILITY:",
+    rule.field_id,
+    "SHOW=",
+    shouldFieldBeVisible(
+        rule,
+        sectionRules,
+        index
+    ),
+    "VALUE=",
+    getFieldValue(rule.field_id)
+);
+
         const show =
             shouldFieldBeVisible(
                 rule,
