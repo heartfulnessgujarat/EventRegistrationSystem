@@ -2209,7 +2209,12 @@ if (
               ...mersTempData,
               ...updatedSection1
           };
-  
+
+
+
+        /*
+
+        
           // DUP ENTRY FIX: Explicitly consolidate clean keys into "extra_" keys
           const keysToConsolidate = ['arrival_date', 'arrival_time', 'depart_date', 'depart_time', 'gender', 'travel_mode', 'stay_option'];
   
@@ -2221,6 +2226,18 @@ if (
                   delete formData[key]; 
               }
           });
+
+
+
+*/
+
+
+
+
+
+
+
+        
   
           if (!finalRegId || mode === 'new') {
               const now = new Date();
@@ -3419,14 +3436,7 @@ function applyLookupFilterRule(
 ) {
 
 
-console.log(
-    "LOOKUP FILTER:",
-    ruleName,
-    fieldId,
-    choices
-);
-
-  
+ 
 
     if (!ruleName) return choices;
 
@@ -4034,34 +4044,6 @@ function getFieldValue(fieldId) {
         if (!wrapper) return;
 
 
-console.log(
-    "VISIBILITY:",
-    rule.field_id,
-    "SHOW=",
-    show,
-    "PREVIOUS=",
-    index > 0
-        ? getFieldValue(
-              sectionRules[index - 1].field_id
-          )
-        : "FIRST"
-);
-
-
-      
-
-      console.log(
-    "VISIBILITY:",
-    rule.field_id,
-    "SHOW=",
-    shouldFieldBeVisible(
-        rule,
-        sectionRules,
-        index
-    ),
-    "VALUE=",
-    getFieldValue(rule.field_id)
-);
 
         const show =
             shouldFieldBeVisible(
@@ -4220,7 +4202,7 @@ if (backBtn) {
 
 
 function updateButtonState() {
-    console.log("%c MERS DIAG: updateButtonState triggered ", "background: #222; color: #bada55");
+   
     const actionBtn = document.getElementById('btn-next-action');
     if (!actionBtn) return;
 
@@ -4279,18 +4261,7 @@ function updateButtonState() {
 
     // 2. Log the "X-RAY" for debugging
     if (diagData.length > 0) {
-        console.log(`--- MERS X-RAY: [${dynamicSectionName}] ---`);
-
-console.log(
-    "VISIBLE REQUIRED:",
-    totalVisibleRequired,
-    "FILLED:",
-    totalFilled
-);
-
-
-      
-        console.table(diagData);
+       
     }
 
     // 3. Button Text Update
@@ -4429,6 +4400,8 @@ actionBtn.innerText =
     return str;
 }
 
+
+  
 function validateField(id, value, rule) {
 
 console.log(
