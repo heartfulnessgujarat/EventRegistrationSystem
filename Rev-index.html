@@ -1425,6 +1425,16 @@ function selectParticipant(p) {
   }
   
   function unlockField(id) {
+
+console.log("unlockField called:", id);
+
+    const inp = getFieldElement(`inp-${id}`);
+
+    console.log("Input found:", inp);
+
+
+
+    
     // 1. HARD GUARD: Never unlock the full_name
     if (id === 'full_name') {
       alert("Full Name is locked and cannot be changed.");
