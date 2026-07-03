@@ -4033,6 +4033,23 @@ function getFieldValue(fieldId) {
 
         if (!wrapper) return;
 
+
+console.log(
+    "VISIBILITY:",
+    rule.field_id,
+    "SHOW=",
+    show,
+    "PREVIOUS=",
+    index > 0
+        ? getFieldValue(
+              sectionRules[index - 1].field_id
+          )
+        : "FIRST"
+);
+
+
+      
+
       console.log(
     "VISIBILITY:",
     rule.field_id,
