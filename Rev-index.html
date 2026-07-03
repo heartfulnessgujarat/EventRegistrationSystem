@@ -2021,8 +2021,7 @@ if (
   }  
   
   
-  
-    
+     
     
   async function submitData() {
       console.log("%c [DIAGNOSTIC] submitData started! ", "background: #222; color: #bada55; font-size: 14px;");
@@ -2281,9 +2280,9 @@ if (
         
         // ===== ACCOMMODATION COUNTER TYPE DETECTION =====
   
-  const selectedGender = (formData.extra_gender || "").toLowerCase();
+  const selectedGender = (formData.gender || "").toLowerCase();
   
-  const selectedStay = (formData.extra_stay_option || "").toLowerCase();
+  const selectedStay = (formData.stay_option || "").toLowerCase();
   
   let confirmedCounterPath = "";
   
@@ -2380,8 +2379,8 @@ if (
           selectedStay,
           confirmedCounterPath,
           waitlistCounterPath,
-          formGender: formData.extra_gender,
-          originalGender: originalData?.extra_gender
+          formGender: formData.gender,
+          originalGender: originalData?.gender
       }
   );
   
@@ -2400,7 +2399,7 @@ if (
           originalData?.stay_allocation_code || "";
   
       const oldGender =
-          (originalData?.extra_gender || "").toLowerCase();
+          (originalData?.gender || "").toLowerCase();
   
       console.log(
           "MERS EDIT OLD DATA:",
