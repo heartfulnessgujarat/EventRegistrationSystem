@@ -4250,6 +4250,16 @@ function updateButtonState() {
     // 2. Log the "X-RAY" for debugging
     if (diagData.length > 0) {
         console.log(`--- MERS X-RAY: [${dynamicSectionName}] ---`);
+
+console.log(
+    "VISIBLE REQUIRED:",
+    totalVisibleRequired,
+    "FILLED:",
+    totalFilled
+);
+
+
+      
         console.table(diagData);
     }
 
