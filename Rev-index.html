@@ -1081,6 +1081,16 @@ console.log(
   
   function renderForm() {
   const container = document.getElementById('dynamic-fields');
+
+console.log(
+    "dynamic-fields:",
+    container,
+    window.getComputedStyle(container).display,
+    window.getComputedStyle(container).visibility
+);
+
+
+    
   container.innerHTML = '';
   
   fieldRules.forEach(r => {
