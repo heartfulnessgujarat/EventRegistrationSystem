@@ -3194,23 +3194,20 @@ getFieldElement(id);
           if (mode === 'edit') {
               renderForm(); 
 
-            // ======================================
-// TEMP TEST
-// ======================================
 
-const sec1 = document.getElementById("Section1");
+// =====================================================
+// EDIT MODE UI INITIALIZATION
+// =====================================================
 
-if (sec1) {
-    sec1.style.display = "block";
-}
+const section0 = document.getElementById("Section0");
+const section1 = document.getElementById("Section1");
+const section2 = document.getElementById("Section2");
 
-const sec2 = document.getElementById("Section2");
+if (section0) section0.style.display = "none";
+if (section1) section1.style.display = "block";
+if (section2) section2.style.display = "none";
 
-if (sec2) {
-    sec2.style.display = "none";
-}
-  
-            
+                    
   
               fieldRules.forEach(r => {
                   const el = getFieldElement(r.field_id);
@@ -3223,6 +3220,10 @@ if (sec2) {
 );
 
 
+
+
+
+                
 
 
                 
