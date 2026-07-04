@@ -1373,7 +1373,7 @@ function selectParticipant(p) {
     if (!l) return;
   
     // 1. Update the Centre field itself
-    const centreInp = getFieldElement('inp-centre');
+    const centreInp = getFieldElement('centre');
     if (centreInp) {
       centreInp.value = l.centre || l.Centre || "";
     }
@@ -1384,8 +1384,8 @@ function selectParticipant(p) {
   
     dependentFields.forEach(rule => {
       const fId = rule.field_id;
-      const el = getFieldElement(`inp-${fId}`);
       
+      const el = getFieldElement(fId);
       if (el) {
         // Get the value from the Master Database object (l) 
         // using the field_id as the key (e.g., l['state'])
