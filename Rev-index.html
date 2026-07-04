@@ -1488,7 +1488,7 @@ const inp = getFieldElement(id);
       verificationAttempts[type] = 0;
       const msg = document.getElementById(`vmsg-${type}`);
       if (msg) msg.style.display = "none";
-      const targetEmail = (type === 'email') ? getFieldElement('inp-email').value : originalData['email'];
+      const targetEmail = (type === 'email') ? getFieldElement('email').value : originalData['email'];
       const btn = document.getElementById(`vbtn-${type}`);
       btn.disabled = true;
       btn.innerText = "Sending Code...";
@@ -1519,7 +1519,7 @@ if (type === 'email') {
 else if (type === 'mobile') {
 
   const mobileInput =
-    getFieldElement('inp-mobile').value.trim();
+    getFieldElement('mobile').value.trim();
 
  // =====================================================
 // GENERATE VERIFICATION TICKET
@@ -1641,7 +1641,7 @@ fetch(
 if (type === 'email') {
 
   verifyKey =
-    getFieldElement('inp-email')
+    getFieldElement('email')
     .value
     .replace(/[.#$[\]]/g, "_");
 
@@ -1651,7 +1651,7 @@ else if (type === 'mobile') {
 
   verifyKey =
     "mobile_" +
-    getFieldElement('inp-mobile')
+    getFieldElement('mobile')
     .value
     .trim();
 
@@ -1735,7 +1735,7 @@ if (
           
           msg.innerText = "Verified ✅"; msg.style.color = "#2e7d32"; msg.style.display = "block";
           if (panel) panel.style.display = "none";
-          getFieldElement(`inp-${type}`).disabled = true;
+          getFieldElement(type).disabled = true;
           verificationStates[type] = true;
           verificationAttempts[type] = 0;
           checkAllValidations();
@@ -1759,7 +1759,7 @@ if (
   function checkAllValidations() {
       let allValid = true;
       fieldRules.forEach(r => {
-        const input = getFieldElement(`inp-${r.field_id}`);
+        const input = getFieldElement(r.field_id);
         const errDiv = document.getElementById(`err-${r.field_id}`);
         if (input) {
           let isValid = validateField(r.field_id, input.value, r.field_validation);
@@ -2040,8 +2040,12 @@ if (
           const mode = (urlParams.get('mode') || 'new').toLowerCase();
           
           // --- STEP 1: FINAL DATA CAPTURE ---
+        
           const getFreshVal = (id) => {
-              const el = getFieldElement('inp-' + id) || getFieldElement(id);
+
+            
+              const el =
+getFieldElement(id);
   
             
            //   if (el) return el.value ? el.value.trim() : "";
@@ -3023,10 +3027,10 @@ if (
           );
       }
   }
-    
+
     
   function manualFormatCheck() {
-    const emailInput = document.getElementById('inp-email');
+    const emailInput = getFieldElement('email');
     const emailVal = emailInput.value.trim(); 
     const vBtn = document.getElementById('vbtn-email');
     const checkBtn = document.getElementById('vcheck-email');
@@ -3159,7 +3163,7 @@ if (
             
   
               fieldRules.forEach(r => {
-                  const el = document.getElementById(`inp-${r.field_id}`);
+                  const el = getFieldElement(r.field_id);
                   if (el && data[r.field_id] !== undefined) {
   
   
@@ -5376,7 +5380,7 @@ function triggerGenderRefresh() {
     setTimeout(() => {
 
         const genderField =
-            document.getElementById("inp-gender");
+            getFieldElement("gender")
 
         if (genderField) {
 
