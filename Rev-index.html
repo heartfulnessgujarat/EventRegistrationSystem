@@ -3164,6 +3164,18 @@ getFieldElement(id);
   
               fieldRules.forEach(r => {
                   const el = getFieldElement(r.field_id);
+
+                console.log(
+    "EDIT LOAD:",
+    r.field_id,
+    el,
+    data[r.field_id]
+);
+
+
+
+
+                
                   if (el && data[r.field_id] !== undefined) {
   
   
