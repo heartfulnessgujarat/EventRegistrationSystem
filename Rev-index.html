@@ -4112,15 +4112,18 @@ console.log("SHOW SUCCESS SCREEN ENTERED");
 
 
 function syncSection1Data() {
-    console.log("MERS: Syncing Section 1 (Prefixed with inp-)...");
-    
+
+    console.log("MERS: Syncing Section 1...");
+
     const getS1Val = (id) => {
-        // Only applies the 'inp-' prefix for Section 1 fields
-        const el = document.getElementById('inp-' + id);
+
+        const el = getFieldElement(id);
+
         return el ? el.value.trim() : "";
+
     };
 
-    const freshSection1 = {
+   const freshSection1 = {
         full_name: getS1Val('full_name'),
         email: getS1Val('email'),
         mobile: getS1Val('mobile'),
