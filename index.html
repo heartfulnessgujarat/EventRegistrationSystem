@@ -3064,6 +3064,159 @@ getFieldElement(id);
       }
   }
 
+
+
+  async function syncAttendeeRegistry(
+    formData,
+    eventIdParam
+) {
+
+    try {
+
+        console.log(
+            "MERS ATTENDANCE: Sync started..."
+        );
+
+        // =====================================================
+        // BUILD ATTENDEE OBJECT
+        // =====================================================
+
+        const attendeeId =
+            formData.registration_id;
+
+        // =====================================================
+        // GENERATE QR TOKEN
+        // =====================================================
+
+
+      
+        const qrToken =
+            btoa(
+                attendeeId +
+                "|" +
+                Date.now()
+            ).replace(/=/g, "");
+
+      
+
+        // =====================================================
+        // ATTENDEE OBJECT
+        // =====================================================
+
+        const attendeeData = {
+
+            attendee_id:
+                attendeeId,
+
+            attendee_type:
+                "PARTICIPANT",
+
+            registration_id:
+                formData.registration_id || "",
+
+            event_id:
+                eventIdParam || "",
+
+            full_name:
+                formData.full_name || "",
+
+            mobile:
+                formData.mobile || "",
+
+            email:
+                formData.email || "",
+
+            gender:
+                formData.gender || "",
+
+            city:
+                formData.city || "",
+
+            state:
+                formData.state || "",
+
+            attendance_qr_token:
+                qrToken,
+
+            qr_status:
+                "ACTIVE",
+
+            active_status:
+                "ACTIVE",
+
+            created_on:
+                new Date().toLocaleString(),
+
+            created_by:
+                "SYSTEM"
+
+        };
+
+        // =====================================================
+        // WRITE TO FIREBASE
+        // =====================================================
+
+        const attendeePath =
+            'attendee_registry/' +
+            eventIdParam +
+            '/' +
+            attendeeId;
+
+        await db.ref(attendeePath)
+        .set(attendeeData);
+
+
+      // =====================================================
+// TOKEN LOOKUP INDEX
+// =====================================================
+
+await db.ref(
+    'attendance_tokens/' +
+    qrToken
+).set({
+
+    attendee_id:
+        attendeeId,
+
+    event_id:
+        eventIdParam,
+
+    created_on:
+        new Date().toLocaleString()
+
+});
+
+console.log(
+    "MERS ATTENDANCE: Token indexed:",
+    qrToken
+);
+
+
+
+      
+
+        console.log(
+            "MERS ATTENDANCE: Registry synced:",
+            attendeePath
+        );
+
+      return qrToken;
+
+    } catch (err) {
+
+        console.error(
+            "MERS ATTENDANCE ERROR:",
+            err
+        );
+    }
+}
+
+
+  
+
+
+
+  
     
   function manualFormatCheck() {
     const emailInput = getFieldElement('email');
