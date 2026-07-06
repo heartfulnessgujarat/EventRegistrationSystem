@@ -2850,6 +2850,27 @@ getFieldElement(id);
       eventIdParam
   );
   
+
+const qrToken =
+await syncAttendeeRegistry(
+    formData,
+    eventIdParam
+);
+
+localStorage.setItem(
+    "mers_attendance_token",
+    qrToken
+);
+
+localStorage.setItem(
+    "mers_event_id",
+    eventIdParam
+);
+
+
+
+
+
         
   
           // --- STEP 5: UI TRANSITION ---
