@@ -1572,180 +1572,152 @@ function extractVenueSecret(
 
 
 function parseEventDate(
-
     dateStr,
-
     timeStr
-
 ) {
 
-
     if (
-
         !dateStr ||
-
         !timeStr
-
     ) {
 
-
         return null;
-
     }
-
 
 
     const months = {
 
-
         Jan: "01",
-
         Feb: "02",
-
         Mar: "03",
-
         Apr: "04",
-
         May: "05",
-
         Jun: "06",
-
         Jul: "07",
-
         Aug: "08",
-
         Sep: "09",
-
         Oct: "10",
-
         Nov: "11",
-
         Dec: "12"
-
 
     };
 
 
-
     const parts =
-
         String(
-
             dateStr
-
         ).split("-");
 
 
-
     if (
-
         parts.length !== 3
-
     ) {
 
-
         return null;
-
     }
 
 
-
     const day =
-
         String(
-
             parts[0]
-
         ).padStart(
-
             2,
-
             "0"
-
         );
 
 
     const month =
-
         months[
-
             parts[1]
-
         ];
 
 
-
     if (
-
         !month
-
     ) {
 
-
         return null;
-
     }
-
 
 
     const year =
-
         parts[2].length === 2
-
         ? "20" + parts[2]
-
         : parts[2];
 
-    console.log(
-    "MERS ATTENDANCE DATE PARSER:",
-    {
-        dateStr: dateStr,
-        timeStr: timeStr,
-        day: day,
-        month: month,
-        year: year
-    }
-);
+
+    // =====================================================
+    // NORMALIZE EVENT TIME
+    // SUPPORTS 7:55, 07:55 AND 07:55:00
+    // =====================================================
+
+    const timeParts =
+        String(
+            timeStr
+        ).split(":");
 
 
-    const parsedDate =
-
-console.log(
-    "MERS ATTENDANCE PARSED DATE:",
-    parsedDate,
-    parsedDate.getTime()
-);
-
-
-        
-
-        new Date(
-
-            `${year}-${month}-${day}T${timeStr}:00`
-
+    const hour =
+        String(
+            timeParts[0]
+        ).padStart(
+            2,
+            "0"
         );
 
 
+    const minute =
+        String(
+            timeParts[1] || "00"
+        ).padStart(
+            2,
+            "0"
+        );
+
+
+    const second =
+        String(
+            timeParts[2] || "00"
+        ).padStart(
+            2,
+            "0"
+        );
+
+
+    const dateTimeString =
+        `${year}-${month}-${day}T${hour}:${minute}:${second}`;
+
+
+    console.log(
+        "MERS ATTENDANCE DATE STRING:",
+        dateTimeString
+    );
+
+
+    const parsedDate =
+        new Date(
+            dateTimeString
+        );
+
+
+    console.log(
+        "MERS ATTENDANCE PARSED DATE:",
+        parsedDate,
+        parsedDate.getTime()
+    );
+
 
     if (
-
         isNaN(
-
             parsedDate.getTime()
-
         )
-
     ) {
 
-
         return null;
-
     }
 
 
-
     return parsedDate;
-
 }
 
 
