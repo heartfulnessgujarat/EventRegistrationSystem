@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <title>MERS QR Scanner</title>
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+ 
+  <style>
+
+    body {
+
+      font-family: Arial;
+      text-align: center;
+      padding: 20px;
+    }
+
+    #reader {
+
+      width: 320px;
+      margin: auto;
+    }
+
+    #result {
+
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+      color: green;
+      word-break: break-all;
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+  <h2 id="eventTitle">
+  Loading Event...
+</h2>
+
+  <div id="reader"></div>
+
+  <div id="result">
+
+    Waiting for QR scan...
+
+  </div>
+
+  <script>
+
+// =====================================================
+// FIREBASE CONFIG
+// =====================================================
+
+const firebaseConfig = {
+    databaseURL:
+    "https://ferrari-reg-2026-default-rtdb.asia-southeast1.firebasedatabase.app"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const db =
+    firebase.database();
+
+// =====================================================
+// READ EVENT
+// =====================================================
+
+const params =
+    new URLSearchParams(
+        window.location.search
+    );
+
+const eventId =
+    params.get("event");
+
+// =====================================================
+// LOAD EVENT TITLE
+// =====================================================
+
+async function loadEventTitle() {
+
+    if (!eventId) return;
+
+    const snap =
+        await db.ref(
+            'config/eventConfig'
+        ).once('value');
+
+    if (!snap.exists()) return;
+
+    const configs =
+        snap.val();
+
+    const eventConfig =
+        Object.values(configs).find(
+
+            cfg =>
+            cfg.event_id === eventId
+        );
+
+    if (!eventConfig) return;
+
+    document.getElementById(
+        "eventTitle"
+    ).innerText =
+
+        eventConfig.title ||
+        "Attendance Scanner";
+}
+
+loadEventTitle();
+
+// =====================================================
+// QR SCAN SUCCESS
+// =====================================================
+
+async function onScanSuccess(decodedText) {
+
+    try {
+
+        document.getElementById(
+            "result"
+        ).innerHTML =
+
+        "Checking attendee...";
+
+        // =====================================================
+        // LOAD TOKEN
+        // =====================================================
+
+        const tokenSnap =
+            await db.ref(
+                'attendance_tokens/' +
+                decodedText.trim()
+            ).once('value');
+
+        if (!tokenSnap.exists()) {
+
+            document.getElementById(
+                "result"
+            ).innerHTML =
+
+            "<span style='color:red'>Invalid QR</span>";
+
+            return;
+        }
+
+        const tokenData =
+            tokenSnap.val();
+
+        const attendeeId =
+            tokenData.attendee_id;
+
+        // =====================================================
+        // LOAD ATTENDEE
+        // =====================================================
+
+        const attendeeSnap =
+            await db.ref(
+                'attendee_registry/' +
+                eventId +
+                '/' +
+                attendeeId
+            ).once('value');
+
+        if (!attendeeSnap.exists()) {
+
+            document.getElementById(
+                "result"
+            ).innerHTML =
+
+            "<span style='color:red'>Attendee Not Found</span>";
+
+            return;
+        }
+
+        const attendee =
+            attendeeSnap.val();
+
+       
+        // =====================================================
+        // WRITE ATTENDANCE LOG
+        // =====================================================
+
+        await db.ref(
+
+            'attendance_logs/' +
+            eventId
+
+        ).push({
+
+            attendee_id:
+                attendeeId,
+
+            attendee_name:
+                attendee.full_name || "",
+
+            attendee_type:
+                attendee.attendee_type || "",
+
+            attendance_mode:
+                "SCANNER",
+
+            marked_at:
+                new Date().toISOString()
+        });
+
+        // =====================================================
+        // SUCCESS
+        // =====================================================
+
+        document.getElementById(
+            "result"
+        ).innerHTML =
+
+        "<b>" +
+        attendee.full_name +
+        "</b><br>" +
+
+        attendee.attendee_type +
+        "<br><br>" +
+
+        "<span style='color:green'>QR VERIFIED</span>";
+
+    } catch (err) {
+
+        console.error(
+            "SCAN ERROR:",
+            err
+        );
+
+        document.getElementById(
+            "result"
+        ).innerHTML =
+
+        "<span style='color:red'>Scan Error</span>";
+    }
+}
+
+// =====================================================
+// START CAMERA
+// =====================================================
+
+const html5QrCode =
+    new Html5Qrcode("reader");
+
+html5QrCode.start(
+
+    { facingMode: "environment" },
+
+    {
+        fps: 10,
+        qrbox: 250
+    },
+
+    async (decodedText) => {
+
+        await onScanSuccess(
+            decodedText
+        );
+
+        await html5QrCode.stop();
+    }
+
+).catch(err => {
+
+    console.error(
+        "QR CAMERA ERROR:",
+        err
+    );
+});
+
+</script>
