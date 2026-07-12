@@ -1013,5 +1013,57 @@ db.ref(
      
 }
 
+// =====================================================
+// MERS CANONICAL IST DATE-TIME
+// FORMAT: YYYY-MM-DD HH:mm:ss
+// =====================================================
+
+function getISTDateTime() {
+
+    const parts =
+        new Intl.DateTimeFormat(
+            "en-CA",
+            {
+                timeZone: "Asia/Kolkata",
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+                hour12: false
+            }
+        ).formatToParts(
+            new Date()
+        );
+
+    const values = {};
+
+    parts.forEach(part => {
+
+        if (part.type !== "literal") {
+
+            values[part.type] =
+                part.value;
+        }
+    });
+
+    return (
+        values.year +
+        "-" +
+        values.month +
+        "-" +
+        values.day +
+        " " +
+        values.hour +
+        ":" +
+        values.minute +
+        ":" +
+        values.second
+    );
+}
+
+        
+
         
 </script>
