@@ -212,8 +212,10 @@ async function onScanSuccess(decodedText) {
             attendance_mode:
                 "SCANNER",
 
-            marked_at:
-                new Date().toISOString()
+         marked_at:
+    getISTDateTime()
+
+          
         });
 
         // =====================================================
