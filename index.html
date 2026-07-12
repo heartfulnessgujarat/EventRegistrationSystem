@@ -3047,6 +3047,11 @@ localStorage.setItem(
               // Always preserve registration_id
               filteredData.registration_id =
                   formData.registration_id;
+
+
+
+
+        
   
               // ============================================
               // WRITE TO FIREBASE
@@ -3185,60 +3190,24 @@ localStorage.setItem(
         };
 
 
-
-
-
-
-
-
-      
-        // =====================================================
-        // WRITE TO FIREBASE
-        // =====================================================
-
-        const attendeePath =
-            'attendee_registry/' +
-            eventIdParam +
-            '/' +
-            attendeeId;
-
-        await db.ref(attendeePath)
-        .set(attendeeData);
-
-
-      // =====================================================
-// TOKEN LOOKUP INDEX
+// =====================================================
+// MERS ATTENDANCE IDENTITY
+// REGISTRATION_ID IS THE CANONICAL PARTICIPANT IDENTITY
 // =====================================================
 
-await db.ref(
-    'attendance_tokens/' +
-    qrToken
-).set({
-
-    attendee_id:
-        attendeeId,
-
-    event_id:
-        eventIdParam,
-
-    created_on:
-        new Date().toLocaleString()
-
-});
-
 console.log(
-    "MERS ATTENDANCE: Token indexed:",
-    qrToken
+    "MERS ATTENDANCE: Registration ID prepared for QR:",
+    attendeeId
 );
 
-    
+// =====================================================
+// RETURN REGISTRATION ID AS QR VALUE
+// =====================================================
 
-        console.log(
-            "MERS ATTENDANCE: Registry synced:",
-            attendeePath
-        );
+return attendeeId;
 
-      return qrToken;
+
+
 
 
       
