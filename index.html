@@ -8,8 +8,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
 
-  
-
   <!-- Path Selection Logic: Redirects Delete Mode to index-del.html -->
 
 <script>
@@ -3038,20 +3036,13 @@ localStorage.setItem(
   });
   
   
-  
-  
-  
-  
             
   
               // Always preserve registration_id
               filteredData.registration_id =
                   formData.registration_id;
 
-
-
-
-        
+       
   
               // ============================================
               // WRITE TO FIREBASE
@@ -3065,9 +3056,7 @@ localStorage.setItem(
                   '/' +
                   formData.registration_id;
   
-  
-  
-  
+   
         await db.ref(projectionPath)
   .set(filteredData);
   
@@ -3082,25 +3071,12 @@ localStorage.setItem(
   
   } catch (err) {
   
-  
-  
-  
-  
-        
-        
-  
-        
-  
-  
-        
-  
-          console.error(
+                  console.error(
               "MERS LIVE REG ERROR:",
               err
           );
       }
   }
-
 
 
   async function syncAttendeeRegistry(
