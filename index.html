@@ -3095,96 +3095,38 @@ localStorage.setItem(
         // BUILD ATTENDEE OBJECT
         // =====================================================
 
-        const attendeeId =
-            formData.registration_id;
-
-        // =====================================================
-        // GENERATE QR TOKEN
-        // =====================================================
 
 
-      
-        const qrToken =
-            btoa(
-                attendeeId +
-                "|" +
-                Date.now()
-            ).replace(/=/g, "");
-
-      
-
-        // =====================================================
-        // ATTENDEE OBJECT
-        // =====================================================
-
-        const attendeeData = {
-
-            attendee_id:
-                attendeeId,
-
-            attendee_type:
-                "PARTICIPANT",
-
-            registration_id:
-                formData.registration_id || "",
-
-            event_id:
-                eventIdParam || "",
-
-            full_name:
-                formData.full_name || "",
-
-            mobile:
-                formData.mobile || "",
-
-            email:
-                formData.email || "",
-
-            gender:
-                formData.gender || "",
-
-            city:
-                formData.city || "",
-
-            state:
-                formData.state || "",
-
-            attendance_qr_token:
-                qrToken,
-
-            qr_status:
-                "ACTIVE",
-
-            active_status:
-                "ACTIVE",
-
-            created_on:
-                new Date().toLocaleString(),
-
-            created_by:
-                "SYSTEM"
-
-        };
 
 
 // =====================================================
-// MERS ATTENDANCE IDENTITY
-// REGISTRATION_ID IS THE CANONICAL PARTICIPANT IDENTITY
+// CANONICAL ATTENDANCE IDENTITY
+// REGISTRATION_ID IS THE PARTICIPANT IDENTITY
 // =====================================================
+
+const registrationId =
+    formData.registration_id;
+
+if (!registrationId) {
+
+    throw new Error(
+        "Registration ID missing for attendance identity."
+    );
+}
 
 console.log(
     "MERS ATTENDANCE: Registration ID prepared for QR:",
-    attendeeId
+    registrationId
 );
 
 // =====================================================
 // RETURN REGISTRATION ID AS QR VALUE
 // =====================================================
 
-return attendeeId;
+return registrationId;
 
 
-
+      
 
 
       
