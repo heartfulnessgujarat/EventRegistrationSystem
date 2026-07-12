@@ -1,0 +1,1945 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<title>MERS Attendance</title>
+
+<script
+    src="https://unpkg.com/html5-qrcode"
+></script>
+
+<script
+    src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"
+></script>
+
+<script
+    src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"
+></script>
+
+
+<style>
+
+body {
+
+    font-family: Arial, sans-serif;
+
+    text-align: center;
+
+    padding: 30px 20px;
+
+    background: #f4f4f4;
+
+    margin: 0;
+}
+
+
+.card {
+
+    background: white;
+
+    padding: 30px;
+
+    border-radius: 12px;
+
+    max-width: 500px;
+
+    margin: auto;
+}
+
+
+#reader {
+
+    width: 100%;
+
+    max-width: 350px;
+
+    margin: 20px auto;
+}
+
+
+.success {
+
+    color: green;
+
+    font-size: 24px;
+
+    font-weight: bold;
+}
+
+
+.error {
+
+    color: red;
+
+    font-size: 22px;
+
+    font-weight: bold;
+}
+
+
+.small {
+
+    margin-top: 15px;
+
+    color: #666;
+
+    line-height: 1.5;
+}
+
+
+#result {
+
+    margin-top: 20px;
+
+    word-break: break-word;
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="card">
+
+
+<h2 id="eventTitle">
+
+    Loading Event...
+
+</h2>
+
+
+<div id="status">
+
+    Loading Attendance System...
+
+</div>
+
+
+<div id="reader"></div>
+
+
+<div id="result"></div>
+
+
+</div>
+
+
+
+<script>
+
+
+// =====================================================
+// FIREBASE CONFIG
+// =====================================================
+
+
+const firebaseConfig = {
+
+    databaseURL:
+
+    "https://ferrari-reg-2026-default-rtdb.asia-southeast1.firebasedatabase.app"
+
+};
+
+
+firebase.initializeApp(
+
+    firebaseConfig
+
+);
+
+
+const db =
+
+    firebase.database();
+
+
+
+// =====================================================
+// URL PARAMETERS
+// =====================================================
+
+
+const params =
+
+    new URLSearchParams(
+
+        window.location.search
+
+    );
+
+
+const eventId =
+
+    params.get("event");
+
+
+const attendanceMode =
+
+    String(
+
+        params.get("mode") || ""
+
+    ).toUpperCase();
+
+
+const registrationId =
+
+    params.get("registration_id");
+
+
+
+// =====================================================
+// GLOBAL VARIABLES
+// =====================================================
+
+
+let eventConfig = null;
+
+
+let scannerStarted = false;
+
+
+let attendanceProcessing = false;
+
+
+
+// =====================================================
+// PAGE INITIALIZATION
+// =====================================================
+
+
+initializeAttendance();
+
+
+
+async function initializeAttendance() {
+
+
+    const statusDiv =
+
+        document.getElementById(
+
+            "status"
+
+        );
+
+
+    try {
+
+
+        // =====================================================
+        // EVENT VALIDATION
+        // =====================================================
+
+
+        if (!eventId) {
+
+
+            showError(
+
+                "Event ID Missing"
+
+            );
+
+
+            return;
+
+        }
+
+
+
+        // =====================================================
+        // LOAD EVENT CONFIG
+        // =====================================================
+
+
+        const configSnap =
+
+            await db.ref(
+
+                "config/eventConfig"
+
+            ).once("value");
+
+
+        if (!configSnap.exists()) {
+
+
+            showError(
+
+                "Event Config Missing"
+
+            );
+
+
+            return;
+
+        }
+
+
+        const configs =
+
+            configSnap.val();
+
+
+        eventConfig =
+
+            Object.values(
+
+                configs
+
+            ).find(
+
+                config =>
+
+                config.event_id === eventId
+
+            );
+
+
+        if (!eventConfig) {
+
+
+            showError(
+
+                "Event Config Not Found"
+
+            );
+
+
+            return;
+
+        }
+
+
+
+        // =====================================================
+        // DISPLAY EVENT TITLE
+        // =====================================================
+
+
+        document.getElementById(
+
+            "eventTitle"
+
+        ).innerText =
+
+            eventConfig.title ||
+
+            "Attendance";
+
+
+
+        // =====================================================
+        // ATTENDANCE ENABLE CHECK
+        // =====================================================
+
+
+        const attendanceEnabled =
+
+            String(
+
+                eventConfig.attendance_enabled || ""
+
+            ).toUpperCase() === "TRUE";
+
+
+        if (!attendanceEnabled) {
+
+
+            showError(
+
+                "Attendance Disabled"
+
+            );
+
+
+            return;
+
+        }
+
+
+
+        // =====================================================
+        // ATTENDANCE WINDOW CHECK
+        // =====================================================
+
+
+        const windowValid =
+
+            validateAttendanceWindow();
+
+
+        if (!windowValid) {
+
+
+            return;
+
+        }
+
+
+
+        // =====================================================
+        // ROUTE ATTENDANCE MODE
+        // =====================================================
+
+
+        if (
+
+            attendanceMode === "SCANNER"
+
+        ) {
+
+
+            startVolunteerScanner();
+
+
+            return;
+
+        }
+
+
+
+        if (
+
+            attendanceMode === "COMMON_QR"
+
+        ) {
+
+
+            startCommonQRFlow();
+
+
+            return;
+
+        }
+
+
+
+        showError(
+
+            "Attendance Mode Missing or Invalid"
+
+        );
+
+
+    }
+
+
+    catch (error) {
+
+
+        console.error(
+
+            "ATTENDANCE INITIALIZATION ERROR:",
+
+            error
+
+        );
+
+
+        showError(
+
+            "Attendance System Failed"
+
+        );
+
+    }
+
+}
+
+
+
+// =====================================================
+// ATTENDANCE WINDOW VALIDATION
+// =====================================================
+
+
+function validateAttendanceWindow() {
+
+
+    try {
+
+
+        const startDate =
+
+            eventConfig.event_start_date;
+
+
+        const startTime =
+
+            eventConfig.event_start_time;
+
+
+        const endDate =
+
+            eventConfig.event_end_date;
+
+
+        const endTime =
+
+            eventConfig.event_end_time;
+
+
+
+        if (
+
+            !startDate ||
+
+            !startTime ||
+
+            !endDate ||
+
+            !endTime
+
+        ) {
+
+
+            showError(
+
+                "Attendance Window Configuration Missing"
+
+            );
+
+
+            return false;
+
+        }
+
+
+
+        const eventStart =
+
+            parseEventDate(
+
+                startDate,
+
+                startTime
+
+            );
+
+
+        const eventEnd =
+
+            parseEventDate(
+
+                endDate,
+
+                endTime
+
+            );
+
+
+
+        if (
+
+            !eventStart ||
+
+            !eventEnd
+
+        ) {
+
+
+            showError(
+
+                "Invalid Event Date Configuration"
+
+            );
+
+
+            return false;
+
+        }
+
+
+
+        const attendanceStart =
+
+            new Date(
+
+                eventStart.getTime() -
+
+                (2 * 60 * 60 * 1000)
+
+            );
+
+
+        const attendanceEnd =
+
+            new Date(
+
+                eventEnd.getTime() +
+
+                (2 * 60 * 60 * 1000)
+
+            );
+
+
+        const now =
+
+            new Date();
+
+
+
+        if (
+
+            now < attendanceStart
+
+        ) {
+
+
+            showError(
+
+                "Attendance Not Started Yet"
+
+            );
+
+
+            return false;
+
+        }
+
+
+
+        if (
+
+            now > attendanceEnd
+
+        ) {
+
+
+            showError(
+
+                "Attendance Window Closed"
+
+            );
+
+
+            return false;
+
+        }
+
+
+
+        return true;
+
+
+    }
+
+
+    catch (error) {
+
+
+        console.error(
+
+            "ATTENDANCE WINDOW ERROR:",
+
+            error
+
+        );
+
+
+        showError(
+
+            "Attendance Window Validation Failed"
+
+        );
+
+
+        return false;
+
+    }
+
+}
+
+
+
+// =====================================================
+// VOLUNTEER SCANNER FLOW
+// =====================================================
+
+
+function startVolunteerScanner() {
+
+
+    const statusDiv =
+
+        document.getElementById(
+
+            "status"
+
+        );
+
+
+    statusDiv.innerHTML =
+
+    `
+
+    <div class="small">
+
+        Scan Participant QR Code
+
+    </div>
+
+    `;
+
+
+    startQRScanner(
+
+        processParticipantQR
+
+    );
+
+}
+
+
+
+// =====================================================
+// PROCESS PARTICIPANT QR
+// =====================================================
+
+
+async function processParticipantQR(
+
+    decodedText
+
+) {
+
+
+    if (
+
+        attendanceProcessing
+
+    ) {
+
+
+        return;
+
+    }
+
+
+    attendanceProcessing = true;
+
+
+
+    try {
+
+
+        const scannedRegistrationId =
+
+            extractRegistrationId(
+
+                decodedText
+
+            );
+
+
+
+        if (
+
+            !scannedRegistrationId
+
+        ) {
+
+
+            showError(
+
+                "Invalid Participant QR"
+
+            );
+
+
+            attendanceProcessing = false;
+
+
+            return;
+
+        }
+
+
+
+        if (
+
+            !scannedRegistrationId.startsWith(
+
+                eventId + "-REG-"
+
+            )
+
+        ) {
+
+
+            showError(
+
+                "Participant QR Does Not Belong To This Event"
+
+            );
+
+
+            attendanceProcessing = false;
+
+
+            return;
+
+        }
+
+
+
+        await writeAttendance(
+
+            scannedRegistrationId,
+
+            "SCANNER"
+
+        );
+
+
+
+        showSuccess(
+
+            "Attendance Marked Successfully",
+
+            "Participant QR Verified"
+
+        );
+
+
+    }
+
+
+    catch (error) {
+
+
+        console.error(
+
+            "SCANNER ATTENDANCE ERROR:",
+
+            error
+
+        );
+
+
+        showError(
+
+            "Attendance Failed"
+
+        );
+
+    }
+
+}
+
+
+
+// =====================================================
+// COMMON QR FLOW
+// =====================================================
+
+
+function startCommonQRFlow() {
+
+
+    if (
+
+        !registrationId
+
+    ) {
+
+
+        showError(
+
+            "Registration ID Missing"
+
+        );
+
+
+        return;
+
+    }
+
+
+
+    if (
+
+        !registrationId.startsWith(
+
+            eventId + "-REG-"
+
+        )
+
+    ) {
+
+
+        showError(
+
+            "Registration Does Not Belong To This Event"
+
+        );
+
+
+        return;
+
+    }
+
+
+
+    const statusDiv =
+
+        document.getElementById(
+
+            "status"
+
+        );
+
+
+    statusDiv.innerHTML =
+
+    `
+
+    <div class="small">
+
+        Identity Verified
+
+    </div>
+
+
+    <div class="small">
+
+        Please allow camera access and scan the Attendance QR Code displayed at the venue.
+
+    </div>
+
+    `;
+
+
+
+    startQRScanner(
+
+        processVenueQR
+
+    );
+
+}
+
+
+
+// =====================================================
+// PROCESS VENUE QR
+// =====================================================
+
+
+async function processVenueQR(
+
+    decodedText
+
+) {
+
+
+    if (
+
+        attendanceProcessing
+
+    ) {
+
+
+        return;
+
+    }
+
+
+    attendanceProcessing = true;
+
+
+
+    try {
+
+
+        const scannedVenueSecret =
+
+            extractVenueSecret(
+
+                decodedText
+
+            );
+
+
+
+        const configSnap =
+
+            await db.ref(
+
+                "config/attendanceConfig/" +
+
+                eventId
+
+            ).once("value");
+
+
+        if (
+
+            !configSnap.exists()
+
+        ) {
+
+
+            showError(
+
+                "Attendance Configuration Missing"
+
+            );
+
+
+            attendanceProcessing = false;
+
+
+            return;
+
+        }
+
+
+
+        const attendanceConfig =
+
+            configSnap.val() || {};
+
+
+        const officialVenueSecret =
+
+            String(
+
+                attendanceConfig.venue_secret || ""
+
+            ).trim();
+
+
+
+        if (
+
+            !officialVenueSecret
+
+        ) {
+
+
+            showError(
+
+                "Venue QR Configuration Missing"
+
+            );
+
+
+            attendanceProcessing = false;
+
+
+            return;
+
+        }
+
+
+
+        if (
+
+            scannedVenueSecret !==
+
+            officialVenueSecret
+
+        ) {
+
+
+            showError(
+
+                "QR Code Not Recognized"
+
+            );
+
+
+            attendanceProcessing = false;
+
+
+            return;
+
+        }
+
+
+
+        await writeAttendance(
+
+            registrationId,
+
+            "COMMON_QR"
+
+        );
+
+
+
+        showSuccess(
+
+            "Attendance Marked Successfully",
+
+            "Please take your seat. Happy Learning and have a nice day!"
+
+        );
+
+
+    }
+
+
+    catch (error) {
+
+
+        console.error(
+
+            "COMMON QR ATTENDANCE ERROR:",
+
+            error
+
+        );
+
+
+        showError(
+
+            "Attendance Failed"
+
+        );
+
+    }
+
+}
+
+
+
+// =====================================================
+// SINGLE ATTENDANCE WRITE FUNCTION
+// =====================================================
+
+
+async function writeAttendance(
+
+    registrationId,
+
+    mode
+
+) {
+
+
+    if (
+
+        !registrationId ||
+
+        !mode
+
+    ) {
+
+
+        throw new Error(
+
+            "Attendance data incomplete"
+
+        );
+
+    }
+
+
+
+    await db.ref(
+
+        "attendance/" +
+
+        eventId
+
+    ).push({
+
+
+        registration_id:
+
+            registrationId,
+
+
+        marked_at:
+
+            new Date().toISOString(),
+
+
+        attendance_mode:
+
+            mode
+
+
+    });
+
+
+    console.log(
+
+        "ATTENDANCE WRITTEN:",
+
+        {
+
+            event_id:
+
+                eventId,
+
+            registration_id:
+
+                registrationId,
+
+            attendance_mode:
+
+                mode
+
+        }
+
+    );
+
+}
+
+
+
+// =====================================================
+// START QR SCANNER
+// =====================================================
+
+
+function startQRScanner(
+
+    successCallback
+
+) {
+
+
+    if (
+
+        scannerStarted
+
+    ) {
+
+
+        return;
+
+    }
+
+
+    scannerStarted = true;
+
+
+
+    const reader =
+
+        document.getElementById(
+
+            "reader"
+
+        );
+
+
+    reader.innerHTML = "";
+
+
+
+    const html5QrCode =
+
+        new Html5Qrcode(
+
+            "reader"
+
+        );
+
+
+
+    Html5Qrcode.getCameras()
+
+
+    .then(
+
+        devices => {
+
+
+            console.log(
+
+                "CAMERAS:",
+
+                devices
+
+            );
+
+
+
+            if (
+
+                !devices.length
+
+            ) {
+
+
+                showError(
+
+                    "No Camera Found"
+
+                );
+
+
+                return;
+
+            }
+
+
+
+            const cameraId =
+
+                devices[
+
+                    devices.length - 1
+
+                ].id;
+
+
+
+            html5QrCode.start(
+
+
+                cameraId,
+
+
+                {
+
+                    fps: 10,
+
+                    qrbox: 250
+
+                },
+
+
+                async decodedText => {
+
+
+                    try {
+
+
+                        await html5QrCode.stop();
+
+
+                    }
+
+
+                    catch (stopError) {
+
+
+                        console.warn(
+
+                            "SCANNER STOP WARNING:",
+
+                            stopError
+
+                        );
+
+                    }
+
+
+
+                    await successCallback(
+
+                        decodedText
+
+                    );
+
+                },
+
+
+                errorMessage => {
+
+
+                    // Normal QR scan misses ignored
+
+
+                }
+
+
+            );
+
+
+        }
+
+    )
+
+
+    .catch(
+
+        error => {
+
+
+            console.error(
+
+                "CAMERA ERROR:",
+
+                error
+
+            );
+
+
+            showError(
+
+                "Camera Access Failed"
+
+            );
+
+        }
+
+    );
+
+}
+
+
+
+// =====================================================
+// EXTRACT REGISTRATION ID
+// =====================================================
+
+
+function extractRegistrationId(
+
+    qrValue
+
+) {
+
+
+    const value =
+
+        String(
+
+            qrValue || ""
+
+        ).trim();
+
+
+
+    if (
+
+        value.startsWith(
+
+            eventId + "-REG-"
+
+        )
+
+    ) {
+
+
+        return value;
+
+    }
+
+
+
+    try {
+
+
+        const url =
+
+            new URL(
+
+                value
+
+            );
+
+
+        const id =
+
+            url.searchParams.get(
+
+                "registration_id"
+
+            );
+
+
+        if (
+
+            id
+
+        ) {
+
+
+            return id.trim();
+
+        }
+
+
+    }
+
+
+    catch (error) {
+
+
+        // QR value is not a URL
+
+
+    }
+
+
+
+    return "";
+
+}
+
+
+
+// =====================================================
+// EXTRACT VENUE SECRET
+// =====================================================
+
+
+function extractVenueSecret(
+
+    qrValue
+
+) {
+
+
+    let value =
+
+        String(
+
+            qrValue || ""
+
+        ).trim();
+
+
+
+    try {
+
+
+        const url =
+
+            new URL(
+
+                value
+
+            );
+
+
+        const venue =
+
+            url.searchParams.get(
+
+                "venue"
+
+            );
+
+
+        if (
+
+            venue
+
+        ) {
+
+
+            return venue.trim();
+
+        }
+
+
+    }
+
+
+    catch (error) {
+
+
+        // QR value is not a URL
+
+
+    }
+
+
+
+    return value;
+
+}
+
+
+
+// =====================================================
+// EVENT DATE PARSER
+// =====================================================
+
+
+function parseEventDate(
+
+    dateStr,
+
+    timeStr
+
+) {
+
+
+    if (
+
+        !dateStr ||
+
+        !timeStr
+
+    ) {
+
+
+        return null;
+
+    }
+
+
+
+    const months = {
+
+
+        Jan: "01",
+
+        Feb: "02",
+
+        Mar: "03",
+
+        Apr: "04",
+
+        May: "05",
+
+        Jun: "06",
+
+        Jul: "07",
+
+        Aug: "08",
+
+        Sep: "09",
+
+        Oct: "10",
+
+        Nov: "11",
+
+        Dec: "12"
+
+
+    };
+
+
+
+    const parts =
+
+        String(
+
+            dateStr
+
+        ).split("-");
+
+
+
+    if (
+
+        parts.length !== 3
+
+    ) {
+
+
+        return null;
+
+    }
+
+
+
+    const day =
+
+        String(
+
+            parts[0]
+
+        ).padStart(
+
+            2,
+
+            "0"
+
+        );
+
+
+    const month =
+
+        months[
+
+            parts[1]
+
+        ];
+
+
+
+    if (
+
+        !month
+
+    ) {
+
+
+        return null;
+
+    }
+
+
+
+    const year =
+
+        parts[2].length === 2
+
+        ? "20" + parts[2]
+
+        : parts[2];
+
+
+
+    const parsedDate =
+
+        new Date(
+
+            `${year}-${month}-${day}T${timeStr}:00`
+
+        );
+
+
+
+    if (
+
+        isNaN(
+
+            parsedDate.getTime()
+
+        )
+
+    ) {
+
+
+        return null;
+
+    }
+
+
+
+    return parsedDate;
+
+}
+
+
+
+// =====================================================
+// SUCCESS MESSAGE
+// =====================================================
+
+
+function showSuccess(
+
+    title,
+
+    message
+
+) {
+
+
+    document.getElementById(
+
+        "status"
+
+    ).innerHTML =
+
+    `
+
+    <div class="success">
+
+        ${title}
+
+    </div>
+
+
+    <div class="small">
+
+        ${message}
+
+    </div>
+
+    `;
+
+
+    document.getElementById(
+
+        "reader"
+
+    ).innerHTML = "";
+
+}
+
+
+
+// =====================================================
+// ERROR MESSAGE
+// =====================================================
+
+
+function showError(
+
+    message
+
+) {
+
+
+    document.getElementById(
+
+        "status"
+
+    ).innerHTML =
+
+    `
+
+    <div class="error">
+
+        ${message}
+
+    </div>
+
+    `;
+
+
+    document.getElementById(
+
+        "reader"
+
+    ).innerHTML = "";
+
+}
+
+
+
+// =====================================================
+// MERS CANONICAL IST DATE-TIME
+// FORMAT: YYYY-MM-DD HH:mm:ss
+// RETAINED AS SHARED DATE UTILITY
+// =====================================================
+
+
+function getISTDateTime() {
+
+
+    const parts =
+
+        new Intl.DateTimeFormat(
+
+            "en-CA",
+
+            {
+
+                timeZone:
+
+                    "Asia/Kolkata",
+
+                year:
+
+                    "numeric",
+
+                month:
+
+                    "2-digit",
+
+                day:
+
+                    "2-digit",
+
+                hour:
+
+                    "2-digit",
+
+                minute:
+
+                    "2-digit",
+
+                second:
+
+                    "2-digit",
+
+                hour12:
+
+                    false
+
+            }
+
+        ).formatToParts(
+
+            new Date()
+
+        );
+
+
+    const values = {};
+
+
+    parts.forEach(
+
+        part => {
+
+
+            if (
+
+                part.type !== "literal"
+
+            ) {
+
+
+                values[
+
+                    part.type
+
+                ] =
+
+                    part.value;
+
+            }
+
+        }
+
+    );
+
+
+
+    return (
+
+        values.year +
+
+        "-" +
+
+        values.month +
+
+        "-" +
+
+        values.day +
+
+        " " +
+
+        values.hour +
+
+        ":" +
+
+        values.minute +
+
+        ":" +
+
+        values.second
+
+    );
+
+}
+
+
+</script>
+
+
+</body>
+
+</html>
