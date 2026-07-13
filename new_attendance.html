@@ -807,16 +807,15 @@ async function processParticipantQR(
         }
 
 
+await writeAttendance(
 
-        await writeAttendance(
+    scannedRegistrationId,
 
-            scannedRegistrationId,
+    "Volunteer Check-in"
 
-            "SCANNER"
+);
 
-        );
-
-
+        
 
         showSuccess({
 
@@ -829,8 +828,10 @@ async function processParticipantQR(
     registrationId:
         scannedRegistrationId,
 
-    attendanceMode:
-        "SCANNER"
+
+         attendanceMode:
+
+    "Volunteer Check-in"
 
 });
 
@@ -1100,7 +1101,7 @@ async function processVenueQR(
 
             registrationId,
 
-            "COMMON_QR"
+            "Participant Check-in"
 
         );
 
@@ -1118,7 +1119,7 @@ showSuccess({
         registrationId,
 
     attendanceMode:
-        "COMMON_QR"
+        "Participant Check-in"
 
 });
         
