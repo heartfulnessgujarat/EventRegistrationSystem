@@ -1828,6 +1828,18 @@ async function showSuccess(data) {
     // BUILD SUCCESS CARD
     // =====================================================
 
+// =====================================================
+// HIDE PAGE TITLE
+// =====================================================
+
+document.getElementById(
+    "eventTitle"
+).style.display = "none";
+
+
+
+
+    
     document.getElementById("status").innerHTML =
 
 `
@@ -1879,44 +1891,131 @@ overflow:hidden;">
 
         </div>
 
-        <table style="
-            width:100%;
-            border-collapse:collapse;
-            font-size:16px;">
 
-            <tr>
 
-                <td><b>Participant</b></td>
 
-                <td>${participant.full_name}</td>
+<table
+style="
+width:100%;
+border-collapse:collapse;
+font-size:16px;
+margin-top:15px;
+">
 
-            </tr>
+<tr>
 
-            <tr>
+<td
+style="
+width:38%;
+font-weight:bold;
+padding:8px 4px;
+text-align:left;
+vertical-align:top;
+">
 
-                <td><b>Registration ID</b></td>
+Participant
 
-                <td>${data.registrationId}</td>
+</td>
 
-            </tr>
+<td
+style="
+padding:8px 4px;
+text-align:left;
+">
 
-            <tr>
+${participant.full_name}
 
-                <td><b>Attendance Mode</b></td>
+</td>
 
-                <td>${data.attendanceMode}</td>
+</tr>
 
-            </tr>
+<tr>
 
-            <tr>
+<td
+style="
+font-weight:bold;
+padding:8px 4px;
+text-align:left;
+vertical-align:top;
+">
 
-                <td><b>Attendance Time</b></td>
+Registration ID
 
-                <td>${attendanceTime}</td>
+</td>
 
-            </tr>
+<td
+style="
+padding:8px 4px;
+text-align:left;
+word-break:break-word;
+">
 
-        </table>
+${data.registrationId}
+
+</td>
+
+</tr>
+
+<tr>
+
+<td
+style="
+font-weight:bold;
+padding:8px 4px;
+text-align:left;
+vertical-align:top;
+">
+
+Attendance Mode
+
+</td>
+
+<td
+style="
+padding:8px 4px;
+text-align:left;
+">
+
+${data.attendanceMode}
+
+</td>
+
+</tr>
+
+<tr>
+
+<td
+style="
+font-weight:bold;
+padding:8px 4px;
+text-align:left;
+vertical-align:top;
+">
+
+Attendance Time
+
+</td>
+
+<td
+style="
+padding:8px 4px;
+text-align:left;
+">
+
+${attendanceTime}
+
+</td>
+
+</tr>
+
+</table>
+
+
+
+
+
+
+
 
         <div style="
             margin-top:30px;
