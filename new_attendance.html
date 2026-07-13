@@ -249,7 +249,7 @@ async function initializeAttendance() {
 
     try {
 
-        alert("1");
+   //     alert("1");
 
 
         // =====================================================
@@ -288,7 +288,7 @@ async function initializeAttendance() {
 
             ).once("value");
 
-        alert("2");
+    //    alert("2");
 
 
         if (!configSnap.exists()) {
@@ -325,7 +325,7 @@ async function initializeAttendance() {
 
             );
 
-alert("3");
+//  alert("3");
 
         
 
@@ -392,21 +392,15 @@ else {
 
 
 
-
-
-        
-
-
-
         // =====================================================
         // ATTENDANCE ENABLE CHECK
         // =====================================================
 
 
-alert(
-    "attendance_enabled = " +
-    eventConfig.attendance_enabled
-);
+// alert(
+//     "attendance_enabled = " +
+//     eventConfig.attendance_enabled
+// );
 
 
 
@@ -414,19 +408,17 @@ alert(
 const attendanceValue =
     String(eventConfig.attendance_enabled).trim();
 
-alert("[" + attendanceValue + "]");
+// alert("[" + attendanceValue + "]");
 
 const attendanceEnabled =
     attendanceValue.toUpperCase() === "TRUE";
 
-alert(
-    "attendanceEnabled = " +
-    attendanceEnabled
-);
+// alert(
+//    "attendanceEnabled = " +
+ //    attendanceEnabled
+//  );
 
-
-
-        
+      
         
 
 
@@ -456,7 +448,7 @@ alert(
             validateAttendanceWindow();
 
 
-        alert("5");
+   //     alert("5");
 
 
         if (!windowValid) {
@@ -495,7 +487,7 @@ alert(
 
         ) {
 
-alert("COMMON");
+ // alert("COMMON");
             
 
             startCommonQRFlow();
