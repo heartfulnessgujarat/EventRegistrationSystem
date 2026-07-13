@@ -408,15 +408,26 @@ alert(
     eventConfig.attendance_enabled
 );
 
-        const attendanceEnabled =
 
-            alert("4");
 
-            String(
 
-                eventConfig.attendance_enabled || ""
+const attendanceValue =
+    String(eventConfig.attendance_enabled).trim();
 
-            ).toUpperCase() === "TRUE";
+alert("[" + attendanceValue + "]");
+
+const attendanceEnabled =
+    attendanceValue.toUpperCase() === "TRUE";
+
+alert(
+    "attendanceEnabled = " +
+    attendanceEnabled
+);
+
+
+
+        
+        
 
 
         if (!attendanceEnabled) {
