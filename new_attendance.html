@@ -818,14 +818,26 @@ async function processParticipantQR(
 
 
 
-        showSuccess(
+        showSuccess({
 
-            "Attendance Marked Successfully",
+    title:
+        "Attendance Marked Successfully",
 
-            "Participant QR Verified"
+    message:
+        "Participant QR Verified Successfully",
 
-        );
+    registrationId:
+        scannedRegistrationId,
 
+    attendanceMode:
+        "SCANNER"
+
+});
+
+        
+
+
+        
 
     }
 
@@ -1094,14 +1106,25 @@ async function processVenueQR(
 
 
 
-        showSuccess(
+showSuccess({
 
-            "Attendance Marked Successfully",
+    title:
+        "Attendance Marked Successfully",
 
-            "Please take your seat. Happy Learning and have a nice day!"
+    message:
+        "Please take your seat. Happy Learning and have a nice day!",
 
-        );
+    registrationId:
+        registrationId,
 
+    attendanceMode:
+        "COMMON_QR"
+
+});
+        
+
+
+        
 
     }
 
