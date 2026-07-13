@@ -1938,6 +1938,172 @@ function getISTDateTime() {
 }
 
 
+    // =====================================================
+// SINGLE ATTENDANCE WRITE FUNCTION
+// =====================================================
+
+async function writeAttendance(
+
+    registrationId,
+
+    mode
+
+) {
+
+
+    if (
+
+        !registrationId ||
+
+        !mode
+
+    ) {
+
+
+        throw new Error(
+
+            "Attendance data incomplete"
+
+        );
+
+    }
+
+
+    // =====================================================
+    // PREPARE ATTENDANCE DATA
+    // =====================================================
+
+    const attendanceTimestamp =
+        new Date().toISOString();
+
+
+    const attendanceData = {
+
+        registration_id:
+            registrationId,
+
+        attendance_timestamp:
+            attendanceTimestamp,
+
+        attendance_mode:
+            mode
+
+    };
+
+
+    // =====================================================
+    // WRITE TO FIREBASE
+    // =====================================================
+
+    const attendanceRef =
+
+        await db.ref(
+
+            "attendance/" +
+
+            eventId
+
+        ).push(
+
+            attendanceData
+
+        );
+
+
+    // =====================================================
+    // FIREBASE PUSH ID
+    // =====================================================
+
+    const firebaseId =
+
+        attendanceRef.key;
+
+
+    console.log(
+
+        "ATTENDANCE WRITTEN:",
+
+        {
+
+            firebase_id:
+                firebaseId,
+
+            event_id:
+                eventId,
+
+            registration_id:
+                registrationId,
+
+            attendance_timestamp:
+                attendanceTimestamp,
+
+            attendance_mode:
+                mode
+
+        }
+
+    );
+
+
+    // =====================================================
+    // TRIGGER GOOGLE SHEET SYNC
+    // =====================================================
+
+    const syncUrl =
+
+        SCRIPT_URL +
+
+        "?action=syncAttendance" +
+
+        "&eventId=" +
+
+        encodeURIComponent(
+
+            eventId
+
+        ) +
+
+        "&firebaseId=" +
+
+        encodeURIComponent(
+
+            firebaseId
+
+        );
+
+
+    fetch(
+
+        syncUrl,
+
+        {
+
+            method:
+                "GET",
+
+            mode:
+                "no-cors"
+
+        }
+
+    );
+
+
+    console.log(
+
+        "ATTENDANCE SYNC TRIGGERED:",
+
+        firebaseId
+
+    );
+
+}
+
+
+
+
+    
+
 </script>
 
 
