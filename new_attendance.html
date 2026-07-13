@@ -1834,8 +1834,16 @@ const bannerSnap =
         "/banner"
     ).once("value");
 
+ // const bannerData =
+ //   bannerSnap.val() || {};
+
+
 const bannerData =
-    bannerSnap.val() || {};
+    bannerSnap.val();
+
+alert(JSON.stringify(bannerData));
+
+    
 
 const eventBanner =
     bannerData.event_banner || "";
