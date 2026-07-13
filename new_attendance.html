@@ -336,20 +336,56 @@ async function initializeAttendance() {
 
 
 
+
+
+
+
         // =====================================================
-        // DISPLAY EVENT TITLE
-        // =====================================================
+// DISPLAY PAGE TITLE
+// =====================================================
+
+const titleElement =
+    document.getElementById(
+        "eventTitle"
+    );
+
+if (attendanceMode === "SCANNER") {
+
+    titleElement.innerHTML =
+
+        "<div style='font-size:28px;font-weight:bold;'>Volunteer Check-in</div>" +
+
+        "<div style='font-size:15px;font-weight:normal;margin-top:8px;color:#666;'>" +
+
+        "Please scan the Participant QR Code." +
+
+        "</div>";
+}
+
+else if (attendanceMode === "COMMON_QR") {
+
+    titleElement.innerHTML =
+
+        "<div style='font-size:28px;font-weight:bold;'>Participant Check-in</div>" +
+
+        "<div style='font-size:15px;font-weight:normal;margin-top:8px;color:#666;'>" +
+
+        "Please scan the Attendance QR Code displayed at the venue." +
+
+        "</div>";
+}
+
+else {
+
+    titleElement.innerText =
+        "Attendance";
+}
 
 
-        document.getElementById(
 
-            "eventTitle"
 
-        ).innerText =
 
-            eventConfig.title ||
-
-            "Attendance";
+        
 
 
 
