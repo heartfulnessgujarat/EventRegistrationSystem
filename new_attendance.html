@@ -883,13 +883,6 @@ async function processParticipantQR(
 
 
 
-  const alreadyMarked =
-
-    await checkDuplicateAttendance(
-
-        scannedRegistrationId
-
-    );
 
 
 if (
@@ -899,9 +892,41 @@ if (
 ) {
 
 
-    showError(
+    await showAttendanceAlreadyMarked(
 
-        "Attendance Already Marked"
+        scannedRegistrationId,
+
+        alreadyMarked
+
+    );
+
+
+    // =====================================================
+    // PREPARE FOR NEXT VOLUNTEER SCAN
+    // =====================================================
+
+    setTimeout(
+
+        () => {
+
+
+            attendanceProcessing = false;
+
+            scannerStarted = false;
+
+
+            document.getElementById(
+
+                "eventTitle"
+
+            ).style.display = "block";
+
+
+            startVolunteerScanner();
+
+        },
+
+        2000
 
     );
 
@@ -911,6 +936,8 @@ if (
 }
 
 
+
+        
 await writeAttendance(
 
     scannedRegistrationId,
@@ -1227,14 +1254,12 @@ async function processVenueQR(
 
 
 
-       const alreadyMarked =
 
+        
+const alreadyMarked =
     await checkDuplicateAttendance(
-
         registrationId
-
     );
-
 
 if (
 
@@ -1242,18 +1267,22 @@ if (
 
 ) {
 
+    await showAttendanceAlreadyMarked(
 
-    showError(
+        registrationId,
 
-        "Attendance Already Marked"
+        alreadyMarked
 
     );
-
 
     return;
 
 }
 
+
+
+
+        
 
 await writeAttendance(
 
@@ -1317,6 +1346,11 @@ showSuccess({
 // CHECK DUPLICATE ATTENDANCE
 // =====================================================
 
+// =====================================================
+// CHECK DUPLICATE ATTENDANCE
+// RETURNS LATEST ATTENDANCE RECORD OR FALSE
+// =====================================================
+
 async function checkDuplicateAttendance(
 
     registrationId
@@ -1362,12 +1396,70 @@ async function checkDuplicateAttendance(
         );
 
 
-    return attendanceSnap.exists();
+    if (
 
-}
+        !attendanceSnap.exists()
+
+    ) {
 
 
-    
+        return false;
+
+    }
+
+
+    const attendanceRecords =
+
+        attendanceSnap.val() || {};
+
+
+    const records =
+
+        Object.keys(
+
+            attendanceRecords
+
+        ).map(
+
+            firebaseId => ({
+
+                firebase_id:
+
+                    firebaseId,
+
+                ...attendanceRecords[
+                    firebaseId
+                ]
+
+            })
+
+        );
+
+
+    records.sort(
+
+        (a, b) =>
+
+            new Date(
+
+                b.attendance_timestamp || 0
+
+            ).getTime()
+
+            -
+
+            new Date(
+
+                a.attendance_timestamp || 0
+
+            ).getTime()
+
+    );
+
+
+    return records[0] || false;
+
+}    
 
 
 // =====================================================
@@ -2307,7 +2399,331 @@ ${attendanceTime}
 
 }
 
+// =====================================================
+// ATTENDANCE ALREADY MARKED CARD
+// =====================================================
 
+async function showAttendanceAlreadyMarked(
+
+    registrationId,
+
+    attendanceRecord
+
+) {
+
+
+    // =====================================================
+    // LOAD PARTICIPANT DETAILS
+    // =====================================================
+
+    const regSnap =
+
+        await db.ref(
+
+            "registrations/" +
+
+            eventId +
+
+            "/" +
+
+            registrationId
+
+        ).once(
+
+            "value"
+
+        );
+
+
+    const participant =
+
+        regSnap.exists()
+
+        ? regSnap.val()
+
+        : {};
+
+
+    // =====================================================
+    // FORMAT PREVIOUS ATTENDANCE TIME
+    // =====================================================
+
+    let attendanceTime =
+
+        "Time Not Available";
+
+
+    if (
+
+        attendanceRecord &&
+
+        attendanceRecord.attendance_timestamp
+
+    ) {
+
+
+        const parsedAttendanceTime =
+
+            new Date(
+
+                attendanceRecord
+                    .attendance_timestamp
+
+            );
+
+
+        if (
+
+            !isNaN(
+
+                parsedAttendanceTime.getTime()
+
+            )
+
+        ) {
+
+
+            attendanceTime =
+
+                parsedAttendanceTime
+                    .toLocaleString(
+
+                        "en-IN",
+
+                        {
+
+                            timeZone:
+                                "Asia/Kolkata",
+
+                            day:
+                                "2-digit",
+
+                            month:
+                                "long",
+
+                            year:
+                                "numeric",
+
+                            hour:
+                                "2-digit",
+
+                            minute:
+                                "2-digit",
+
+                            hour12:
+                                false
+
+                        }
+
+                    )
+                    .toUpperCase();
+
+        }
+
+
+    }
+
+
+    // =====================================================
+    // PREVIOUS ATTENDANCE MODE
+    // =====================================================
+
+    const previousMode =
+
+        attendanceRecord &&
+        attendanceRecord.attendance_mode
+
+        ? attendanceRecord.attendance_mode
+
+        : "Not Available";
+
+
+    // =====================================================
+    // PARTICIPANT NAME
+    // =====================================================
+
+    const participantName =
+
+        participant.full_name ||
+
+        "Participant";
+
+
+    // =====================================================
+    // DISPLAY DUPLICATE ATTENDANCE CARD
+    // =====================================================
+
+    document.getElementById(
+
+        "status"
+
+    ).innerHTML = `
+
+        <div
+            style="
+                max-width:500px;
+                margin:0 auto;
+                background:#fff8e1;
+                border:2px solid #f9a825;
+                border-radius:14px;
+                padding:25px;
+                box-sizing:border-box;
+                text-align:center;
+            "
+        >
+
+            <div
+                style="
+                    font-size:42px;
+                    margin-bottom:10px;
+                "
+            >
+                ⚠️
+            </div>
+
+
+            <div
+                style="
+                    font-size:24px;
+                    font-weight:bold;
+                    color:#e65100;
+                    margin-bottom:20px;
+                "
+            >
+                Attendance Already Marked
+            </div>
+
+
+            <div
+                style="
+                    font-size:22px;
+                    font-weight:bold;
+                    color:#333;
+                    margin-bottom:20px;
+                "
+            >
+                ${participantName}
+            </div>
+
+
+            <table
+                style="
+                    width:100%;
+                    border-collapse:collapse;
+                    font-size:15px;
+                    color:#333;
+                "
+            >
+
+                <tr
+                    style="
+                        border-bottom:1px solid #ffe0b2;
+                    "
+                >
+
+                    <td
+                        style="
+                            font-weight:bold;
+                            padding:8px 4px;
+                            text-align:left;
+                            vertical-align:top;
+                        "
+                    >
+                        Registration ID
+                    </td>
+
+                    <td
+                        style="
+                            padding:8px 4px;
+                            text-align:left;
+                            word-break:break-word;
+                        "
+                    >
+                        ${registrationId}
+                    </td>
+
+                </tr>
+
+
+                <tr
+                    style="
+                        border-bottom:1px solid #ffe0b2;
+                    "
+                >
+
+                    <td
+                        style="
+                            font-weight:bold;
+                            padding:8px 4px;
+                            text-align:left;
+                            vertical-align:top;
+                        "
+                    >
+                        Attendance Mode
+                    </td>
+
+                    <td
+                        style="
+                            padding:8px 4px;
+                            text-align:left;
+                        "
+                    >
+                        ${previousMode}
+                    </td>
+
+                </tr>
+
+
+                <tr>
+
+                    <td
+                        style="
+                            font-weight:bold;
+                            padding:8px 4px;
+                            text-align:left;
+                            vertical-align:top;
+                        "
+                    >
+                        Attendance Time
+                    </td>
+
+                    <td
+                        style="
+                            padding:8px 4px;
+                            text-align:left;
+                        "
+                    >
+                        ${attendanceTime}
+                    </td>
+
+                </tr>
+
+            </table>
+
+
+            <div
+                style="
+                    margin-top:25px;
+                    font-size:16px;
+                    color:#795548;
+                    font-weight:bold;
+                "
+            >
+                No new attendance entry has been created.
+            </div>
+
+        </div>
+
+    `;
+
+
+    document.getElementById(
+
+        "reader"
+
+    ).innerHTML = "";
+
+}
     
 
 
