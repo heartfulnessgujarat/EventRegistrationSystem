@@ -227,6 +227,9 @@ let attendanceProcessing = false;
     let duplicatePreventionEnabled = false;
 
 
+    let eventBanner = "";
+
+
 
 // =====================================================
 // PAGE INITIALIZATION
@@ -360,10 +363,30 @@ duplicatePreventionEnabled =
     .trim()
     .toUpperCase() === "ACTIVE";
 
+// =====================================================
+// LOAD EVENT BANNER (CACHE ONCE)
+// =====================================================
+
+const bannerSnap =
+
+    await db.ref(
+
+        "htmlStorage/" +
+
+        eventId +
+
+        "/banner"
+
+    ).once("value");
 
 
+eventBanner =
 
-        // =====================================================
+    bannerSnap.val() || "";
+
+        
+
+ // =====================================================
 // DISPLAY PAGE TITLE
 // =====================================================
 
