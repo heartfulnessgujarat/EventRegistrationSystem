@@ -2110,23 +2110,40 @@ async function showSuccess(data) {
     const participant =
         regSnap.val();
 
-    // =====================================================
-    // FORMAT ATTENDANCE TIME
-    // =====================================================
 
-    const attendanceTime =
-        new Date().toLocaleString(
-            "en-IN",
-            {
-                timeZone: "Asia/Kolkata",
-                day: "2-digit",
-                month: "long",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: false
-            }
-        ).toUpperCase();
+
+
+// =====================================================
+// ATTENDANCE TIME
+// USE PASSED TIME OR CURRENT TIME
+// =====================================================
+
+const attendanceTime =
+
+    data.attendanceTime ||
+
+    new Date().toLocaleString(
+
+        "en-IN",
+
+        {
+            timeZone: "Asia/Kolkata",
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false
+        }
+
+    ).toUpperCase();
+
+
+
+
+
+
+    
 
     // =====================================================
     // EVENT DETAILS
@@ -2208,7 +2225,10 @@ ${eventBanner}
 
 <div style="
 height:4px;
-background:#2e7d32;
+
+background:${data.barColor || "#2e7d32"};
+
+
 "></div>
 
     
@@ -2217,7 +2237,7 @@ background:#2e7d32;
         <div style="
             font-size:24px;
             font-weight:bold;
-            color:#1b5e20;
+            color:${data.titleColor || "#1b5e20"};
             text-align:center;
             margin-bottom:5px;">
 
@@ -2234,8 +2254,6 @@ background:#2e7d32;
 
         </div>
 
-
-
 <div style="
     text-align:center;
     margin-bottom:25px;">
@@ -2245,13 +2263,13 @@ background:#2e7d32;
         line-height:1;
         margin-bottom:8px;">
 
-        ✅
+    ${data.icon || "✅"}
 
     </div>
 
     <div style="
         font-size:30px;
-        color:#1b5e20;
+        color:${data.titleColor || "#1b5e20"};
         font-weight:bold;">
 
         ${data.title}
