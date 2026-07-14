@@ -2109,9 +2109,14 @@ function parseEventDate(
 
 async function showSuccess(data) {
 
+
     // =====================================================
-    // LOAD PARTICIPANT DETAILS
-    // =====================================================
+// LOAD PARTICIPANT DETAILS (ONLY IF NOT PROVIDED)
+// =====================================================
+
+let participant = data.participant;
+
+if (!participant) {
 
     const regSnap =
         await db.ref(
@@ -2130,10 +2135,16 @@ async function showSuccess(data) {
         return;
     }
 
-    const participant =
-        regSnap.val();
+    participant = regSnap.val();
+
+}
 
 
+
+
+
+
+    
 
 
 // =====================================================
