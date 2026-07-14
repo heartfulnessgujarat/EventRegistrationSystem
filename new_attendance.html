@@ -920,7 +920,8 @@ await writeAttendance(
 );
         
 
-        showSuccess({
+
+await showSuccess({
 
     title:
         "Attendance Marked Successfully",
@@ -931,12 +932,37 @@ await writeAttendance(
     registrationId:
         scannedRegistrationId,
 
-
-         attendanceMode:
-
-    "Volunteer Check-in"
+    attendanceMode:
+        "Volunteer Check-in"
 
 });
+
+
+// =====================================================
+// PREPARE FOR NEXT VOLUNTEER SCAN
+// =====================================================
+
+setTimeout(
+
+    () => {
+
+        attendanceProcessing = false;
+
+        scannerStarted = false;
+
+
+        document.getElementById(
+            "eventTitle"
+        ).style.display = "block";
+
+
+        startVolunteerScanner();
+
+    },
+
+    1000
+
+);
 
         
 
