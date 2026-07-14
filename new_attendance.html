@@ -224,6 +224,8 @@ let scannerStarted = false;
 
 let attendanceProcessing = false;
 
+    let duplicatePreventionEnabled = false;
+
 
 
 // =====================================================
@@ -344,7 +346,19 @@ async function initializeAttendance() {
         }
 
 
+// =====================================================
+// DUPLICATE PREVENTION RULE
+// ACTIVE = ENABLED
+// UNDER_TEST = BYPASSED
+// =====================================================
 
+duplicatePreventionEnabled =
+
+    String(
+        eventConfig.event_status || ""
+    )
+    .trim()
+    .toUpperCase() === "ACTIVE";
 
 
 
@@ -868,6 +882,35 @@ async function processParticipantQR(
         }
 
 
+
+  const alreadyMarked =
+
+    await checkDuplicateAttendance(
+
+        scannedRegistrationId
+
+    );
+
+
+if (
+
+    alreadyMarked
+
+) {
+
+
+    showError(
+
+        "Attendance Already Marked"
+
+    );
+
+
+    return;
+
+}
+
+
 await writeAttendance(
 
     scannedRegistrationId,
@@ -875,7 +918,6 @@ await writeAttendance(
     "Volunteer Check-in"
 
 );
-
         
 
         showSuccess({
@@ -1158,15 +1200,44 @@ async function processVenueQR(
 
 
 
-        await writeAttendance(
 
-            registrationId,
+       const alreadyMarked =
 
-            "Participant Check-in"
+    await checkDuplicateAttendance(
 
-        );
+        registrationId
+
+    );
 
 
+if (
+
+    alreadyMarked
+
+) {
+
+
+    showError(
+
+        "Attendance Already Marked"
+
+    );
+
+
+    return;
+
+}
+
+
+await writeAttendance(
+
+    registrationId,
+
+    "Participant Check-in"
+
+);
+
+        
 
 showSuccess({
 
@@ -1215,6 +1286,62 @@ showSuccess({
 
 }
 
+
+// =====================================================
+// CHECK DUPLICATE ATTENDANCE
+// =====================================================
+
+async function checkDuplicateAttendance(
+
+    registrationId
+
+) {
+
+
+    if (
+
+        !duplicatePreventionEnabled
+
+    ) {
+
+
+        return false;
+
+    }
+
+
+    const attendanceSnap =
+
+        await db.ref(
+
+            "attendance/" +
+
+            eventId
+
+        )
+        .orderByChild(
+
+            "registration_id"
+
+        )
+        .equalTo(
+
+            registrationId
+
+        )
+        .once(
+
+            "value"
+
+        );
+
+
+    return attendanceSnap.exists();
+
+}
+
+
+    
 
 
 // =====================================================
