@@ -2180,48 +2180,13 @@ const attendanceTime =
     const eventSubtitle =
         eventConfig.subtitle || "";
 
-    // =====================================================
-// LOAD EVENT BANNER HTML
+// =====================================================
+// USE CACHED EVENT BANNER
 // =====================================================
 
-const bannerSnap =
-    await db.ref(
-        "htmlStorage/" +
-        eventId +
-        "/banner"
-    ).once("value");
-
- // const bannerData =
- //   bannerSnap.val() || {};
-
-
-const bannerData =
-    bannerSnap.val();
-
-// alert(JSON.stringify(bannerData));
-
-
-    const eventBanner =
-    bannerData || "";
-
-
+const bannerHtml = eventBanner;
 
     
-  //  alert(eventBanner);
-// console.log("Banner Data:", bannerData);
-// console.log("Event Banner:", eventBanner);
-
-
-    
-
-    // =====================================================
-    // BUILD SUCCESS CARD
-    // =====================================================
-
-// =====================================================
-// HIDE PAGE TITLE
-// =====================================================
-
 document.getElementById(
     "eventTitle"
 ).style.display = "none";
@@ -2241,9 +2206,7 @@ border-radius:12px;
 box-shadow:0 2px 10px rgba(0,0,0,.15);
 overflow:hidden;">
 
-
-
-${eventBanner}
+${bannerHtml}
 
 
 <div style="
