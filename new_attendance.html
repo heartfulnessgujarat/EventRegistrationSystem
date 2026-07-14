@@ -881,7 +881,17 @@ async function processParticipantQR(
 
         }
 
+// =====================================================
+// CHECK DUPLICATE ATTENDANCE
+// =====================================================
 
+const alreadyMarked =
+
+    await checkDuplicateAttendance(
+
+        scannedRegistrationId
+
+    );
 
 
 
