@@ -999,26 +999,25 @@ setTimeout(
     }
 
 
-    catch (error) {
 
 
-        console.error(
 
-            "SCANNER ATTENDANCE ERROR:",
+catch (error) {
 
-            error
+    console.error(error);
 
-        );
+    alert(error.stack);
+
+    showError(
+        "Attendance Failed"
+    );
+
+}
 
 
-        showError(
 
-            "Attendance Failed"
 
-        );
-
-    }
-
+    
 }
 
 
