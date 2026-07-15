@@ -334,6 +334,188 @@
 
 <script>
 
+
+
+// =====================================================
+// MERS REGISTRATION STATUS CARD
+// =====================================================
+
+function showRegistrationStatusCard(data) {
+
+    const eventTitle =
+        eventConfig.email_label || "";
+
+    const eventSubtitle =
+        eventConfig.subtitle || "";
+
+    const bannerHtml =
+        data.bannerHtml || "";
+
+    const statusScreen =
+        document.getElementById(
+            "success-screen"
+        );
+
+    const statusContent =
+        document.getElementById(
+            "success-content"
+        );
+
+    statusContent.innerHTML = `
+    
+    <div style="
+        max-width:650px;
+        margin:auto;
+        background:white;
+        border-radius:12px;
+        box-shadow:0 2px 10px rgba(0,0,0,.15);
+        overflow:hidden;
+    ">
+
+        ${bannerHtml}
+
+        <div style="
+            height:4px;
+            background:#1a237e;
+        "></div>
+
+        <div style="padding:20px;">
+
+            <div style="
+                font-size:24px;
+                font-weight:bold;
+                color:#1a237e;
+                text-align:center;
+                margin-bottom:5px;
+            ">
+                ${eventTitle}
+            </div>
+
+            <div style="
+                text-align:center;
+                color:#666;
+                margin-bottom:25px;
+            ">
+                ${eventSubtitle}
+            </div>
+
+            <div style="
+                text-align:center;
+                margin-bottom:25px;
+            ">
+
+                <div style="
+                    font-size:58px;
+                    line-height:1;
+                    margin-bottom:8px;
+                ">
+                    🏨
+                </div>
+
+                <div style="
+                    font-size:30px;
+                    color:#1a237e;
+                    font-weight:bold;
+                ">
+                    Current Stay Status
+                </div>
+
+            </div>
+
+            <table style="
+                width:100%;
+                border-collapse:collapse;
+                font-size:16px;
+                margin-top:15px;
+            ">
+
+                <tr>
+                    <td style="
+                        padding:10px;
+                        border-bottom:1px solid #ddd;
+                        font-weight:bold;
+                    ">
+                        Participant
+                    </td>
+
+                    <td style="
+                        padding:10px;
+                        border-bottom:1px solid #ddd;
+                    ">
+                        ${data.fullName || ""}
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="
+                        padding:10px;
+                        border-bottom:1px solid #ddd;
+                        font-weight:bold;
+                    ">
+                        Registration ID
+                    </td>
+
+                    <td style="
+                        padding:10px;
+                        border-bottom:1px solid #ddd;
+                    ">
+                        ${data.registrationId || ""}
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="
+                        padding:10px;
+                        border-bottom:1px solid #ddd;
+                        font-weight:bold;
+                    ">
+                        Original Stay Status
+                    </td>
+
+                    <td style="
+                        padding:10px;
+                        border-bottom:1px solid #ddd;
+                    ">
+                        ${data.originalStayStatus || ""}
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="
+                        padding:10px;
+                        border-bottom:1px solid #ddd;
+                        font-weight:bold;
+                    ">
+                        Current Stay Status
+                    </td>
+
+                    <td style="
+                        padding:10px;
+                        border-bottom:1px solid #ddd;
+                        font-weight:bold;
+                        color:#1a237e;
+                    ">
+                        ${data.currentStayStatus || ""}
+                    </td>
+                </tr>
+
+            </table>
+
+        </div>
+
+    </div>
+    
+    `;
+
+    statusScreen.style.display =
+        "block";
+}
+
+
+
+
+  
+
   function getDisplayValue(fieldId, value) {
 
   // ============================================
