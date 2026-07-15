@@ -2832,27 +2832,53 @@ getFieldElement(id);
   // =====================================================
   // SAVE FINAL STAY ALLOCATION CODE
   // =====================================================
-  
-  formData.stay_allocation_code =
+
+
+// =====================================================
+// SAVE ACCOMMODATION ALLOCATION STATUS
+// =====================================================
+
+// CURRENT ACCOMMODATION STATUS
+formData.stay_allocation_code =
     stayAllocationCode;
-  
-  
-  
-  
-  
+
+
+// =====================================================
+// PRESERVE STATUS AT THE TIME OF ORIGINAL REGISTRATION
+// =====================================================
+
+if (
+    mode === 'new'
+) {
+
+    formData.original_stay_allocation_code =
+        stayAllocationCode;
+
+}
+
+
+// =====================================================
+// SAVE REGISTRATION
+// =====================================================
+
+await db.ref(
+    'registrations/' +
+    eventIdParam +
+    '/' +
+    formData.registration_id
+).set(formData);
         
-          await db.ref('registrations/' + eventIdParam + '/' + formData.registration_id).set(formData);
+        
+
+
+
+        
   
         await updateLiveRegDataProjection(
       formData,
       eventIdParam
   );
-  
-
-
-
-
-
+         
         const attendanceRegistrationId =
 await syncAttendeeRegistry(
     formData,
