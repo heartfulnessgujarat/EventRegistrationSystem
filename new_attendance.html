@@ -793,14 +793,6 @@ const attendanceValue =
 const attendanceEnabled =
     attendanceValue.toUpperCase() === "TRUE";
 
-// alert(
-//    "attendanceEnabled = " +
- //    attendanceEnabled
-//  );
-
-      
-        
-
 
         if (!attendanceEnabled) {
 
@@ -816,6 +808,63 @@ const attendanceEnabled =
 
         }
 
+
+// =====================================================
+// ATTENDANCE SESSION INTERLOCK
+// =====================================================
+
+const attendanceType =
+
+    String(
+        eventConfig.attendance_type || "SINGLE"
+    )
+    .trim()
+    .toUpperCase();
+
+
+if (
+
+    attendanceType === "SESSION_BASED"
+
+) {
+
+
+    await loadCurrentAttendanceSession();
+
+
+    if (
+
+        !currentAttendanceSession
+
+    ) {
+
+
+        showError(
+
+            "Attendance Session Not Active"
+
+        );
+
+
+        return;
+
+    }
+
+
+    console.log(
+
+        "ATTENDANCE SESSION ACTIVE:",
+
+        currentAttendanceSession.session_id,
+
+        currentAttendanceSession.session_name
+
+    );
+
+}
+
+
+        
 
 
         // =====================================================
@@ -3048,24 +3097,52 @@ async function writeAttendance(
         new Date().toISOString();
 
 
-    const attendanceData = {
 
-        registration_id:
-            registrationId,
 
-        attendance_timestamp:
-            attendanceTimestamp,
+const attendanceData = {
 
-        attendance_mode:
-            mode
+    registration_id:
+        registrationId,
 
-    };
+    attendance_timestamp:
+        attendanceTimestamp,
 
+    attendance_mode:
+        mode,
+
+    session_id:
+
+        currentAttendanceSession
+
+            ? currentAttendanceSession.session_id
+
+            : "",
+
+    session_name:
+
+        currentAttendanceSession
+
+            ? currentAttendanceSession.session_name
+
+            : ""
+
+};
+
+
+
+
+
+
+
+    
+
+    
 
     // =====================================================
     // WRITE TO FIREBASE
     // =====================================================
 
+    
     const attendanceRef =
 
         await db.ref(
@@ -3109,7 +3186,13 @@ async function writeAttendance(
                 attendanceTimestamp,
 
             attendance_mode:
-                mode
+                mode,
+
+             session_id:
+            attendanceData.session_id,
+
+        session_name:
+            attendanceData.session_name
 
         }
 
