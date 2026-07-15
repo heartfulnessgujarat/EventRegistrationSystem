@@ -512,6 +512,42 @@ function showRegistrationStatusCard(data) {
 }
 
 
+// =====================================================
+// OPEN REGISTRATION STATUS CHECK
+// =====================================================
+
+function openRegistrationStatusCheck() {
+
+    const registrationId =
+        prompt(
+            "Please enter your Registration ID"
+        );
+
+    if (
+        !registrationId
+    ) {
+
+        return;
+
+    }
+
+
+    const cleanRegistrationId =
+        String(
+            registrationId
+        )
+        .trim()
+        .toUpperCase();
+
+
+    console.log(
+        "STATUS CHECK REGISTRATION ID:",
+        cleanRegistrationId
+    );
+
+}
+
+  
 
 
   
