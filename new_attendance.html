@@ -2416,6 +2416,7 @@ function parseEventDate(
 
 async function showSuccess(data) {
 
+    
 
     // =====================================================
 // LOAD PARTICIPANT DETAILS (ONLY IF NOT PROVIDED)
@@ -2659,6 +2660,12 @@ Registration ID
 
 </td>
 
+
+
+
+
+
+
 <td
 style="
 padding:4px 4px;
@@ -2671,6 +2678,38 @@ ${data.registrationId}
 </td>
 
 </tr>
+
+${
+    attendanceSession
+
+    ? `
+
+        <tr style="border-bottom:1px solid #eeeeee;">
+
+            <td style="
+                font-weight:bold;
+                padding:4px 4px;
+                text-align:left;
+                vertical-align:top;
+            ">
+                Attendance Session
+            </td>
+
+            <td style="
+                padding:4px 4px;
+                text-align:left;
+            ">
+                ${attendanceSession}
+            </td>
+
+        </tr>
+
+    `
+
+    : ""
+}
+
+
 
 <tr style="border-bottom:1px solid #eeeeee;">
 
