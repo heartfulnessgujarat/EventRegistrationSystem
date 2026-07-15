@@ -1775,6 +1775,13 @@ showSuccess({
 // RETURNS LATEST ATTENDANCE RECORD OR FALSE
 // =====================================================
 
+
+    // =====================================================
+// CHECK DUPLICATE ATTENDANCE
+// SESSION-AWARE DUPLICATE DETECTION
+// RETURNS LATEST MATCHING RECORD OR FALSE
+// =====================================================
+
 async function checkDuplicateAttendance(
 
     registrationId
@@ -1837,7 +1844,7 @@ async function checkDuplicateAttendance(
         attendanceSnap.val() || {};
 
 
-    const records =
+    let records =
 
         Object.keys(
 
@@ -1852,13 +1859,110 @@ async function checkDuplicateAttendance(
                     firebaseId,
 
                 ...attendanceRecords[
+
                     firebaseId
+
                 ]
 
             })
 
         );
 
+
+    // =====================================================
+    // SESSION-BASED ATTENDANCE
+    // DUPLICATE ONLY WITHIN CURRENT SESSION
+    // =====================================================
+
+    const attendanceType =
+
+        String(
+
+            eventConfig.attendance_type ||
+
+            "SINGLE"
+
+        )
+        .trim()
+        .toUpperCase();
+
+
+    if (
+
+        attendanceType === "SESSION_BASED"
+
+    ) {
+
+
+        if (
+
+            !currentAttendanceSession ||
+
+            !currentAttendanceSession.session_id
+
+        ) {
+
+
+            throw new Error(
+
+                "Current Attendance Session Missing"
+
+            );
+
+        }
+
+
+        const currentSessionId =
+
+            String(
+
+                currentAttendanceSession.session_id
+
+            )
+            .trim()
+            .toUpperCase();
+
+
+        records =
+
+            records.filter(
+
+                record =>
+
+                    String(
+
+                        record.session_id || ""
+
+                    )
+                    .trim()
+                    .toUpperCase() ===
+
+                    currentSessionId
+
+            );
+
+    }
+
+
+    // =====================================================
+    // NO MATCHING DUPLICATE
+    // =====================================================
+
+    if (
+
+        records.length === 0
+
+    ) {
+
+
+        return false;
+
+    }
+
+
+    // =====================================================
+    // RETURN LATEST MATCHING ATTENDANCE
+    // =====================================================
 
     records.sort(
 
@@ -1883,9 +1987,11 @@ async function checkDuplicateAttendance(
 
     return records[0] || false;
 
-}    
+}
 
 
+
+    
 
 // =====================================================
 // START QR SCANNER
@@ -2081,6 +2187,16 @@ function startQRScanner(
 }
 
 
+
+
+
+
+
+
+
+
+
+    
 
 // =====================================================
 // EXTRACT REGISTRATION ID
