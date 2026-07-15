@@ -2452,8 +2452,6 @@ if (!participant) {
 
 
     
-
-
 // =====================================================
 // ATTENDANCE TIME
 // USE PASSED TIME OR CURRENT TIME
@@ -2479,6 +2477,25 @@ const attendanceTime =
 
     ).toUpperCase();
 
+
+// =====================================================
+// ATTENDANCE SESSION
+// =====================================================
+
+const attendanceSession =
+
+    data.sessionName ||
+
+    (
+        currentAttendanceSession
+
+            ? currentAttendanceSession.session_name
+
+            : ""
+    );
+
+
+    
 
 
 
