@@ -558,6 +558,16 @@ async function openRegistrationStatusCheck() {
         // READ REGISTRATION FROM FIREBASE
         // =====================================================
 
+console.log(
+    "Searching Firebase Path:",
+    "registrations/" +
+    eventIdParam +
+    "/" +
+    cleanRegistrationId
+);
+
+      
+
         const registrationSnap =
 
             await db.ref(
@@ -573,7 +583,14 @@ async function openRegistrationStatusCheck() {
             )
             .once(
                 "value"
-            );
+
+console.log(
+    "Snapshot Exists:",
+    registrationSnap.exists()
+);
+
+ 
+         
 
 
         // =====================================================
