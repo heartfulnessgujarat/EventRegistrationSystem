@@ -229,7 +229,350 @@ let attendanceProcessing = false;
 
     let eventBanner = "";
 
+    let currentAttendanceSession = null;
 
+
+
+// =====================================================
+// LOAD CURRENT ATTENDANCE SESSION
+// =====================================================
+
+async function loadCurrentAttendanceSession() {
+
+
+    currentAttendanceSession = null;
+
+
+    // =====================================================
+    // SESSION LOGIC ONLY FOR SESSION_BASED EVENTS
+    // =====================================================
+
+    const attendanceType =
+
+        String(
+            eventConfig.attendance_type || "SINGLE"
+        )
+        .trim()
+        .toUpperCase();
+
+
+    if (
+
+        attendanceType !== "SESSION_BASED"
+
+    ) {
+
+
+        console.log(
+
+            "ATTENDANCE TYPE: SINGLE"
+
+        );
+
+
+        return null;
+
+    }
+
+
+
+    // =====================================================
+    // LOAD ATTENDANCE SESSIONS
+    // =====================================================
+
+    const sessionSnap =
+
+        await db.ref(
+
+            "config/attendanceSessions/" +
+
+            eventId
+
+        ).once("value");
+
+
+
+    if (
+
+        !sessionSnap.exists()
+
+    ) {
+
+
+        throw new Error(
+
+            "Attendance Sessions Not Configured"
+
+        );
+
+    }
+
+
+
+    const sessions =
+
+        sessionSnap.val();
+
+
+
+    // =====================================================
+    // CURRENT INDIA TIME
+    // =====================================================
+
+    const now =
+
+        new Date(
+
+            new Date().toLocaleString(
+
+                "en-US",
+
+                {
+                    timeZone:
+                        "Asia/Kolkata"
+                }
+
+            )
+
+        );
+
+
+
+    // =====================================================
+    // SESSION DATE PARSER
+    // FORMAT: 15-Jul-2026 8:00
+    // =====================================================
+
+    function parseSessionDate(
+
+        value
+
+    ) {
+
+
+        const match =
+
+            String(value || "")
+            .trim()
+            .match(
+
+                /^(\d{1,2})-([A-Za-z]{3})-(\d{4})\s+(\d{1,2}):(\d{2})$/
+
+            );
+
+
+        if (
+
+            !match
+
+        ) {
+
+
+            return null;
+
+        }
+
+
+
+        const monthMap = {
+
+            JAN: 0,
+            FEB: 1,
+            MAR: 2,
+            APR: 3,
+            MAY: 4,
+            JUN: 5,
+            JUL: 6,
+            AUG: 7,
+            SEP: 8,
+            OCT: 9,
+            NOV: 10,
+            DEC: 11
+
+        };
+
+
+
+        const month =
+
+            monthMap[
+
+                match[2].toUpperCase()
+
+            ];
+
+
+
+        if (
+
+            month === undefined
+
+        ) {
+
+
+            return null;
+
+        }
+
+
+
+        return new Date(
+
+            Number(match[3]),
+
+            month,
+
+            Number(match[1]),
+
+            Number(match[4]),
+
+            Number(match[5]),
+
+            0
+
+        );
+
+    }
+
+
+
+    // =====================================================
+    // FIND CURRENT ACTIVE SESSION
+    // =====================================================
+
+    for (
+
+        const sessionId in sessions
+
+    ) {
+
+
+        const session =
+
+            sessions[sessionId];
+
+
+
+        const status =
+
+            String(
+                session.status || ""
+            )
+            .trim()
+            .toUpperCase();
+
+
+
+        if (
+
+            status !== "ACTIVE"
+
+        ) {
+
+
+            continue;
+
+        }
+
+
+
+        const sessionStart =
+
+            parseSessionDate(
+
+                session.session_start
+
+            );
+
+
+        const sessionEnd =
+
+            parseSessionDate(
+
+                session.session_end
+
+            );
+
+
+
+        if (
+
+            !sessionStart ||
+
+            !sessionEnd
+
+        ) {
+
+
+            console.warn(
+
+                "INVALID SESSION DATE:",
+
+                sessionId,
+
+                session
+
+            );
+
+
+            continue;
+
+        }
+
+
+
+        if (
+
+            now >= sessionStart &&
+
+            now <= sessionEnd
+
+        ) {
+
+
+            currentAttendanceSession =
+
+                session;
+
+
+
+            console.log(
+
+                "CURRENT ATTENDANCE SESSION:",
+
+                currentAttendanceSession
+
+            );
+
+
+            return currentAttendanceSession;
+
+        }
+
+    }
+
+
+
+    // =====================================================
+    // NO ACTIVE SESSION FOUND
+    // =====================================================
+
+    console.log(
+
+        "NO CURRENT ATTENDANCE SESSION"
+
+    );
+
+
+    return null;
+
+}
+
+    
+
+
+
+    
 
 // =====================================================
 // PAGE INITIALIZATION
