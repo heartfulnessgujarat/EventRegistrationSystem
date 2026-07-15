@@ -512,16 +512,21 @@ function showRegistrationStatusCard(data) {
 }
 
 
+
+  
+
+
 // =====================================================
 // OPEN REGISTRATION STATUS CHECK
 // =====================================================
 
-function openRegistrationStatusCheck() {
+async function openRegistrationStatusCheck() {
 
     const registrationId =
         prompt(
             "Please enter your Registration ID"
         );
+
 
     if (
         !registrationId
@@ -544,6 +549,93 @@ function openRegistrationStatusCheck() {
         "STATUS CHECK REGISTRATION ID:",
         cleanRegistrationId
     );
+
+
+    try {
+
+
+        // =====================================================
+        // READ REGISTRATION FROM FIREBASE
+        // =====================================================
+
+        const registrationSnap =
+
+            await db.ref(
+
+                "registrations/" +
+
+                eventIdParam +
+
+                "/" +
+
+                cleanRegistrationId
+
+            )
+            .once(
+                "value"
+            );
+
+
+        // =====================================================
+        // REGISTRATION NOT FOUND
+        // =====================================================
+
+        if (
+            !registrationSnap.exists()
+        ) {
+
+
+            alert(
+                "Registration ID not found."
+            );
+
+
+            return;
+
+        }
+
+
+        // =====================================================
+        // REGISTRATION FOUND
+        // =====================================================
+
+        const registrationData =
+
+            registrationSnap.val();
+
+
+        console.log(
+
+            "STATUS CHECK REGISTRATION FOUND:",
+
+            registrationData
+
+        );
+
+
+    }
+
+
+    catch (error) {
+
+
+        console.error(
+
+            "STATUS CHECK ERROR:",
+
+            error
+
+        );
+
+
+        alert(
+
+            "Unable to check registration status."
+
+        );
+
+
+    }
 
 }
 
