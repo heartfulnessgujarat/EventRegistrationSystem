@@ -1284,7 +1284,39 @@ holder.appendChild(input);
       window.getComputedStyle(container).display
   );
 
+const nextSection = getNextSection("Section1");
 
+const actionBtn = document.getElementById("btn-next-action");
+
+if (nextSection) {
+
+    actionBtn.innerText = "PROCEED";
+
+    actionBtn.style.display = "block";
+
+    actionBtn.onclick = () => {
+
+        document.getElementById("Section1").style.display = "none";
+        document.getElementById("Section2").style.display = "block";
+
+        buildExtraSections(nextSection);
+
+    };
+
+}
+else {
+
+    actionBtn.innerText = "CONFIRM & REGISTER";
+
+    actionBtn.style.display = "block";
+
+    actionBtn.onclick = () => {
+
+        submitData();
+
+    };
+
+}
 
 
     
