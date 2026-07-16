@@ -1284,7 +1284,17 @@ holder.appendChild(input);
       window.getComputedStyle(container).display
   );
 
+    
+    console.log("================ BUTTON TEST ================");
+console.log("All Dynamic Sections:", getAllDynamicSections());
+
 const nextSection = getNextSection("Section1");
+
+console.log("Next Section =", nextSection);
+
+const actionBtn = document.getElementById("btn-next-action");
+
+console.log("Button Found =", actionBtn);
 
 const actionBtn = document.getElementById("btn-next-action");
 
@@ -1306,6 +1316,9 @@ if (nextSection) {
 }
 else {
 
+
+  console.log("Entering CONFIRM branch");
+  
     actionBtn.innerText = "CONFIRM & REGISTER";
 
     actionBtn.style.display = "block";
