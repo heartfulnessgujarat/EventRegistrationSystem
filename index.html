@@ -1105,6 +1105,8 @@ console.log(
 
     renderForm();
 }
+
+
   
   function renderForm() {
 
@@ -1170,7 +1172,10 @@ if (
         <label>${r.display_label || r.field_id}</label>
         ${needsEditLink ? `<span class="edit-link" id="edit-link-${r.field_id}" style="display:none;" onclick="unlockField('${r.field_id}')">Edit</span>` : ''}
       </div>
-      <input type="text" id="${r.field_id}" oninput="onInputChange('${r.field_id}', this.value)" disabled autocomplete="off">
+
+
+<div id="field-holder-${r.field_id}"></div>
+      
       <div class="help-text" id="help-${r.field_id}">${r.field_help_text || ''}</div>
       <div class="error-msg-text" id="err-${r.field_id}"></div>
       <div class="dropdown" id="res-${r.field_id}"></div>
@@ -1196,6 +1201,51 @@ if (
       ` : ''}
     `;
     container.appendChild(div);
+
+    const holder = document.getElementById(`field-holder-${r.field_id}`);
+
+let input;
+
+if (r.lookup_tab && r.lookup_column) {
+
+    input = document.createElement("select");
+
+    input.id = r.field_id;
+
+    input.style.width = "100%";
+
+    input.onchange = function () {
+        onInputChange(r.field_id, this.value);
+    };
+
+    const blank = document.createElement("option");
+    blank.value = "";
+    blank.text = "-- Select --";
+    input.appendChild(blank);
+
+    populateLookupField(r, input);
+
+} else {
+
+    input = document.createElement("input");
+
+    input.type = "text";
+
+    input.id = r.field_id;
+
+    input.disabled = false;
+
+    input.autocomplete = "off";
+
+    input.oninput = function () {
+        onInputChange(r.field_id, this.value);
+    };
+
+}
+
+holder.appendChild(input);
+
+    
     if (r.field_id === 'full_name') {
       div.style.display = 'block';
       getFieldElement('full_name').disabled = false;
@@ -3757,6 +3807,8 @@ function refreshAccommodationChoices() {
     );
 
 }
+
+  
 //----------------------------------------------------
 // MERS V2 : Universal Lookup Population Engine
 //----------------------------------------------------
