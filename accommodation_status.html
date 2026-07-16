@@ -1,0 +1,3448 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<title>MERS Attendance</title>
+
+<script
+    src="https://unpkg.com/html5-qrcode"
+></script>
+
+<script
+    src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"
+></script>
+
+<script
+    src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"
+></script>
+
+
+<style>
+
+body {
+
+    font-family: Arial, sans-serif;
+
+    text-align: center;
+
+    padding: 30px 20px;
+
+    background: #f4f4f4;
+
+    margin: 0;
+}
+
+
+.card {
+
+    background: white;
+
+    padding: 30px;
+
+    border-radius: 12px;
+
+    max-width: 500px;
+
+    margin: auto;
+}
+
+
+#reader {
+
+    width: 100%;
+
+    max-width: 350px;
+
+    margin: 20px auto;
+}
+
+
+.success {
+
+    color: green;
+
+    font-size: 24px;
+
+    font-weight: bold;
+}
+
+
+.error {
+
+    color: red;
+
+    font-size: 22px;
+
+    font-weight: bold;
+}
+
+
+.small {
+
+    margin-top: 15px;
+
+    color: #666;
+
+    line-height: 1.5;
+}
+
+
+#result {
+
+    margin-top: 20px;
+
+    word-break: break-word;
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="card">
+
+
+<h2 id="eventTitle">
+
+    Loading Event...
+
+</h2>
+
+
+<div id="status">
+
+    Loading Attendance System...
+
+</div>
+
+
+<div id="reader"></div>
+
+
+<div id="result"></div>
+
+
+</div>
+
+
+
+<script>
+
+
+// =====================================================
+// APPS SCRIPT WEB APP
+// =====================================================
+
+const SCRIPT_URL =
+"https://script.google.com/macros/s/AKfycbzDlkvfWJGTJC36MkEEfRyTCDdMjj0s1z-GcSS3deMdfrDlyN96Qml6OuSO6cfFPQcyEQ/exec";
+
+
+
+    
+// =====================================================
+// FIREBASE CONFIG
+// =====================================================
+   
+
+const firebaseConfig = {
+
+    databaseURL:
+
+    "https://ferrari-reg-2026-default-rtdb.asia-southeast1.firebasedatabase.app"
+
+};
+
+
+firebase.initializeApp(
+
+    firebaseConfig
+
+);
+
+
+const db =
+
+    firebase.database();
+
+
+
+// =====================================================
+// URL PARAMETERS
+// =====================================================
+
+
+const params =
+
+    new URLSearchParams(
+
+        window.location.search
+
+    );
+
+
+const eventId =
+
+    params.get("event");
+
+
+const attendanceMode =
+
+    String(
+
+        params.get("mode") || ""
+
+    ).toUpperCase();
+
+
+const registrationId =
+
+    params.get("registration_id");
+
+
+
+// =====================================================
+// GLOBAL VARIABLES
+// =====================================================
+
+
+let eventConfig = null;
+
+
+let scannerStarted = false;
+
+
+let attendanceProcessing = false;
+
+    let duplicatePreventionEnabled = false;
+
+
+    let eventBanner = "";
+
+    let currentAttendanceSession = null;
+
+
+
+// =====================================================
+// LOAD CURRENT ATTENDANCE SESSION
+// =====================================================
+
+async function loadCurrentAttendanceSession() {
+
+
+    currentAttendanceSession = null;
+
+
+    // =====================================================
+    // SESSION LOGIC ONLY FOR SESSION_BASED EVENTS
+    // =====================================================
+
+    const attendanceType =
+
+        String(
+            eventConfig.attendance_type || "SINGLE"
+        )
+        .trim()
+        .toUpperCase();
+
+
+    if (
+
+        attendanceType !== "SESSION_BASED"
+
+    ) {
+
+
+        console.log(
+
+            "ATTENDANCE TYPE: SINGLE"
+
+        );
+
+
+        return null;
+
+    }
+
+
+
+    // =====================================================
+    // LOAD ATTENDANCE SESSIONS
+    // =====================================================
+
+    const sessionSnap =
+
+        await db.ref(
+
+            "config/attendanceSessions/" +
+
+            eventId
+
+        ).once("value");
+
+
+
+    if (
+
+        !sessionSnap.exists()
+
+    ) {
+
+
+        throw new Error(
+
+            "Attendance Sessions Not Configured"
+
+        );
+
+    }
+
+
+
+    const sessions =
+
+        sessionSnap.val();
+
+
+
+    // =====================================================
+    // CURRENT INDIA TIME
+    // =====================================================
+
+    const now =
+
+        new Date(
+
+            new Date().toLocaleString(
+
+                "en-US",
+
+                {
+                    timeZone:
+                        "Asia/Kolkata"
+                }
+
+            )
+
+        );
+
+
+
+    // =====================================================
+    // SESSION DATE PARSER
+    // FORMAT: 15-Jul-2026 8:00
+    // =====================================================
+
+    function parseSessionDate(
+
+        value
+
+    ) {
+
+
+        const match =
+
+            String(value || "")
+            .trim()
+            .match(
+
+                /^(\d{1,2})-([A-Za-z]{3})-(\d{4})\s+(\d{1,2}):(\d{2})$/
+
+            );
+
+
+        if (
+
+            !match
+
+        ) {
+
+
+            return null;
+
+        }
+
+
+
+        const monthMap = {
+
+            JAN: 0,
+            FEB: 1,
+            MAR: 2,
+            APR: 3,
+            MAY: 4,
+            JUN: 5,
+            JUL: 6,
+            AUG: 7,
+            SEP: 8,
+            OCT: 9,
+            NOV: 10,
+            DEC: 11
+
+        };
+
+
+
+        const month =
+
+            monthMap[
+
+                match[2].toUpperCase()
+
+            ];
+
+
+
+        if (
+
+            month === undefined
+
+        ) {
+
+
+            return null;
+
+        }
+
+
+
+        return new Date(
+
+            Number(match[3]),
+
+            month,
+
+            Number(match[1]),
+
+            Number(match[4]),
+
+            Number(match[5]),
+
+            0
+
+        );
+
+    }
+
+
+
+    // =====================================================
+    // FIND CURRENT ACTIVE SESSION
+    // =====================================================
+
+    for (
+
+        const sessionId in sessions
+
+    ) {
+
+
+        const session =
+
+            sessions[sessionId];
+
+
+
+        const status =
+
+            String(
+                session.status || ""
+            )
+            .trim()
+            .toUpperCase();
+
+
+
+        if (
+
+            status !== "ACTIVE"
+
+        ) {
+
+
+            continue;
+
+        }
+
+
+
+        const sessionStart =
+
+            parseSessionDate(
+
+                session.session_start
+
+            );
+
+
+        const sessionEnd =
+
+            parseSessionDate(
+
+                session.session_end
+
+            );
+
+
+
+        if (
+
+            !sessionStart ||
+
+            !sessionEnd
+
+        ) {
+
+
+            console.warn(
+
+                "INVALID SESSION DATE:",
+
+                sessionId,
+
+                session
+
+            );
+
+
+            continue;
+
+        }
+
+
+
+        if (
+
+            now >= sessionStart &&
+
+            now <= sessionEnd
+
+        ) {
+
+
+            currentAttendanceSession =
+
+                session;
+
+
+
+            console.log(
+
+                "CURRENT ATTENDANCE SESSION:",
+
+                currentAttendanceSession
+
+            );
+
+
+            return currentAttendanceSession;
+
+        }
+
+    }
+
+
+
+    // =====================================================
+    // NO ACTIVE SESSION FOUND
+    // =====================================================
+
+    console.log(
+
+        "NO CURRENT ATTENDANCE SESSION"
+
+    );
+
+
+    return null;
+
+}
+
+    
+
+
+
+    
+
+// =====================================================
+// PAGE INITIALIZATION
+// =====================================================
+
+
+initializeAttendance();
+
+
+
+async function initializeAttendance() {
+
+
+    const statusDiv =
+
+        document.getElementById(
+
+            "status"
+
+        );
+
+
+    try {
+
+   //     alert("1");
+
+
+        // =====================================================
+        // EVENT VALIDATION
+        // =====================================================
+
+
+        if (!eventId) {
+
+
+            showError(
+
+                "Event ID Missing"
+
+            );
+
+
+            return;
+
+        }
+
+
+
+        // =====================================================
+        // LOAD EVENT CONFIG
+        // =====================================================
+
+
+
+        
+        const configSnap =
+
+            await db.ref(
+
+                "config/eventConfig"
+
+            ).once("value");
+
+    //    alert("2");
+
+
+        if (!configSnap.exists()) {
+
+
+            showError(
+
+                "Event Config Missing"
+
+            );
+
+
+            return;
+
+        }
+
+
+        const configs =
+
+            configSnap.val();
+
+
+        eventConfig =
+
+            Object.values(
+
+                configs
+
+            ).find(
+
+                config =>
+
+                config.event_id === eventId
+
+            );
+
+//  alert("3");
+
+        
+
+        if (!eventConfig) {
+
+
+            showError(
+
+                "Event Config Not Found"
+
+            );
+
+
+            return;
+
+        }
+
+
+// =====================================================
+// DUPLICATE PREVENTION RULE
+// ACTIVE = ENABLED
+// UNDER_TEST = BYPASSED
+// =====================================================
+
+duplicatePreventionEnabled =
+
+    String(
+        eventConfig.event_status || ""
+    )
+    .trim()
+    .toUpperCase() === "ACTIVE";
+
+// =====================================================
+// LOAD EVENT BANNER (CACHE ONCE)
+// =====================================================
+
+const bannerSnap =
+
+    await db.ref(
+
+        "htmlStorage/" +
+
+        eventId +
+
+        "/banner"
+
+    ).once("value");
+
+
+eventBanner =
+
+    bannerSnap.val() || "";
+
+        
+
+ // =====================================================
+// DISPLAY PAGE TITLE
+// =====================================================
+
+const titleElement =
+    document.getElementById(
+        "eventTitle"
+    );
+
+if (attendanceMode === "SCANNER") {
+
+    titleElement.innerHTML =
+
+        "<div style='font-size:28px;font-weight:bold;'>Volunteer Check-in</div>" +
+
+        "<div style='font-size:15px;font-weight:normal;margin-top:8px;color:#666;'>" +
+
+        "Please scan the Participant QR Code." +
+
+        "</div>";
+}
+
+else if (attendanceMode === "COMMON_QR") {
+
+    titleElement.innerHTML =
+
+        "<div style='font-size:28px;font-weight:bold;'>Participant Check-in</div>" +
+
+        "<div style='font-size:15px;font-weight:normal;margin-top:8px;color:#666;'>" +
+
+        "Please scan the Attendance QR Code displayed at the venue." +
+
+        "</div>";
+}
+
+else {
+
+    titleElement.innerText =
+        "Attendance";
+}
+
+
+
+        // =====================================================
+        // ATTENDANCE ENABLE CHECK
+        // =====================================================
+
+
+// alert(
+//     "attendance_enabled = " +
+//     eventConfig.attendance_enabled
+// );
+
+
+
+
+const attendanceValue =
+    String(eventConfig.attendance_enabled).trim();
+
+// alert("[" + attendanceValue + "]");
+
+const attendanceEnabled =
+    attendanceValue.toUpperCase() === "TRUE";
+
+
+        if (!attendanceEnabled) {
+
+
+            showError(
+
+                "Attendance Disabled"
+
+            );
+
+
+            return;
+
+        }
+
+
+// =====================================================
+// ATTENDANCE SESSION INTERLOCK
+// =====================================================
+
+const attendanceType =
+
+    String(
+        eventConfig.attendance_type || "SINGLE"
+    )
+    .trim()
+    .toUpperCase();
+
+
+if (
+
+    attendanceType === "SESSION_BASED"
+
+) {
+
+
+    await loadCurrentAttendanceSession();
+
+
+    if (
+
+        !currentAttendanceSession
+
+    ) {
+
+
+        showError(
+
+            "Attendance Session Not Active"
+
+        );
+
+
+        return;
+
+    }
+
+
+    console.log(
+
+        "ATTENDANCE SESSION ACTIVE:",
+
+        currentAttendanceSession.session_id,
+
+        currentAttendanceSession.session_name
+
+    );
+
+}
+
+
+        
+
+
+        // =====================================================
+        // ATTENDANCE WINDOW CHECK
+        // =====================================================
+
+
+        const windowValid =
+
+            validateAttendanceWindow();
+
+
+   //     alert("5");
+
+
+        if (!windowValid) {
+
+
+            return;
+
+        }
+
+
+
+        // =====================================================
+        // ROUTE ATTENDANCE MODE
+        // =====================================================
+
+
+        if (
+
+            attendanceMode === "SCANNER"
+
+        ) {
+
+
+            startVolunteerScanner();
+
+
+            return;
+
+        }
+
+
+
+        if (
+
+            attendanceMode === "COMMON_QR"
+
+        ) {
+
+ // alert("COMMON");
+            
+
+            startCommonQRFlow();
+            
+
+
+            return;
+
+        }
+
+
+
+        showError(
+
+            "Attendance Mode Missing or Invalid"
+
+        );
+
+
+    }
+
+
+    catch (error) {
+
+
+        console.error(
+
+            "ATTENDANCE INITIALIZATION ERROR:",
+
+            error
+
+        );
+
+
+        showError(
+
+            "Attendance System Failed"
+
+        );
+
+    }
+
+}
+
+
+
+// =====================================================
+// ATTENDANCE WINDOW VALIDATION
+// =====================================================
+
+
+function validateAttendanceWindow() {
+
+
+    try {
+
+
+        const startDate =
+
+            eventConfig.event_start_date;
+
+
+        const startTime =
+
+            eventConfig.event_start_time;
+
+
+        const endDate =
+
+            eventConfig.event_end_date;
+
+
+        const endTime =
+
+            eventConfig.event_end_time;
+
+
+
+        if (
+
+            !startDate ||
+
+            !startTime ||
+
+            !endDate ||
+
+            !endTime
+
+        ) {
+
+
+            showError(
+
+                "Attendance Window Configuration Missing"
+
+            );
+
+
+            return false;
+
+        }
+
+
+
+        const eventStart =
+
+            parseEventDate(
+
+                startDate,
+
+                startTime
+
+            );
+
+
+        const eventEnd =
+
+            parseEventDate(
+
+                endDate,
+
+                endTime
+
+            );
+
+
+
+        if (
+
+            !eventStart ||
+
+            !eventEnd
+
+        ) {
+
+
+            showError(
+
+                "Invalid Event Date Configuration"
+
+            );
+
+
+            return false;
+
+        }
+
+
+
+        const attendanceStart =
+
+            new Date(
+
+                eventStart.getTime() -
+
+                (2 * 60 * 60 * 1000)
+
+            );
+
+
+        const attendanceEnd =
+
+            new Date(
+
+                eventEnd.getTime() +
+
+                (2 * 60 * 60 * 1000)
+
+            );
+
+
+        const now =
+
+            new Date();
+
+
+
+        if (
+
+            now < attendanceStart
+
+        ) {
+
+
+            showError(
+
+                "Attendance Not Started Yet"
+
+            );
+
+
+            return false;
+
+        }
+
+
+
+        if (
+
+            now > attendanceEnd
+
+        ) {
+
+
+            showError(
+
+                "Attendance Window Closed"
+
+            );
+
+
+            return false;
+
+        }
+
+
+
+        return true;
+
+
+    }
+
+
+    catch (error) {
+
+
+        console.error(
+
+            "ATTENDANCE WINDOW ERROR:",
+
+            error
+
+        );
+
+
+        showError(
+
+            "Attendance Window Validation Failed"
+
+        );
+
+
+        return false;
+
+    }
+
+}
+
+
+
+// =====================================================
+// VOLUNTEER SCANNER FLOW
+// =====================================================
+
+
+function startVolunteerScanner() {
+
+
+    const statusDiv =
+
+        document.getElementById(
+
+            "status"
+
+        );
+
+
+    statusDiv.innerHTML =
+
+    `
+
+    <div class="small">
+
+        Scan Participant QR Code
+
+    </div>
+
+    `;
+
+
+    startQRScanner(
+
+        processParticipantQR
+
+    );
+
+}
+
+
+
+// =====================================================
+// PROCESS PARTICIPANT QR
+// =====================================================
+
+
+async function processParticipantQR(
+
+    decodedText
+
+) {
+
+
+    if (
+
+        attendanceProcessing
+
+    ) {
+
+
+        return;
+
+    }
+
+
+    attendanceProcessing = true;
+
+
+
+    try {
+
+
+        const scannedRegistrationId =
+
+            extractRegistrationId(
+
+                decodedText
+
+            );
+
+
+
+        if (
+
+            !scannedRegistrationId
+
+        ) {
+
+
+            showError(
+
+                "Invalid Participant QR"
+
+            );
+
+
+            attendanceProcessing = false;
+
+
+            return;
+
+        }
+
+
+
+        if (
+
+            !scannedRegistrationId.startsWith(
+
+                eventId + "-REG-"
+
+            )
+
+        ) {
+
+
+            showError(
+
+                "Participant QR Does Not Belong To This Event"
+
+            );
+
+
+            attendanceProcessing = false;
+
+
+            return;
+
+        }
+
+// =====================================================
+// CHECK DUPLICATE ATTENDANCE
+// =====================================================
+
+const alreadyMarked =
+
+    await checkDuplicateAttendance(
+
+        scannedRegistrationId
+
+    );
+
+
+
+if (
+
+    alreadyMarked
+
+) {
+
+
+    await showAttendanceAlreadyMarked(
+
+        scannedRegistrationId,
+
+        alreadyMarked
+
+    );
+
+
+    // =====================================================
+    // PREPARE FOR NEXT VOLUNTEER SCAN
+    // =====================================================
+
+    setTimeout(
+
+        () => {
+
+
+            attendanceProcessing = false;
+
+            scannerStarted = false;
+
+
+            document.getElementById(
+
+                "eventTitle"
+
+            ).style.display = "block";
+
+
+            startVolunteerScanner();
+
+        },
+
+        2000
+
+    );
+
+
+    return;
+
+}
+
+
+
+        
+await writeAttendance(
+
+    scannedRegistrationId,
+
+    "Volunteer Check-in"
+
+);
+        
+
+
+await showSuccess({
+
+    title:
+        "Attendance Marked Successfully",
+
+    message:
+        "Participant QR Verified Successfully",
+
+    registrationId:
+        scannedRegistrationId,
+
+    attendanceMode:
+        "Volunteer Check-in"
+
+});
+
+
+// =====================================================
+// PREPARE FOR NEXT VOLUNTEER SCAN
+// =====================================================
+
+setTimeout(
+
+    () => {
+
+        attendanceProcessing = false;
+
+        scannerStarted = false;
+
+
+        document.getElementById(
+            "eventTitle"
+        ).style.display = "block";
+
+
+        startVolunteerScanner();
+
+    },
+
+    1000
+
+);
+
+        
+
+
+        
+
+    }
+
+
+
+
+
+catch (error) {
+
+    console.error(error);
+
+    alert(error.stack);
+
+    showError(
+        "Attendance Failed"
+    );
+
+}
+
+
+
+
+    
+}
+
+
+
+// =====================================================
+// COMMON QR FLOW
+// =====================================================
+
+
+function startCommonQRFlow() {
+
+
+    if (
+
+        !registrationId
+
+    ) {
+
+
+        showError(
+
+            "Registration ID Missing"
+
+        );
+
+
+        return;
+
+    }
+
+
+
+    if (
+
+        !registrationId.startsWith(
+
+            eventId + "-REG-"
+
+        )
+
+    ) {
+
+
+        showError(
+
+            "Registration Does Not Belong To This Event"
+
+        );
+
+
+        return;
+
+    }
+
+
+
+    const statusDiv =
+
+        document.getElementById(
+
+            "status"
+
+        );
+
+
+    statusDiv.innerHTML =
+
+    `
+
+    <div class="small">
+
+        Identity Verified
+
+    </div>
+
+
+    <div class="small">
+
+        Please allow camera access and scan the Attendance QR Code displayed at the venue.
+
+    </div>
+
+    `;
+
+
+
+    startQRScanner(
+
+        processVenueQR
+
+    );
+
+}
+
+
+
+// =====================================================
+// PROCESS VENUE QR
+// =====================================================
+
+
+async function processVenueQR(
+
+    decodedText
+
+) {
+
+
+    if (
+
+        attendanceProcessing
+
+    ) {
+
+
+        return;
+
+    }
+
+
+    attendanceProcessing = true;
+
+
+
+    try {
+
+
+        const scannedVenueSecret =
+
+            extractVenueSecret(
+
+                decodedText
+
+            );
+
+
+
+        const configSnap =
+
+            await db.ref(
+
+                "config/attendanceConfig/" +
+
+                eventId
+
+            ).once("value");
+
+
+        if (
+
+            !configSnap.exists()
+
+        ) {
+
+
+            showError(
+
+                "Attendance Configuration Missing"
+
+            );
+
+
+            attendanceProcessing = false;
+
+
+            return;
+
+        }
+
+
+
+        const attendanceConfig =
+
+            configSnap.val() || {};
+
+
+        const officialVenueSecret =
+
+            String(
+
+                attendanceConfig.venue_secret || ""
+
+            ).trim();
+
+
+
+        if (
+
+            !officialVenueSecret
+
+        ) {
+
+
+            showError(
+
+                "Venue QR Configuration Missing"
+
+            );
+
+
+            attendanceProcessing = false;
+
+
+            return;
+
+        }
+
+
+
+        if (
+
+            scannedVenueSecret !==
+
+            officialVenueSecret
+
+        ) {
+
+
+            showError(
+
+                "QR Code Not Recognized"
+
+            );
+
+
+            attendanceProcessing = false;
+
+
+            return;
+
+        }
+
+
+
+
+
+        
+const alreadyMarked =
+    await checkDuplicateAttendance(
+        registrationId
+    );
+
+if (
+
+    alreadyMarked
+
+) {
+
+    await showAttendanceAlreadyMarked(
+
+        registrationId,
+
+        alreadyMarked
+
+    );
+
+    return;
+
+}
+
+
+
+
+        
+
+await writeAttendance(
+
+    registrationId,
+
+    "Participant Check-in"
+
+);
+
+        
+
+showSuccess({
+
+    title:
+        "Attendance Marked Successfully",
+
+    message:
+      
+"We wish you a joyful learning experience.<br>Have a wonderful day!",
+     
+
+    registrationId:
+        registrationId,
+
+    attendanceMode:
+        "Participant Check-in"
+
+});
+        
+
+
+        
+
+    }
+
+
+    catch (error) {
+
+
+        console.error(
+
+            "COMMON QR ATTENDANCE ERROR:",
+
+            error
+
+        );
+
+
+        showError(
+
+            "Attendance Failed"
+
+        );
+
+    }
+
+}
+
+
+// =====================================================
+// CHECK DUPLICATE ATTENDANCE
+// =====================================================
+
+// =====================================================
+// CHECK DUPLICATE ATTENDANCE
+// RETURNS LATEST ATTENDANCE RECORD OR FALSE
+// =====================================================
+
+
+    // =====================================================
+// CHECK DUPLICATE ATTENDANCE
+// SESSION-AWARE DUPLICATE DETECTION
+// RETURNS LATEST MATCHING RECORD OR FALSE
+// =====================================================
+
+async function checkDuplicateAttendance(
+
+    registrationId
+
+) {
+
+
+    if (
+
+        !duplicatePreventionEnabled
+
+    ) {
+
+
+        return false;
+
+    }
+
+
+    const attendanceSnap =
+
+        await db.ref(
+
+            "attendance/" +
+
+            eventId
+
+        )
+        .orderByChild(
+
+            "registration_id"
+
+        )
+        .equalTo(
+
+            registrationId
+
+        )
+        .once(
+
+            "value"
+
+        );
+
+
+    if (
+
+        !attendanceSnap.exists()
+
+    ) {
+
+
+        return false;
+
+    }
+
+
+    const attendanceRecords =
+
+        attendanceSnap.val() || {};
+
+
+    let records =
+
+        Object.keys(
+
+            attendanceRecords
+
+        ).map(
+
+            firebaseId => ({
+
+                firebase_id:
+
+                    firebaseId,
+
+                ...attendanceRecords[
+
+                    firebaseId
+
+                ]
+
+            })
+
+        );
+
+
+    // =====================================================
+    // SESSION-BASED ATTENDANCE
+    // DUPLICATE ONLY WITHIN CURRENT SESSION
+    // =====================================================
+
+    const attendanceType =
+
+        String(
+
+            eventConfig.attendance_type ||
+
+            "SINGLE"
+
+        )
+        .trim()
+        .toUpperCase();
+
+
+    if (
+
+        attendanceType === "SESSION_BASED"
+
+    ) {
+
+
+        if (
+
+            !currentAttendanceSession ||
+
+            !currentAttendanceSession.session_id
+
+        ) {
+
+
+            throw new Error(
+
+                "Current Attendance Session Missing"
+
+            );
+
+        }
+
+
+        const currentSessionId =
+
+            String(
+
+                currentAttendanceSession.session_id
+
+            )
+            .trim()
+            .toUpperCase();
+
+
+        records =
+
+            records.filter(
+
+                record =>
+
+                    String(
+
+                        record.session_id || ""
+
+                    )
+                    .trim()
+                    .toUpperCase() ===
+
+                    currentSessionId
+
+            );
+
+    }
+
+
+    // =====================================================
+    // NO MATCHING DUPLICATE
+    // =====================================================
+
+    if (
+
+        records.length === 0
+
+    ) {
+
+
+        return false;
+
+    }
+
+
+    // =====================================================
+    // RETURN LATEST MATCHING ATTENDANCE
+    // =====================================================
+
+    records.sort(
+
+        (a, b) =>
+
+            new Date(
+
+                b.attendance_timestamp || 0
+
+            ).getTime()
+
+            -
+
+            new Date(
+
+                a.attendance_timestamp || 0
+
+            ).getTime()
+
+    );
+
+
+    return records[0] || false;
+
+}
+
+
+
+    
+
+// =====================================================
+// START QR SCANNER
+// =====================================================
+
+
+function startQRScanner(
+
+    successCallback
+
+) {
+
+
+    if (
+
+        scannerStarted
+
+    ) {
+
+
+        return;
+
+    }
+
+
+    scannerStarted = true;
+
+
+
+    const reader =
+
+        document.getElementById(
+
+            "reader"
+
+        );
+
+
+    reader.innerHTML = "";
+
+
+
+    const html5QrCode =
+
+        new Html5Qrcode(
+
+            "reader"
+
+        );
+
+
+
+    Html5Qrcode.getCameras()
+
+
+    .then(
+
+        devices => {
+
+
+            console.log(
+
+                "CAMERAS:",
+
+                devices
+
+            );
+
+
+
+            if (
+
+                !devices.length
+
+            ) {
+
+
+                showError(
+
+                    "No Camera Found"
+
+                );
+
+
+                return;
+
+            }
+
+
+
+            const cameraId =
+
+                devices[
+
+                    devices.length - 1
+
+                ].id;
+
+
+
+            html5QrCode.start(
+
+
+                cameraId,
+
+
+                {
+
+                    fps: 10,
+
+                    qrbox: 250
+
+                },
+
+
+                async decodedText => {
+
+
+                    try {
+
+
+                        await html5QrCode.stop();
+
+
+                    }
+
+
+                    catch (stopError) {
+
+
+                        console.warn(
+
+                            "SCANNER STOP WARNING:",
+
+                            stopError
+
+                        );
+
+                    }
+
+
+
+                    await successCallback(
+
+                        decodedText
+
+                    );
+
+                },
+
+
+                errorMessage => {
+
+
+                    // Normal QR scan misses ignored
+
+
+                }
+
+
+            );
+
+
+        }
+
+    )
+
+
+    .catch(
+
+        error => {
+
+
+            console.error(
+
+                "CAMERA ERROR:",
+
+                error
+
+            );
+
+
+            showError(
+
+                "Camera Access Failed"
+
+            );
+
+        }
+
+    );
+
+}
+
+
+
+
+
+
+
+
+
+
+
+    
+
+// =====================================================
+// EXTRACT REGISTRATION ID
+// =====================================================
+
+
+function extractRegistrationId(
+
+    qrValue
+
+) {
+
+
+    const value =
+
+        String(
+
+            qrValue || ""
+
+        ).trim();
+
+
+
+    if (
+
+        value.startsWith(
+
+            eventId + "-REG-"
+
+        )
+
+    ) {
+
+
+        return value;
+
+    }
+
+
+
+    try {
+
+
+        const url =
+
+            new URL(
+
+                value
+
+            );
+
+
+        const id =
+
+            url.searchParams.get(
+
+                "registration_id"
+
+            );
+
+
+        if (
+
+            id
+
+        ) {
+
+
+            return id.trim();
+
+        }
+
+
+    }
+
+
+    catch (error) {
+
+
+        // QR value is not a URL
+
+
+    }
+
+
+
+    return "";
+
+}
+
+
+
+// =====================================================
+// EXTRACT VENUE SECRET
+// =====================================================
+
+
+function extractVenueSecret(
+
+    qrValue
+
+) {
+
+
+    let value =
+
+        String(
+
+            qrValue || ""
+
+        ).trim();
+
+
+
+    try {
+
+
+        const url =
+
+            new URL(
+
+                value
+
+            );
+
+
+        const venue =
+
+            url.searchParams.get(
+
+                "venue"
+
+            );
+
+
+        if (
+
+            venue
+
+        ) {
+
+
+            return venue.trim();
+
+        }
+
+
+    }
+
+
+    catch (error) {
+
+
+        // QR value is not a URL
+
+
+    }
+
+
+
+    return value;
+
+}
+
+
+
+// =====================================================
+// EVENT DATE PARSER
+// =====================================================
+
+
+function parseEventDate(
+    dateStr,
+    timeStr
+) {
+
+    if (
+        !dateStr ||
+        !timeStr
+    ) {
+
+        return null;
+    }
+
+
+    const months = {
+
+        Jan: "01",
+        Feb: "02",
+        Mar: "03",
+        Apr: "04",
+        May: "05",
+        Jun: "06",
+        Jul: "07",
+        Aug: "08",
+        Sep: "09",
+        Oct: "10",
+        Nov: "11",
+        Dec: "12"
+
+    };
+
+
+    const parts =
+        String(
+            dateStr
+        ).split("-");
+
+
+    if (
+        parts.length !== 3
+    ) {
+
+        return null;
+    }
+
+
+    const day =
+        String(
+            parts[0]
+        ).padStart(
+            2,
+            "0"
+        );
+
+
+    const month =
+        months[
+            parts[1]
+        ];
+
+
+    if (
+        !month
+    ) {
+
+        return null;
+    }
+
+
+    const year =
+        parts[2].length === 2
+        ? "20" + parts[2]
+        : parts[2];
+
+
+    // =====================================================
+    // NORMALIZE EVENT TIME
+    // SUPPORTS 7:55, 07:55 AND 07:55:00
+    // =====================================================
+
+    const timeParts =
+        String(
+            timeStr
+        ).split(":");
+
+
+    const hour =
+        String(
+            timeParts[0]
+        ).padStart(
+            2,
+            "0"
+        );
+
+
+    const minute =
+        String(
+            timeParts[1] || "00"
+        ).padStart(
+            2,
+            "0"
+        );
+
+
+    const second =
+        String(
+            timeParts[2] || "00"
+        ).padStart(
+            2,
+            "0"
+        );
+
+
+    const dateTimeString =
+        `${year}-${month}-${day}T${hour}:${minute}:${second}`;
+
+
+    console.log(
+        "MERS ATTENDANCE DATE STRING:",
+        dateTimeString
+    );
+
+
+    const parsedDate =
+        new Date(
+            dateTimeString
+        );
+
+
+    console.log(
+        "MERS ATTENDANCE PARSED DATE:",
+        parsedDate,
+        parsedDate.getTime()
+    );
+
+
+    if (
+        isNaN(
+            parsedDate.getTime()
+        )
+    ) {
+
+        return null;
+    }
+
+
+    return parsedDate;
+}
+
+
+
+// =====================================================
+// SUCCESS MESSAGE
+// =====================================================
+
+
+
+
+// =====================================================
+// SUCCESS CARD
+// =====================================================
+
+async function showSuccess(data) {
+
+    
+
+    // =====================================================
+// LOAD PARTICIPANT DETAILS (ONLY IF NOT PROVIDED)
+// =====================================================
+
+let participant = data.participant;
+
+if (!participant) {
+
+    const regSnap =
+        await db.ref(
+            "registrations/" +
+            eventId +
+            "/" +
+            data.registrationId
+        ).once("value");
+
+    if (!regSnap.exists()) {
+
+        showError(
+            "Participant Record Not Found"
+        );
+
+        return;
+    }
+
+    participant = regSnap.val();
+
+}
+
+
+
+
+
+
+    
+// =====================================================
+// ATTENDANCE TIME
+// USE PASSED TIME OR CURRENT TIME
+// =====================================================
+
+const attendanceTime =
+
+    data.attendanceTime ||
+
+    new Date().toLocaleString(
+
+        "en-IN",
+
+        {
+            timeZone: "Asia/Kolkata",
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false
+        }
+
+    ).toUpperCase();
+
+
+// =====================================================
+// ATTENDANCE SESSION
+// =====================================================
+
+const attendanceSession =
+
+    data.sessionName ||
+
+    (
+        currentAttendanceSession
+
+            ? currentAttendanceSession.session_name
+
+            : ""
+    );
+
+    
+
+    // =====================================================
+    // EVENT DETAILS
+    // =====================================================
+
+          
+
+    const eventTitle =
+        eventConfig.email_label || "";
+
+    const eventSubtitle =
+        eventConfig.subtitle || "";
+
+// =====================================================
+// USE CACHED EVENT BANNER
+// =====================================================
+
+const bannerHtml = eventBanner;
+
+    
+document.getElementById(
+    "eventTitle"
+).style.display = "none";
+
+// alert(
+//    "Banner Length = " +
+//    eventBanner.length
+// );
+
+
+
+
+
+
+
+
+
+
+    
+    
+    document.getElementById("status").innerHTML =
+
+`
+<div style="max-width:650px;margin:auto;background:white;
+border-radius:12px;
+box-shadow:0 2px 10px rgba(0,0,0,.15);
+overflow:hidden;">
+
+${bannerHtml}
+
+
+<div style="
+height:4px;
+
+background:${data.barColor || "#2e7d32"};
+
+
+"></div>
+
+    
+    <div style="padding:20px;">
+
+
+<div style="
+    font-size:18px;
+    line-height:1.15;
+    font-weight:bold;
+    color:${data.titleColor || "#1b5e20"};
+    text-align:center;
+    margin-bottom:2px;">
+
+    ${eventTitle}
+
+</div>
+
+<div style="
+    text-align:center;
+    color:#666;
+    font-size:12px;
+    line-height:1.15;
+    margin-bottom:8px;">
+
+    ${eventSubtitle}
+
+</div>
+
+
+<div style="
+    text-align:center;
+    margin-bottom:10px;">
+
+    <div style="
+        font-size:32px;
+        line-height:1;
+        margin-bottom:4px;">
+
+        ${data.icon || "✅"}
+
+    </div>
+
+    <div style="
+        font-size:16px;
+        line-height:1.2;
+        color:${data.titleColor || "#1b5e20"};
+        font-weight:bold;">
+
+        ${data.title}
+
+    </div>
+
+</div>
+
+
+<table
+style="
+width:100%;
+border-collapse:collapse;
+font-size:13px;
+line-height:1.15;
+margin-top:6px;
+">
+
+
+<tr style="border-bottom:1px solid #eeeeee;">
+
+<td
+style="
+width:38%;
+font-weight:bold;
+padding:4px 4px;
+text-align:left;
+vertical-align:top;
+">
+
+Participant
+
+</td>
+
+<td
+style="
+padding:4px 4px;
+text-align:left;
+">
+
+${participant.full_name}
+
+</td>
+
+</tr>
+
+<tr style="border-bottom:1px solid #eeeeee;">
+
+<td
+style="
+font-weight:bold;
+padding:4px 4px;
+text-align:left;
+vertical-align:top;
+">
+
+Registration ID
+
+</td>
+
+
+
+
+
+
+
+<td
+style="
+padding:4px 4px;
+text-align:left;
+word-break:break-word;
+">
+
+${data.registrationId}
+
+</td>
+
+</tr>
+
+${
+    attendanceSession
+
+    ? `
+
+        <tr style="border-bottom:1px solid #eeeeee;">
+
+            <td style="
+                font-weight:bold;
+                padding:4px 4px;
+                text-align:left;
+                vertical-align:top;
+            ">
+                Attendance Session
+            </td>
+
+            <td style="
+                padding:4px 4px;
+                text-align:left;
+            ">
+                ${attendanceSession}
+            </td>
+
+        </tr>
+
+    `
+
+    : ""
+}
+
+
+
+<tr style="border-bottom:1px solid #eeeeee;">
+
+<td
+style="
+font-weight:bold;
+padding:4px 4px;
+text-align:left;
+vertical-align:top;
+">
+
+Attendance Mode
+
+</td>
+
+<td
+style="
+padding:4px 4px;
+text-align:left;
+">
+
+${data.attendanceMode}
+
+</td>
+
+</tr>
+
+<tr style="border-bottom:1px solid #eeeeee;">
+
+<td
+style="
+font-weight:bold;
+padding:4px 4px;
+text-align:left;
+vertical-align:top;
+">
+
+Attendance Time
+
+</td>
+
+<td
+style="
+padding:4px 4px;
+text-align:left;
+">
+
+${attendanceTime}
+
+</td>
+
+</tr>
+
+</table>
+
+
+<div style="
+    margin-top:8px;
+    text-align:center;
+    font-size:13px;
+    line-height:1.15;
+    color:#1565c0;
+    font-weight:bold;">
+
+    ${data.message}
+
+</div>
+
+
+    </div>
+
+</div>
+`;
+
+
+
+
+
+    
+    
+    document.getElementById(
+        "reader"
+    ).innerHTML = "";
+
+}
+
+// =====================================================
+// ATTENDANCE ALREADY MARKED CARD
+// =====================================================
+
+async function showAttendanceAlreadyMarked(
+
+    registrationId,
+
+    attendanceRecord
+
+) {
+
+
+    // =====================================================
+    // LOAD PARTICIPANT DETAILS
+    // =====================================================
+
+    const regSnap =
+
+        await db.ref(
+
+            "registrations/" +
+
+            eventId +
+
+            "/" +
+
+            registrationId
+
+        ).once(
+
+            "value"
+
+        );
+
+
+    const participant =
+
+        regSnap.exists()
+
+        ? regSnap.val()
+
+        : {};
+
+
+    // =====================================================
+    // FORMAT PREVIOUS ATTENDANCE TIME
+    // =====================================================
+
+    let attendanceTime =
+
+        "Time Not Available";
+
+
+    if (
+
+        attendanceRecord &&
+
+        attendanceRecord.attendance_timestamp
+
+    ) {
+
+
+        const parsedAttendanceTime =
+
+            new Date(
+
+                attendanceRecord
+                    .attendance_timestamp
+
+            );
+
+
+        if (
+
+            !isNaN(
+
+                parsedAttendanceTime.getTime()
+
+            )
+
+        ) {
+
+
+            attendanceTime =
+
+                parsedAttendanceTime
+                    .toLocaleString(
+
+                        "en-IN",
+
+                        {
+
+                            timeZone:
+                                "Asia/Kolkata",
+
+                            day:
+                                "2-digit",
+
+                            month:
+                                "long",
+
+                            year:
+                                "numeric",
+
+                            hour:
+                                "2-digit",
+
+                            minute:
+                                "2-digit",
+
+                            hour12:
+                                false
+
+                        }
+
+                    )
+                    .toUpperCase();
+
+        }
+
+
+    }
+
+
+    // =====================================================
+    // PREVIOUS ATTENDANCE MODE
+    // =====================================================
+
+    const previousMode =
+
+        attendanceRecord &&
+        attendanceRecord.attendance_mode
+
+        ? attendanceRecord.attendance_mode
+
+        : "Not Available";
+
+
+  
+    // =====================================================
+    // DISPLAY DUPLICATE ATTENDANCE CARD
+    // =====================================================
+
+  
+await showSuccess({
+
+    icon: "⚠️",
+
+    barColor: "#f9a825",
+
+    titleColor: "#e65100",
+
+    title: "Attendance Already Marked",
+
+    message:
+        "Attendance was already recorded earlier.<br><br>No new attendance entry has been created.",
+
+    registrationId: registrationId,
+
+    attendanceMode: previousMode,
+
+    attendanceTime: attendanceTime,
+
+    participant: participant
+
+});    
+
+    
+}
+
+    
+// =====================================================
+// ERROR MESSAGE
+// =====================================================
+
+function showError(
+
+    message
+
+) {
+
+
+    document.getElementById(
+
+        "status"
+
+    ).innerHTML =
+
+    `
+
+    <div class="error">
+
+        ${message}
+
+    </div>
+
+    `;
+
+
+    document.getElementById(
+
+        "reader"
+
+    ).innerHTML = "";
+
+}
+
+
+// =====================================================
+// MERS CANONICAL IST DATE-TIME
+// FORMAT: YYYY-MM-DD HH:mm:ss
+// RETAINED AS SHARED DATE UTILITY
+// =====================================================
+
+    
+function getISTDateTime() {
+
+
+    const parts =
+
+        new Intl.DateTimeFormat(
+
+            "en-CA",
+
+            {
+
+                timeZone:
+
+                    "Asia/Kolkata",
+
+                year:
+
+                    "numeric",
+
+                month:
+
+                    "2-digit",
+
+                day:
+
+                    "2-digit",
+
+                hour:
+
+                    "2-digit",
+
+                minute:
+
+                    "2-digit",
+
+                second:
+
+                    "2-digit",
+
+                hour12:
+
+                    false
+
+            }
+
+        ).formatToParts(
+
+            new Date()
+
+        );
+
+
+    const values = {};
+
+
+    parts.forEach(
+
+        part => {
+
+
+            if (
+
+                part.type !== "literal"
+
+            ) {
+
+
+                values[
+
+                    part.type
+
+                ] =
+
+                    part.value;
+
+            }
+
+        }
+
+    );
+
+
+
+    return (
+
+        values.year +
+
+        "-" +
+
+        values.month +
+
+        "-" +
+
+        values.day +
+
+        " " +
+
+        values.hour +
+
+        ":" +
+
+        values.minute +
+
+        ":" +
+
+        values.second
+
+    );
+
+}
+
+
+    // =====================================================
+// SINGLE ATTENDANCE WRITE FUNCTION
+// =====================================================
+
+async function writeAttendance(
+
+    registrationId,
+
+    mode
+
+) {
+
+
+    if (
+
+        !registrationId ||
+
+        !mode
+
+    ) {
+
+
+        throw new Error(
+
+            "Attendance data incomplete"
+
+        );
+
+    }
+
+
+    // =====================================================
+    // PREPARE ATTENDANCE DATA
+    // =====================================================
+
+    const attendanceTimestamp =
+        new Date().toISOString();
+
+
+
+
+const attendanceData = {
+
+    registration_id:
+        registrationId,
+
+    attendance_timestamp:
+        attendanceTimestamp,
+
+    attendance_mode:
+        mode,
+
+    session_id:
+
+        currentAttendanceSession
+
+            ? currentAttendanceSession.session_id
+
+            : "",
+
+    session_name:
+
+        currentAttendanceSession
+
+            ? currentAttendanceSession.session_name
+
+            : ""
+
+};
+
+
+
+
+
+
+
+    
+
+    
+
+    // =====================================================
+    // WRITE TO FIREBASE
+    // =====================================================
+
+    
+    const attendanceRef =
+
+        await db.ref(
+
+            "attendance/" +
+
+            eventId
+
+        ).push(
+
+            attendanceData
+
+        );
+
+
+    // =====================================================
+    // FIREBASE PUSH ID
+    // =====================================================
+
+    const firebaseId =
+
+        attendanceRef.key;
+
+
+    console.log(
+
+        "ATTENDANCE WRITTEN:",
+
+        {
+
+            firebase_id:
+                firebaseId,
+
+            event_id:
+                eventId,
+
+            registration_id:
+                registrationId,
+
+            attendance_timestamp:
+                attendanceTimestamp,
+
+            attendance_mode:
+                mode,
+
+             session_id:
+            attendanceData.session_id,
+
+        session_name:
+            attendanceData.session_name
+
+        }
+
+    );
+
+
+    // =====================================================
+    // TRIGGER GOOGLE SHEET SYNC
+    // =====================================================
+
+    const syncUrl =
+
+        SCRIPT_URL +
+
+        "?action=syncAttendance" +
+
+        "&eventId=" +
+
+        encodeURIComponent(
+
+            eventId
+
+        ) +
+
+        "&firebaseId=" +
+
+        encodeURIComponent(
+
+            firebaseId
+
+        );
+
+
+    fetch(
+
+        syncUrl,
+
+        {
+
+            method:
+                "GET",
+
+            mode:
+                "no-cors"
+
+        }
+
+    );
+
+
+    console.log(
+
+        "ATTENDANCE SYNC TRIGGERED:",
+
+        firebaseId
+
+    );
+
+}
+
+
+
+
+    
+
+</script>
+
+
+</body>
+
+</html>
