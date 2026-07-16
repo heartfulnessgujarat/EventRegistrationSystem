@@ -810,6 +810,9 @@ console.log(
                 location.href = window.location.pathname + "?id=" + eventId;
             }
         } else {
+
+
+          
             // Normal New Registration
 
 
@@ -893,12 +896,38 @@ function renderParticipantClassification() {
         rules
     );
 
-    let html = '';
+
+// =====================================================
+// NO PARTICIPANT CLASSIFICATION
+// START DIRECTLY WITH FORM
+// =====================================================
+
+if (rules.length === 0) {
+
+    console.log(
+        "MERS: No PARTICIPANT_CLASSIFICATION found. Starting direct registration."
+    );
+
+    document
+        .getElementById('Section0')
+        .style.display = 'none';
+
+    document
+        .getElementById('Section1')
+        .style.display = 'block';
+
+    renderForm();
+
+    return;
+}
 
 
 
 
   
+    let html = '';
+
+ 
     rules.forEach(rule => {
 
         html += `
