@@ -2242,8 +2242,7 @@ getFieldElement(id);
     el.value === el.dataset.maskedValue
 
 )
-     
-     
+          
      {
   
           return el.dataset.originalValue.trim();
@@ -2254,10 +2253,7 @@ getFieldElement(id);
           : "";
   }
   
-  
-  
-  
-            
+             
               if (typeof mersTempData !== 'undefined' && typeof mersTempData[id] !== 'undefined') return mersTempData[id];
               if (typeof originalData !== 'undefined' && typeof originalData[id] !== 'undefined') return originalData[id];
               return "";
@@ -2347,11 +2343,35 @@ getFieldElement(id);
   
           eventId;
   }
-          
-          if (!updatedSection1.full_name) {
-              throw new Error("Critical Error: 'full_name' is missing. Please ensure Section 1 is filled.");
-          }
-  
+
+
+
+        
+// ----------------------------------------------------
+// MERS V2 : Search Profile is Optional
+// ----------------------------------------------------
+
+const hasSearchProfile =
+    fieldRules.some(
+        r => r.section_id === "SEARCH_PROFILE"
+    );
+
+if (
+    hasSearchProfile &&
+    !updatedSection1.full_name
+) {
+
+    throw new Error(
+        "Critical Error: 'full_name' is missing. Please ensure Search Profile is completed."
+    );
+
+}
+
+
+
+
+
+        
           const overlay = document.getElementById('processing-overlay');
           if (overlay) overlay.style.display = 'block';
   
