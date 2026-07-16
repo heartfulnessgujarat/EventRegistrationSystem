@@ -1215,6 +1215,9 @@ let input;
 
 if (r.lookup_tab && r.lookup_column) {
 
+
+  console.log("CREATING SELECT");
+
     input = document.createElement("select");
 
     input.id = r.field_id;
@@ -1233,6 +1236,9 @@ if (r.lookup_tab && r.lookup_column) {
     populateLookupField(r, input);
 
 } else {
+
+
+  console.log("CREATING INPUT");
 
     input = document.createElement("input");
 
