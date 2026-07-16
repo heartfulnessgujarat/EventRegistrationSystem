@@ -241,18 +241,9 @@
 <div id="Section1" style="display:none;">
 
     <div id="dynamic-fields"></div>
-
-
-
-
-  
     
     <div id="dynamic-fields"></div>
-
-    
-    
-  
-  
+         
 <div id="btns-start" style="display:none; flex-direction:column; gap:10px; padding: 20px;">
         <button id="btn-register" class="primary-btn" disabled onclick="proceedToLogistics()">DETAILS ARE OKAY, CLICK HERE TO PROCEED FURTHER</button>
         
@@ -1314,11 +1305,14 @@ if (nextSection) {
     };
 
 }
+
+
 else {
 
+    console.log("Entering CONFIRM branch");
 
-  console.log("Entering CONFIRM branch");
-  
+    document.getElementById("Section2").style.display = "block";
+
     actionBtn.innerText = "CONFIRM & REGISTER";
 
     actionBtn.style.display = "block";
@@ -1330,11 +1324,10 @@ else {
     };
 
 }
-
-
+  
+    
     
 }
-
 
  
   async function onInputChange(fId, val) {
