@@ -813,11 +813,7 @@ renderParticipantClassification();
 
 console.log("STEP-B");
 
-          
-          
-        //  renderParticipantClassification();
-          // renderForm();
-
+         
           
             document.getElementById('loading-init').style.display = 'none';
             document.getElementById('form-content').style.display = 'block';
@@ -828,9 +824,6 @@ console.log("STEP-B");
         document.getElementById('loading-init').innerHTML = "<h2>Error loading form. Please refresh.</h2>";
     }
 
-  //  if (section2) {
-   //     section2.prepend(diag);
-  //  }
     
 }
 
@@ -1137,18 +1130,14 @@ console.log(
 );
 
 
-
 if (
-    r.section_id !== 'Section1'
+    r.section_id !== "Section1" &&
+    r.section_id !== "SEARCH_PROFILE"
 ) {
     return;
 }
 
-
-
     
-
-
     
     // --- MERS SURGERY END ---
 
@@ -4314,18 +4303,6 @@ console.log(
 );
 
 
-
-
-
-  
-console.log("================================");
-console.log("FIELD CHANGED");
-console.log("Field :", fId);
-console.log("Value :", val);
-console.log("Current mersTempData :", JSON.stringify(mersTempData, null, 2));
-
-
-  
 
     console.log(
         "SECTION DETECTED:",
