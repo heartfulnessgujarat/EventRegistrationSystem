@@ -1094,6 +1094,12 @@ console.log(
   
   function renderForm() {
 
+const currentSectionId =
+    fieldRules.some(r => r.section_id === "SEARCH_PROFILE")
+        ? "SEARCH_PROFILE"
+        : "Section1";
+
+
 console.log("================================");
 console.log("ENTERED renderForm()");
 console.log("Current fieldRules:", fieldRules);
