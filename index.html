@@ -1256,10 +1256,16 @@ input.onchange = function () {
 
     input.autocomplete = "off";
 
-    input.oninput = function () {
-        onInputChange(r.field_id, this.value);
-    };
 
+input.oninput = function () {
+
+    handleFieldChange(this, r);
+
+};
+
+  
+
+  
 }
 
 holder.appendChild(input);
