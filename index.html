@@ -4234,6 +4234,11 @@ if (nextSection) {
         if (backBtn) {
 
 
+
+
+
+
+          
           const previousSection =
     getPreviousSection(targetSectionNumber);
 
@@ -4243,13 +4248,19 @@ backBtn.onclick = () => {
 
         buildExtraSections(previousSection);
 
-        if (
-            previousSection === "Section2"
-        ) {
+      
+      
+     if (
+    previousSection === getFirstDynamicSection()
+) {
 
-            refreshSection2BusinessLogic();
+    refreshSection2BusinessLogic();
 
-        }
+}
+
+
+
+      
 
     } else {
 
@@ -4262,6 +4273,9 @@ backBtn.onclick = () => {
 };
 
 
+
+
+          
           
         }
 
