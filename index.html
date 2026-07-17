@@ -1137,13 +1137,12 @@ console.log(
 
 
 if (
-    r.section_id !== "Section1" &&
-    r.section_id !== "SEARCH_PROFILE"
+    r.section_id !== currentSectionId
 ) {
     return;
 }
 
-    
+
     
     // --- MERS SURGERY END ---
 
@@ -1295,7 +1294,7 @@ holder.appendChild(input);
     console.log("================ BUTTON TEST ================");
 console.log("All Dynamic Sections:", getAllDynamicSections());
 
-const nextSection = getNextSection("Section1");
+const nextSection = getNextSection(currentSectionId);
 
 console.log("Next Section =", nextSection);
 
