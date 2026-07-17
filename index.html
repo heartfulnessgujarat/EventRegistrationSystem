@@ -1215,10 +1215,19 @@ if (r.lookup_tab && r.lookup_column) {
 
     input.style.width = "100%";
 
-    input.onchange = function () {
-        onInputChange(r.field_id, this.value);
-    };
 
+ input.onchange = function () {
+
+    console.log(
+        "SECTION1 CHANGE:",
+        r.field_id,
+        this.value
+    );
+
+    onInputChange(r.field_id, this.value);
+
+};
+  
     const blank = document.createElement("option");
     blank.value = "";
     blank.text = "-- Select --";
@@ -4284,6 +4293,27 @@ async function handleFieldChange(inputElement, rule) {
     const val = inputElement.value;
     const fId = rule.field_id;
     const section = rule.section_id;
+
+  mersTempData[fId] = val;
+
+console.log(
+    "AFTER SAVE:",
+    JSON.stringify(mersTempData, null, 2)
+);
+
+
+
+
+
+  
+console.log("================================");
+console.log("FIELD CHANGED");
+console.log("Field :", fId);
+console.log("Value :", val);
+console.log("Current mersTempData :", JSON.stringify(mersTempData, null, 2));
+
+
+  
 
     console.log(
         "SECTION DETECTED:",
