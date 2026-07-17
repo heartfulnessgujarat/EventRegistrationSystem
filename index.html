@@ -1216,7 +1216,9 @@ if (r.lookup_tab && r.lookup_column) {
     input.style.width = "100%";
 
 
- input.onchange = function () {
+
+
+input.onchange = function () {
 
     console.log(
         "SECTION1 CHANGE:",
@@ -1224,9 +1226,13 @@ if (r.lookup_tab && r.lookup_column) {
         this.value
     );
 
-    onInputChange(r.field_id, this.value);
+    handleFieldChange(this, r);
 
 };
+
+
+
+
   
     const blank = document.createElement("option");
     blank.value = "";
