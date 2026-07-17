@@ -3997,6 +3997,20 @@ async function populateLookupField(
 
 }
 
+
+
+  //----------------------------------------------------
+// MERS V2 : First Dynamic Section Helper
+//----------------------------------------------------
+function getFirstDynamicSection() {
+
+    const sections =
+        getAllDynamicSections();
+
+    return sections.length > 0
+        ? sections[0]
+        : null;
+}
   
   
   async function buildExtraSections(targetSectionNumber) {
