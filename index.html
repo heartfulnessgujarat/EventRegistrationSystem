@@ -5935,10 +5935,21 @@ function getSectionIndex(sectionNumber) {
     );
 }
 
+
+
 function getNextSection(currentSection) {
 
-    const sections =
-        getAllDynamicSections();
+    const sections = getAllDynamicSections();
+
+    // =====================================================
+    // MERS BRIDGE:
+    // SEARCH_PROFILE is the established Profile section.
+    // The next section should be the first dynamic section
+    // defined in Field_Rules.
+    // =====================================================
+    if (currentSection === "SEARCH_PROFILE") {
+        return sections[0] || null;
+    }
 
     const currentIndex =
         sections.indexOf(currentSection);
@@ -5949,7 +5960,13 @@ function getNextSection(currentSection) {
 
     return sections[currentIndex + 1] || null;
 }
+  
+  
 
+
+
+
+  
 function getPreviousSection(currentSection) {
 
     const sections =
