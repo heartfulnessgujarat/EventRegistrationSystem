@@ -1310,18 +1310,23 @@ if (nextSection) {
 
     actionBtn.style.display = "block";
 
-    actionBtn.onclick = () => {
+  
 
-        document.getElementById("Section1").style.display = "none";
-        document.getElementById("Section2").style.display = "block";
+actionBtn.onclick = () => {
 
-        buildExtraSections(nextSection);
+    document.getElementById("Section1").style.display = "none";
+    document.getElementById("Section2").style.display = "block";
 
-    };
+    buildExtraSections(nextSection);
 
+};
+
+
+
+  
 }
 
-
+  
 else {
 
     console.log("Entering CONFIRM branch");
@@ -2136,6 +2141,10 @@ if (
       if (masterBtn) masterBtn.disabled = !allValid;
       if (regBtn) regBtn.disabled = !allValid;
     }
+
+
+
+
   
     // 1. THE PAGE TURNER: Moves between Section 1, 2, and 3
   
@@ -4625,8 +4634,26 @@ function updateButtonState() {
 
     // 1. Identify the current section using the "Hybrid Bridge"
     for (let input of allInputs) {
-        const group = input.closest('.form-group') || input.closest('.input-group');
-        const isVisible = group && group.style.display !== 'none';
+
+      
+    //    const group = input.closest('.form-group') || input.closest('.input-group');
+
+const group =
+    input.closest('.form-group') ||
+    input.closest('.input-group') ||
+    input.closest('.field-container');
+
+
+
+      
+    //    const isVisible = group && group.style.display !== 'none';
+
+
+      Profile:
+.field-container
+
+Dynamic:
+.form-group
         
         if (isVisible) {
             // BRIDGE: Remove 'extra_' or 'inp-' just to find the rule match
