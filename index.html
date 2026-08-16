@@ -5935,23 +5935,34 @@ function getSectionIndex(sectionNumber) {
     );
 }
 
-
 function getNextSection(currentSection) {
 
     const sections = getAllDynamicSections();
 
-    const currentIndex =
-        sections.indexOf(currentSection);
+    console.log("MERS getNextSection()");
+    console.log("Current Section:", currentSection);
+    console.log("Dynamic Sections:", sections);
+
+    // Profile section is the entry point to the dynamic sections
+    if (
+        currentSection === "SEARCH_PROFILE" ||
+        currentSection === "Section1"
+    ) {
+        return sections.length > 0 ? sections[0] : null;
+    }
+
+    const currentIndex = sections.indexOf(currentSection);
 
     if (currentIndex === -1) {
+        console.warn(
+            "MERS: Current section not found in dynamic sections:",
+            currentSection
+        );
         return null;
     }
 
     return sections[currentIndex + 1] || null;
-}  
-
-
-
+}
 
   
 function getPreviousSection(currentSection) {
