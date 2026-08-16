@@ -4633,29 +4633,36 @@ function updateButtonState() {
     let diagData = [];
 
     // 1. Identify the current section using the "Hybrid Bridge"
+
+
+
+
     for (let input of allInputs) {
 
-      
-    //    const group = input.closest('.form-group') || input.closest('.input-group');
+        // Profile fields use .field-container
+        // Dynamic section fields use .form-group
+        // Both are supported by this visibility check.
+        const group =
+            input.closest('.form-group') ||
+            input.closest('.input-group') ||
+            input.closest('.field-container');
 
-const group =
-    input.closest('.form-group') ||
-    input.closest('.input-group') ||
-    input.closest('.field-container');
+        const isVisible =
+            group &&
+            group.style.display !== 'none';
 
-
-
-      
-    //    const isVisible = group && group.style.display !== 'none';
-
-
-      Profile:
-.field-container
-
-Dynamic:
-.form-group
-        
         if (isVisible) {
+
+
+
+
+
+
+          
+
+
+
+          
             // BRIDGE: Remove 'extra_' or 'inp-' just to find the rule match
             const cleanId = input.id.replace('extra_', '').replace('inp-', '');
             const rule = rulesArray.find(r => r.field_id === cleanId);
