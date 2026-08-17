@@ -1918,16 +1918,33 @@ if (cont) {
 // EMAIL VERIFICATION
 // =====================================================
 
+
+
+
+
+
+    
 if (type === 'email') {
 
+  const participantName =
+    mersTempData.full_name ||
+    originalData.full_name ||
+    "";
+
   fetch(
-    `${SCRIPT_URL}?action=sendVerificationCode&email=${encodeURIComponent(targetEmail)}&eventId=${eventId}`,
+    `${SCRIPT_URL}?action=sendVerificationCode` +
+    `&email=${encodeURIComponent(targetEmail)}` +
+    `&eventId=${encodeURIComponent(eventId)}` +
+    `&fullName=${encodeURIComponent(participantName)}`,
     { mode: 'no-cors' }
   );
 
 }
 
 
+
+
+  
 
 
   // =====================================================
