@@ -1091,204 +1091,426 @@ console.log(
 }
 
 
-  
-  function renderForm() {
-
-const currentSectionId =
-    fieldRules.some(r => r.section_id === "SEARCH_PROFILE")
-        ? "SEARCH_PROFILE"
-        : "Section1";
-
-
-console.log("================================");
-console.log("ENTERED renderForm()");
-console.log("Current fieldRules:", fieldRules);
-
-
-
-    
-  const container = document.getElementById('dynamic-fields');
-
-console.log(
-    "dynamic-fields:",
-    container,
-    window.getComputedStyle(container).display,
-    window.getComputedStyle(container).visibility
-);
-
-
-    
-  container.innerHTML = '';
-  
-  fieldRules.forEach(r => {
-    
-    // --- MERS SURGERY START: Bulletproof Section Filter ---
-    // 1. Convert the section value to a clean string
-
-
-
-// TEMP DIAGNOSTIC
-
-console.log(
-    "Render Candidate:",
-    r.section_id,
-    r.field_id
-);
-
-
-if (
-    r.section_id !== currentSectionId
-) {
-    return;
-}
-
-
-    
-    // --- MERS SURGERY END ---
-
-    const div = document.createElement('div');
-    div.className = 'field-container';
-    div.id = `cont-${r.field_id}`;
-    div.style.display = (r.initial_state === 'Hidden') ? 'none' : 'block';
-    const needsEditLink = ['Editable', 'Editable_Verify', 'Editable_Lookup'].includes(r.edit_behavior);
-    
-    div.innerHTML = `
-      <div class="label-row">
-        <label>${r.display_label || r.field_id}</label>
-        ${needsEditLink ? `<span class="edit-link" id="edit-link-${r.field_id}" style="display:none;" onclick="unlockField('${r.field_id}')">Edit</span>` : ''}
-      </div>
-
-
-<div id="field-holder-${r.field_id}"></div>
-      
-      <div class="help-text" id="help-${r.field_id}">${r.field_help_text || ''}</div>
-      <div class="error-msg-text" id="err-${r.field_id}"></div>
-      <div class="dropdown" id="res-${r.field_id}"></div>
-      <div id="vmsg-${r.field_id}" style="font-size:13px; margin-top:5px; font-weight:bold; display:none;"></div>
-      ${(r.field_id === 'email' || r.field_id === 'mobile') ? `
-        <div class="verify-panel" id="panel-${r.field_id}">
-          
-          ${r.field_id === 'email' ? `
-            <button type="button" class="verify-btn" id="vcheck-email" 
-              style="background:#455a64; color:white; margin-bottom:10px;" 
-              onclick="manualFormatCheck()">Check Email Format</button>
-          ` : ''}
-
-          <button class="verify-btn" id="vbtn-${r.field_id}" 
-            style="display: ${r.field_id === 'email' ? 'none' : 'block'};" 
-            onclick="sendCode('${r.field_id}')"></button>
-          
-          <div id="box-${r.field_id}" style="display:none;">
-            <input type="text" placeholder="Enter 6-digit code" id="code-${r.field_id}" oninput="verifyCodeInput('${r.field_id}', this.value)">
-            <div id="resend-container-${r.field_id}" style="margin-top:8px;"></div>
-          </div>
-        </div>
-      ` : ''}
-    `;
-    container.appendChild(div);
-
-    const holder = document.getElementById(`field-holder-${r.field_id}`);console.log(
-    "LOOKUP TAB:",
-    r.lookup_tab,
-    "COLUMN:",
-    r.lookup_column
-);
-
-   
-
-let input;
-
-if (r.lookup_tab && r.lookup_column) {
-
-
-  console.log("CREATING SELECT");
-
-    input = document.createElement("select");
-
-    input.id = r.field_id;
-
-    input.style.width = "100%";
 
 
 
 
-input.onchange = function () {
+
+
+function renderForm() {
+
+    const currentSectionId =
+        fieldRules.some(r => r.section_id === "SEARCH_PROFILE")
+            ? "SEARCH_PROFILE"
+            : "Section1";
+
+    console.log("================================");
+    console.log("ENTERED renderForm()");
+    console.log("Current Section ID:", currentSectionId);
+    console.log("Current fieldRules:", fieldRules);
+
+    const container =
+        document.getElementById('dynamic-fields');
+
+    if (!container) {
+        console.error("MERS: dynamic-fields container not found.");
+        return;
+    }
 
     console.log(
-        "SECTION1 CHANGE:",
-        r.field_id,
-        this.value
+        "dynamic-fields:",
+        container,
+        window.getComputedStyle(container).display,
+        window.getComputedStyle(container).visibility
     );
 
-    handleFieldChange(this, r);
+    container.innerHTML = '';
 
-};
+    fieldRules.forEach(r => {
 
+        console.log(
+            "Render Candidate:",
+            r.section_id,
+            r.field_id
+        );
 
+        // =====================================================
+        // SECTION FILTER
+        // =====================================================
 
+        if (r.section_id !== currentSectionId) {
+            return;
+        }
 
-  
-    const blank = document.createElement("option");
-    blank.value = "";
-    blank.text = "-- Select --";
-    input.appendChild(blank);
+        // =====================================================
+        // FIELD CONTAINER
+        // =====================================================
 
-    populateLookupField(r, input);
+        const div =
+            document.createElement('div');
 
-} else {
+        div.className =
+            'field-container';
 
+        div.id =
+            `cont-${r.field_id}`;
 
-  console.log("CREATING INPUT");
+        div.style.display =
+            (r.initial_state === 'Hidden')
+                ? 'none'
+                : 'block';
 
-    input = document.createElement("input");
+        const needsEditLink =
+            [
+                'Editable',
+                'Editable_Verify',
+                'Editable_Lookup'
+            ].includes(r.edit_behavior);
 
-    input.type = "text";
+        // =====================================================
+        // FIELD HTML
+        // =====================================================
 
-    input.id = r.field_id;
+        div.innerHTML = `
+            <div class="label-row">
+                <label>
+                    ${r.display_label || r.field_id}
+                </label>
 
-    input.disabled = false;
+                ${
+                    needsEditLink
+                        ? `
+                            <span
+                                class="edit-link"
+                                id="edit-link-${r.field_id}"
+                                style="display:none;"
+                                onclick="unlockField('${r.field_id}')"
+                            >
+                                Edit
+                            </span>
+                          `
+                        : ''
+                }
+            </div>
 
-    input.autocomplete = "off";
+            <div id="field-holder-${r.field_id}"></div>
 
+            <div
+                class="help-text"
+                id="help-${r.field_id}"
+            >
+                ${r.field_help_text || ''}
+            </div>
 
-input.oninput = function () {
+            <div
+                class="error-msg-text"
+                id="err-${r.field_id}"
+            ></div>
 
-    handleFieldChange(this, r);
+            <div
+                class="dropdown"
+                id="res-${r.field_id}"
+            ></div>
 
-};
+            <div
+                id="vmsg-${r.field_id}"
+                style="
+                    font-size:13px;
+                    margin-top:5px;
+                    font-weight:bold;
+                    display:none;
+                "
+            ></div>
 
-  
+            ${
+                (r.field_id === 'email' ||
+                 r.field_id === 'mobile')
+                    ? `
+                        <div
+                            class="verify-panel"
+                            id="panel-${r.field_id}"
+                        >
 
-  
+                            ${
+                                r.field_id === 'email'
+                                    ? `
+                                        <button
+                                            type="button"
+                                            class="verify-btn"
+                                            id="vcheck-email"
+                                            style="
+                                                background:#455a64;
+                                                color:white;
+                                                margin-bottom:10px;
+                                            "
+                                            onclick="manualFormatCheck()"
+                                        >
+                                            Check Email Format
+                                        </button>
+                                      `
+                                    : ''
+                            }
+
+                            <button
+                                class="verify-btn"
+                                id="vbtn-${r.field_id}"
+                                style="
+                                    display:
+                                    ${
+                                        r.field_id === 'email'
+                                            ? 'none'
+                                            : 'block'
+                                    };
+                                "
+                                onclick="sendCode('${r.field_id}')"
+                            ></button>
+
+                            <div
+                                id="box-${r.field_id}"
+                                style="display:none;"
+                            >
+                                <input
+                                    type="text"
+                                    placeholder="Enter 6-digit code"
+                                    id="code-${r.field_id}"
+                                    oninput="
+                                        verifyCodeInput(
+                                            '${r.field_id}',
+                                            this.value
+                                        )
+                                    "
+                                >
+
+                                <div
+                                    id="resend-container-${r.field_id}"
+                                    style="margin-top:8px;"
+                                ></div>
+                            </div>
+
+                        </div>
+                      `
+                    : ''
+            }
+        `;
+
+        container.appendChild(div);
+
+        const holder =
+            document.getElementById(
+                `field-holder-${r.field_id}`
+            );
+
+        // =====================================================
+        // SPECIAL CASE:
+        // SEARCH_PROFILE / FULL NAME
+        // =====================================================
+
+        if (
+            currentSectionId === "SEARCH_PROFILE" &&
+            r.field_id === "full_name"
+        ) {
+
+            console.log(
+                "CREATING PROFILE SEARCH INPUT:",
+                r.field_id
+            );
+
+            const input =
+                document.createElement("input");
+
+            input.type = "text";
+            input.id = r.field_id;
+            input.autocomplete = "off";
+            input.disabled = false;
+
+            input.oninput = function () {
+
+                console.log(
+                    "PROFILE SEARCH:",
+                    r.field_id,
+                    this.value
+                );
+
+                handleSearch(
+                    r.field_id,
+                    this.value
+                );
+
+                checkAllValidations();
+            };
+
+            holder.appendChild(input);
+
+            // Full Name is the ONLY field visible
+            // during the initial profile-search stage.
+            div.style.display = 'block';
+
+        }
+
+        // =====================================================
+        // ALL OTHER SEARCH_PROFILE FIELDS
+        // =====================================================
+
+        else if (
+            currentSectionId === "SEARCH_PROFILE"
+        ) {
+
+            console.log(
+                "CREATING PROFILE FIELD:",
+                r.field_id
+            );
+
+            const input =
+                document.createElement("input");
+
+            input.type = "text";
+            input.id = r.field_id;
+            input.autocomplete = "off";
+
+            // These fields are not manually entered
+            // during the initial participant-search stage.
+            input.disabled = true;
+
+            input.oninput = function () {
+
+                handleFieldChange(
+                    this,
+                    r
+                );
+
+            };
+
+            holder.appendChild(input);
+
+        }
+
+        // =====================================================
+        // NORMAL METADATA-DRIVEN FIELD
+        // Used by Section1 / other non-profile sections
+        // =====================================================
+
+        else {
+
+            console.log(
+                "CREATING NORMAL FIELD:",
+                r.field_id
+            );
+
+            let input;
+
+            if (
+                r.lookup_tab &&
+                r.lookup_column
+            ) {
+
+                console.log(
+                    "CREATING SELECT:",
+                    r.field_id
+                );
+
+                input =
+                    document.createElement("select");
+
+                input.id =
+                    r.field_id;
+
+                input.style.width =
+                    "100%";
+
+                const blank =
+                    document.createElement("option");
+
+                blank.value = "";
+                blank.text =
+                    "-- Select --";
+
+                input.appendChild(blank);
+
+                populateLookupField(
+                    r,
+                    input
+                );
+
+                input.onchange =
+                    function () {
+
+                        handleFieldChange(
+                            this,
+                            r
+                        );
+
+                    };
+
+            } else {
+
+                console.log(
+                    "CREATING INPUT:",
+                    r.field_id
+                );
+
+                input =
+                    document.createElement("input");
+
+                input.type =
+                    "text";
+
+                input.id =
+                    r.field_id;
+
+                input.autocomplete =
+                    "off";
+
+                input.oninput =
+                    function () {
+
+                        handleFieldChange(
+                            this,
+                            r
+                        );
+
+                    };
+            }
+
+            holder.appendChild(input);
+        }
+
+    });
+
+    // =====================================================
+    // FINAL DIAGNOSTICS
+    // =====================================================
+
+    console.log(
+        "renderForm finished. Total children:",
+        container.children.length
+    );
+
+    console.log(
+        "dynamic-fields display:",
+        container.style.display
+    );
+
+    console.log(
+        "dynamic-fields computed:",
+        window.getComputedStyle(container).display
+    );
 }
 
-holder.appendChild(input);
 
-    
-    if (r.field_id === 'full_name') {
-      div.style.display = 'block';
-      getFieldElement('full_name').disabled = false;
-    }
-  });
 
-// =====================================================
-  // TEMP DIAGNOSTIC
-  // =====================================================
 
-  console.log(
-      "renderForm finished. Total children:",
-      container.children.length
-  );
 
-  console.log(
-      "dynamic-fields display:",
-      container.style.display
-  );
+  
 
-  console.log(
-      "dynamic-fields computed:",
-      window.getComputedStyle(container).display
-  );
+
+
+
+
+  
+
+
+
+  
 
 
 
@@ -1297,10 +1519,7 @@ holder.appendChild(input);
 
 
 
-    
-    
-    
-}
+  
 
  
   async function onInputChange(fId, val) {
