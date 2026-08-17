@@ -3643,41 +3643,127 @@ return registrationId;
 
   
 
+function manualFormatCheck() {
+
+    const emailInput =
+        getFieldElement('email');
+
+    const emailVal =
+        emailInput.value.trim();
+
+    const vBtn =
+        document.getElementById('vbtn-email');
+
+    const checkBtn =
+        document.getElementById('vcheck-email');
+
+    const msg =
+        document.getElementById('vmsg-email');
 
 
-  
-    
-  function manualFormatCheck() {
-    const emailInput = getFieldElement('email');
-    const emailVal = emailInput.value.trim(); 
-    const vBtn = document.getElementById('vbtn-email');
-    const checkBtn = document.getElementById('vcheck-email');
-    const msg = document.getElementById('vmsg-email');
-  
-    const strictRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,6}$/;
-  
+    const strictRegex =
+        /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,6}$/;
+
+
+    // =====================================================
+    // FORMAT ACCEPTED
+    // =====================================================
+
     if (strictRegex.test(emailVal)) {
-      checkBtn.style.display = 'none';
-      vBtn.style.display = 'block';
-      vBtn.innerText = `Format accepted, click here to send verification code to ${emailVal}`;
-      emailInput.style.border = '1px solid #ced4da';
-      if (msg) {
-        msg.innerText = "Format Accepted ✅";
-        msg.style.color = "#2e7d32";
-        msg.style.display = "block";
-      }
-    } else {
-      let errorNote = "Please check for typos or extra characters.";
-      if (!emailVal.includes("@")) errorNote = "Missing '@' symbol.";
-      else if (!emailVal.includes(".")) errorNote = "Missing a dot (e.g., .com).";
-      else if (/\s/.test(emailVal)) errorNote = "Spaces are not allowed within the email.";
-  
-      alert("❌ FORMAT ISSUE\n\n" + errorNote);
-      vBtn.style.display = 'none';
-      emailInput.style.border = '2px solid red';
-      emailInput.focus();
+
+        checkBtn.style.display = 'none';
+
+        vBtn.style.display = 'block';
+
+        vBtn.innerText =
+            `Format accepted, click here to send verification code to ${emailVal}`;
+
+        emailInput.style.border =
+            '1px solid #ced4da';
+
+        if (msg) {
+
+            msg.innerText =
+                "Format Accepted ✅";
+
+            msg.style.color =
+                "#2e7d32";
+
+            msg.style.display =
+                "block";
+        }
+
     }
-  }
+
+
+    // =====================================================
+    // FORMAT NOT ACCEPTED
+    // =====================================================
+
+    else {
+
+        let errorNote =
+            "Please check for typos or extra characters.";
+
+        if (!emailVal.includes("@")) {
+
+            errorNote =
+                "Missing '@' symbol.";
+
+        }
+
+        else if (!emailVal.includes(".")) {
+
+            errorNote =
+                "Missing a dot (e.g., .com).";
+
+        }
+
+        else if (/\s/.test(emailVal)) {
+
+            errorNote =
+                "Spaces are not allowed within the email.";
+
+        }
+
+
+        // -----------------------------------------------
+        // SHOW ERROR INSIDE THE FORM
+        // -----------------------------------------------
+
+        if (msg) {
+
+            msg.innerText =
+                "❌ FORMAT ISSUE\n" +
+                errorNote;
+
+            msg.style.color =
+                "#d32f2f";
+
+            msg.style.display =
+                "block";
+        }
+
+
+        // -----------------------------------------------
+        // Hide verification button
+        // -----------------------------------------------
+
+        vBtn.style.display =
+            'none';
+
+
+        // -----------------------------------------------
+        // Highlight invalid field
+        // -----------------------------------------------
+
+        emailInput.style.border =
+            '2px solid red';
+
+        emailInput.focus();
+    }
+}
+
   
   
     function getMaskedDisplayValue(fieldId, value) {
