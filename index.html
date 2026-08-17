@@ -1290,61 +1290,14 @@ holder.appendChild(input);
       window.getComputedStyle(container).display
   );
 
+
+
+
+
+
+
+
     
-    console.log("================ BUTTON TEST ================");
-console.log("All Dynamic Sections:", getAllDynamicSections());
-
-const nextSection = getNextSection(currentSectionId);
-
-console.log("Next Section =", nextSection);
-
-const actionBtn = document.getElementById("btn-next-action");
-
-console.log("Button Found =", actionBtn);
-
-
-
-if (nextSection) {
-
-    actionBtn.innerText = "PROCEED";
-
-    actionBtn.style.display = "block";
-
-  
-
-actionBtn.onclick = () => {
-
-    document.getElementById("Section1").style.display = "none";
-    document.getElementById("Section2").style.display = "block";
-
-    buildExtraSections(nextSection);
-
-};
-
-
-
-  
-}
-
-  
-else {
-
-    console.log("Entering CONFIRM branch");
-
-    document.getElementById("Section2").style.display = "block";
-
-    actionBtn.innerText = "CONFIRM & REGISTER";
-
-    actionBtn.style.display = "block";
-
-    actionBtn.onclick = () => {
-
-        submitData();
-
-    };
-
-}
-  
     
     
 }
@@ -5954,21 +5907,21 @@ function getSectionIndex(sectionNumber) {
     );
 }
 
-
-function getNextSection(currentSection) {
-
-    const sections =
-        getAllDynamicSections();
-
-    const currentIndex =
-        sections.indexOf(currentSection);
-
-    if (currentIndex === -1) {
-        return null;
-    }
-
-    return sections[currentIndex + 1] || null;
-}
+  
+  function getNextSection(currentSection) {
+  
+      const sections =
+          getAllDynamicSections();
+  
+      const currentIndex =
+          sections.indexOf(currentSection);
+  
+      if (currentIndex === -1) {
+          return null;
+      }
+  
+      return sections[currentIndex + 1] || null;
+  }
 
 function getPreviousSection(currentSection) {
 
