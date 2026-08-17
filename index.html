@@ -4612,9 +4612,8 @@ if (backBtn) {
 // 2. SYSTEM INITIALIZATION
 // ==========================================
 
-
-
 // Ensure this is called only once at the end of your logic definitions
+
 
 
 
@@ -4633,36 +4632,11 @@ function updateButtonState() {
     let diagData = [];
 
     // 1. Identify the current section using the "Hybrid Bridge"
-
-
-
-
     for (let input of allInputs) {
-
-        // Profile fields use .field-container
-        // Dynamic section fields use .form-group
-        // Both are supported by this visibility check.
-        const group =
-            input.closest('.form-group') ||
-            input.closest('.input-group') ||
-            input.closest('.field-container');
-
-        const isVisible =
-            group &&
-            group.style.display !== 'none';
-
+        const group = input.closest('.form-group') || input.closest('.input-group');
+        const isVisible = group && group.style.display !== 'none';
+        
         if (isVisible) {
-
-
-
-
-
-
-          
-
-
-
-          
             // BRIDGE: Remove 'extra_' or 'inp-' just to find the rule match
             const cleanId = input.id.replace('extra_', '').replace('inp-', '');
             const rule = rulesArray.find(r => r.field_id === cleanId);
@@ -4777,7 +4751,12 @@ actionBtn.innerText =
     }
 }
 
+  
 
+  
+
+
+  
 
 /**
  * REVISED: Dynamic Waterfall Reflow
