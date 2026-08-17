@@ -6448,7 +6448,195 @@ function getISTDateTime() {
     );
 }
 
+// ============================================================
+// MERS V3 : UNIVERSAL SECTION JUMP EVALUATOR
+// ============================================================
 
+function evaluateSectionJump(
+    rule,
+    selectedValue,
+    masterRecord,
+    currentSectionId
+) {
+
+    console.log(
+        "========== SECTION JUMP EVALUATION =========="
+    );
+
+    console.log(
+        "Field:",
+        rule ? rule.field_id : null
+    );
+
+    console.log(
+        "Selected Value:",
+        selectedValue
+    );
+
+    console.log(
+        "Current Section:",
+        currentSectionId
+    );
+
+    console.log(
+        "Jump Enabled:",
+        rule ? rule.jump_enabled : null
+    );
+
+    console.log(
+        "Master Record:",
+        masterRecord
+    );
+
+
+    // ========================================================
+    // 1. SAFETY CHECK
+    // ========================================================
+
+    if (!rule) {
+
+        console.log(
+            "SECTION JUMP: No Field_Rule found → NONE"
+        );
+
+        return {
+            action: "NONE",
+            targetSection: null
+        };
+    }
+
+
+    // ========================================================
+    // 2. IS SECTION JUMP ENABLED FOR THIS FIELD?
+    // ========================================================
+
+    if (
+        String(rule.jump_enabled)
+            .trim()
+            .toUpperCase() !== "YES"
+    ) {
+
+        console.log(
+            "SECTION JUMP: Disabled for this field → NONE"
+        );
+
+        return {
+            action: "NONE",
+            targetSection: null
+        };
+    }
+
+
+    // ========================================================
+    // 3. MASTER RECORD MUST EXIST
+    // ========================================================
+
+    if (!masterRecord) {
+
+        console.log(
+            "SECTION JUMP: Master record not available"
+        );
+
+        // Use configured default
+        if (
+            String(rule.jump_default)
+                .trim()
+                .toUpperCase() === "NEXT"
+        ) {
+
+            return {
+                action: "NEXT",
+                targetSection: null
+            };
+
+        }
+
+        return {
+            action: "NONE",
+            targetSection: null
+        };
+    }
+
+
+    // ========================================================
+    // 4. READ DESTINATION FROM MASTER RECORD
+    // ========================================================
+
+    const targetSection =
+        String(
+            masterRecord.jump_to_section_id || ""
+        ).trim();
+
+
+    console.log(
+        "Configured Jump Destination:",
+        targetSection
+    );
+
+
+    // ========================================================
+    // 5. EXPLICIT JUMP EXISTS
+    // ========================================================
+
+    if (targetSection !== "") {
+
+        console.log(
+            "SECTION JUMP: EXPLICIT JUMP →",
+            targetSection
+        );
+
+        return {
+            action: "JUMP",
+            targetSection: targetSection
+        };
+    }
+
+
+    // ========================================================
+    // 6. NO EXPLICIT JUMP → APPLY DEFAULT
+    // ========================================================
+
+    const defaultAction =
+        String(
+            rule.jump_default || ""
+        )
+        .trim()
+        .toUpperCase();
+
+
+    if (defaultAction === "NEXT") {
+
+        console.log(
+            "SECTION JUMP: No destination → NEXT"
+        );
+
+        return {
+            action: "NEXT",
+            targetSection: null
+        };
+    }
+
+
+    // ========================================================
+    // 7. SAFE FALLBACK
+    // ========================================================
+
+    console.log(
+        "SECTION JUMP: No valid jump/default → NONE"
+    );
+
+    return {
+        action: "NONE",
+        targetSection: null
+    };
+
+}
+
+
+
+
+
+  
 
 
 
