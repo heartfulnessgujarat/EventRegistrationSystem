@@ -1852,17 +1852,49 @@ if (cont) {
     }
 
     // 4. Existing Email Verification Logic
-    if (id === 'email') {
 
-        const checkBtn = document.getElementById('vcheck-email');
-        if (checkBtn) checkBtn.style.display = 'block';
 
-        const vBtn = document.getElementById('vbtn-email');
-        if (vBtn) vBtn.style.display = 'none';
 
-        const msg = document.getElementById('vmsg-email');
-        if (msg) msg.style.display = 'none';
-    }
+
+
+
+
+
+    
+   if (id === 'email') {
+
+    const panel =
+        document.getElementById('panel-email');
+
+    if (panel)
+        panel.style.display = 'block';
+
+    const checkBtn =
+        document.getElementById('vcheck-email');
+
+    if (checkBtn)
+        checkBtn.style.display = 'block';
+
+    const vBtn =
+        document.getElementById('vbtn-email');
+
+    if (vBtn)
+        vBtn.style.display = 'none';
+
+    const msg =
+        document.getElementById('vmsg-email');
+
+    if (msg)
+        msg.style.display = 'none';
+}
+
+
+
+
+
+
+
+    
 }    
 
 
@@ -4532,6 +4564,9 @@ actionBtn.innerText =
     }
 }
 
+
+
+  
 async function handleFieldChange(inputElement, rule) {
 
     const val = inputElement.value;
