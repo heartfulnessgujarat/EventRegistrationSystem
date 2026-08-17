@@ -4791,6 +4791,145 @@ try {
     refreshSectionVisibility(section);
   updateButtonState();
 
+// ----------------------------------------------------
+// MERS V3 : Metadata-driven Section Jump
+// ----------------------------------------------------
+
+if (
+    String(rule.jump_enabled)
+        .trim()
+        .toUpperCase() === "YES"
+) {
+
+    console.log(
+        "MERS V3: Section jump enabled for",
+        fId
+    );
+
+    try {
+
+        const lookupTab =
+            rule.lookup_tab;
+
+        const lookupColumn =
+            rule.lookup_column;
+
+        if (
+            lookupTab &&
+            lookupColumn
+        ) {
+
+            console.log(
+                "MERS V3: Loading jump master:",
+                lookupTab
+            );
+
+            const snap =
+                await db.ref(
+                    `masters/${lookupTab}`
+                ).once("value");
+
+            const raw =
+                snap.val() || {};
+
+            const records =
+                Array.isArray(raw)
+                    ? raw
+                    : Object.values(raw);
+
+            console.log(
+                "MERS V3: Jump master records:",
+                records
+            );
+
+            // ----------------------------------------
+            // Find master record matching selection
+            // ----------------------------------------
+
+            const masterRecord =
+                records.find(record => {
+
+                    const recordValue =
+                        String(
+                            record[lookupColumn] || ""
+                        ).trim();
+
+                    const eventMatches =
+                        !record.event_id ||
+                        String(
+                            record.event_id
+                        ).trim() ===
+                        String(eventId).trim();
+
+                    return (
+                        eventMatches &&
+                        recordValue ===
+                        String(val).trim()
+                    );
+
+                });
+
+            console.log(
+                "MERS V3: Matching jump master record:",
+                masterRecord
+            );
+
+            // ----------------------------------------
+            // Evaluate Section Jump
+            // ----------------------------------------
+
+            const jumpResult =
+                evaluateSectionJump(
+                    rule,
+                    val,
+                    masterRecord,
+                    section
+                );
+
+            console.log(
+                "MERS V3: Section Jump Result:",
+                jumpResult
+            );
+
+            // ----------------------------------------
+            // Execute JUMP
+            // ----------------------------------------
+
+            if (
+                jumpResult &&
+                jumpResult.action === "JUMP" &&
+                jumpResult.targetSection
+            ) {
+
+                console.log(
+                    "MERS V3: EXECUTING JUMP →",
+                    jumpResult.targetSection
+                );
+
+                await buildExtraSections(
+                    jumpResult.targetSection
+                );
+
+                return;
+
+            }
+
+        }
+
+    } catch (err) {
+
+        console.error(
+            "MERS V3: Section Jump Error:",
+            err
+        );
+
+    }
+
+}
+
+
+  
+
     // -----------------------------
     // Verification behaviour
     // -----------------------------
