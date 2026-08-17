@@ -2279,86 +2279,136 @@ if (
       }
   }
          
-           if (r.field_id === 'email' || r.field_id === 'mobile') {
-            const panel = document.getElementById(`panel-${r.field_id}`);
-            const vBtn = document.getElementById(`vbtn-${r.field_id}`);
-            const msg = document.getElementById(`vmsg-${r.field_id}`);
-  
-  
-  
-  
-  
-  
-  
-  // =====================================================
-  // MASKED + LOCKED STATE
-  // =====================================================
-  
-  const isMaskedLockedField =
-  
-    input.disabled &&
-  
-    input.dataset.originalValue &&
-  
-    (
-      r.field_id === 'mobile' ||
-      r.field_id === 'email'
-    );
-  
-  if (isMaskedLockedField) {
-  
+
+// =====================================================
+// EMAIL VERIFICATION
+// =====================================================
+// Email continues to use the existing two-layer
+// validation + verification workflow.
+
+if (r.field_id === 'email') {
+
+    const panel =
+        document.getElementById('panel-email');
+
+    const vBtn =
+        document.getElementById('vbtn-email');
+
+    const msg =
+        document.getElementById('vmsg-email');
+
+
+    // =================================================
+    // MASKED + LOCKED EMAIL
+    // =================================================
+
+    const isMaskedLockedEmail =
+        input.disabled &&
+        input.dataset.originalValue;
+
+
+    if (isMaskedLockedEmail) {
+
+        if (panel)
+            panel.style.display = 'none';
+
+        if (msg)
+            msg.style.display = 'none';
+
+    }
+
+
+    // =================================================
+    // VERIFIED EMAIL
+    // =================================================
+
+    else if (verificationStates.email) {
+
+        if (msg)
+            msg.style.display = 'block';
+
+        if (panel)
+            panel.style.display = 'none';
+
+    }
+
+
+    // =================================================
+    // EMAIL NEEDS VERIFICATION
+    // =================================================
+
+    else if (isValid && isChanged) {
+
+        if (vBtn) {
+
+            vBtn.innerText =
+                `Click here to send Verification Code to ${input.value}`;
+
+        }
+
+        if (panel)
+            panel.style.display = 'block';
+
+        if (msg)
+            msg.style.display = 'none';
+
+        allValid = false;
+
+    }
+
+
+    // =================================================
+    // EMAIL DEFAULT
+    // =================================================
+
+    else {
+
+        if (panel)
+            panel.style.display = 'none';
+
+        if (!isChanged && msg)
+            msg.style.display = 'none';
+
+    }
+
+}
+
+
+// =====================================================
+// MOBILE — FORMAT VALIDATION ONLY
+// =====================================================
+// Mobile currently requires ONLY the MOB validation:
+// exactly 10 digits, first digit 6–9.
+//
+// No verification code is required at this stage.
+
+else if (r.field_id === 'mobile') {
+
+    const panel =
+        document.getElementById('panel-mobile');
+
+    const msg =
+        document.getElementById('vmsg-mobile');
+
+
+    // Make sure the old WhatsApp verification UI
+    // does not appear.
+
     if (panel)
-      panel.style.display = 'none';
-  
+        panel.style.display = 'none';
+
     if (msg)
-      msg.style.display = 'none';
-  }
-  
-  // =====================================================
-  // VERIFIED STATE
-  // =====================================================
-  
-  else if (verificationStates[r.field_id]) {
-  
-    if (msg)
-      msg.style.display = 'block';
-  
-    if (panel)
-      panel.style.display = 'none';
-  }
-  
-  // =====================================================
-  // NEEDS VERIFICATION
-  // =====================================================
-  
-  else if (isValid && isChanged) {
-  
-    vBtn.innerText =
-      `Click here to send Verification Code to ${input.value}`;
-  
-    panel.style.display = 'block';
-  
-    if (msg)
-      msg.style.display = 'none';
-  
-    allValid = false;
-  }
-  
-  // =====================================================
-  // DEFAULT
-  // =====================================================
-  
-  else {
-  
-    if (panel)
-      panel.style.display = 'none';
-  
-    if (!isChanged && msg)
-      msg.style.display = 'none';
-  }
-            
-           }
-            
+        msg.style.display = 'none';
+
+}
+
+
+
+
+
+
+
+          
           if (input.value.trim() === "" && r.initial_state === 'Visible') allValid = false;
         }
       });
