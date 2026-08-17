@@ -2147,8 +2147,9 @@ if (
 
   
     // 1. THE PAGE TURNER: Moves between Section 1, 2, and 3
-  
-  async function handleSectionNavigation() {
+
+
+ async function handleSectionNavigation() {
       console.log("%c MERS PING 3: handleSectionNavigation() was just called!", "color: blue; font-weight: bold;");
       try {
           if (typeof currentSection === 'undefined') window.currentSection = 1;
@@ -2197,6 +2198,11 @@ if (
           document.getElementById('app').style.display = 'block';
       }
   }
+ 
+
+
+
+  
   
   
   function maskMobile(mobile) {
