@@ -1789,6 +1789,9 @@ function selectParticipant(p) {
           }
       });
   }
+
+
+  
   function unlockField(id) {
 
     console.log("unlockField called:", id);
@@ -1800,7 +1803,8 @@ function selectParticipant(p) {
     }
 
 const inp = getFieldElement(id);
-    
+
+       
     console.log("Input found:", inp);
 
     // Safety check
@@ -1808,6 +1812,18 @@ const inp = getFieldElement(id);
         console.error("unlockField: Input element not found for:", id);
         return;
     }
+
+    // Make the hidden profile field visible when Edit is clicked
+const cont = document.getElementById(`cont-${id}`);
+
+if (cont) {
+    cont.style.display = 'block';
+}
+
+
+
+
+    
 
     // ============================================
     // RESTORE ORIGINAL VALUE BEFORE EDITING
@@ -1848,7 +1864,11 @@ const inp = getFieldElement(id);
         if (msg) msg.style.display = 'none';
     }
 }    
- 
+
+
+
+
+  
   async function sendCode(type) {
     
       verificationAttempts[type] = 0;
@@ -1989,6 +2009,9 @@ fetch(
       document.getElementById(`vbtn-${type}`).style.display = "block";
       sendCode(type);
     }
+
+
+
   
     async function verifyCodeInput(type, code) {
       if (   (type === 'email' && code.trim().length === 6) ||   (type === 'mobile' && code.trim().length >= 4) ) {
