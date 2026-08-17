@@ -4642,28 +4642,45 @@ console.log(
 
     if (!val) return;
 
-    // -----------------------------
-    // Validation
-    // -----------------------------
-    try {
 
-        validateField(
-            fId,
-            val,
-            rule.field_validation
-        );
 
-    } catch (err) {
 
-        alert("❌ " + err);
 
-        inputElement.value = "";
+  // -----------------------------
+// Validation
+// -----------------------------
+try {
 
-        updateButtonState();
+    const isValid = validateField(
+        fId,
+        val,
+        rule.field_validation
+    );
 
-        return;
+    // Mobile currently uses only Layer 1:
+    // exactly 10 digits, first digit 6–9.
+    //
+    // Run the main validation engine so that
+    // the validation error/success state is displayed.
 
+    if (fId === 'mobile') {
+        checkAllValidations();
     }
+
+} catch (err) {
+
+    alert("❌ " + err);
+
+    inputElement.value = "";
+
+    updateButtonState();
+
+    return;
+
+}
+
+
+  
 
     // -----------------------------
     // Metadata-driven visibility
