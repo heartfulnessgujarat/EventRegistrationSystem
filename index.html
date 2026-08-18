@@ -1300,54 +1300,86 @@ function renderForm() {
                 `field-holder-${r.field_id}`
             );
 
-        // =====================================================
-        // SPECIAL CASE:
-        // SEARCH_PROFILE / FULL NAME
-        // =====================================================
-
-        if (
-            currentSectionId === "SEARCH_PROFILE" &&
-            r.field_id === "full_name"
-        ) {
-
-            console.log(
-                "CREATING PROFILE SEARCH INPUT:",
-                r.field_id
-            );
-
-            const input =
-                document.createElement("input");
-
-            input.type = "text";
-            input.id = r.field_id;
-            input.autocomplete = "off";
-            input.disabled = false;
-
-            input.oninput = function () {
-
-                console.log(
-                    "PROFILE SEARCH:",
-                    r.field_id,
-                    this.value
-                );
-
-                handleSearch(
-                    r.field_id,
-                    this.value
-                );
-
-                checkAllValidations();
-            };
-
-            holder.appendChild(input);
-
-            // Full Name is the ONLY field visible
-            // during the initial profile-search stage.
-            div.style.display = 'block';
-
-        }
 
 
+
+
+
+
+
+// =====================================================
+// SPECIAL CASE:
+// SEARCH_PROFILE / FULL NAME
+// =====================================================
+
+if (
+    currentSectionId === "SEARCH_PROFILE" &&
+    r.field_id === "full_name"
+) {
+
+    console.log(
+        "CREATING PROFILE SEARCH INPUT:",
+        r.field_id
+    );
+
+    const input =
+        document.createElement("input");
+
+    input.type = "text";
+    input.id = r.field_id;
+    input.autocomplete = "off";
+    input.disabled = false;
+
+    // -------------------------------------------------
+    // MERS V3 : RESTORE SAVED FULL NAME
+    // -------------------------------------------------
+
+    const savedValue =
+        getFieldValue(r.field_id);
+
+    console.log(
+        "SEARCH_PROFILE RESTORE:",
+        r.field_id,
+        "→",
+        savedValue
+    );
+
+    if (
+        savedValue !== undefined &&
+        savedValue !== null
+    ) {
+
+        input.value =
+            String(savedValue);
+
+    }
+
+    input.oninput = function () {
+
+        console.log(
+            "PROFILE SEARCH:",
+            r.field_id,
+            this.value
+        );
+
+        handleSearch(
+            r.field_id,
+            this.value
+        );
+
+        checkAllValidations();
+    };
+
+    holder.appendChild(input);
+
+    // Full Name is the ONLY field visible
+    // during the initial profile-search stage.
+    div.style.display = 'block';
+
+}
+
+
+          
 
 
 
