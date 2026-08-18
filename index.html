@@ -1347,42 +1347,84 @@ function renderForm() {
 
         }
 
-        // =====================================================
-        // ALL OTHER SEARCH_PROFILE FIELDS
-        // =====================================================
 
-        else if (
-            currentSectionId === "SEARCH_PROFILE"
-        ) {
 
-            console.log(
-                "CREATING PROFILE FIELD:",
-                r.field_id
-            );
 
-            const input =
-                document.createElement("input");
 
-            input.type = "text";
-            input.id = r.field_id;
-            input.autocomplete = "off";
+// =====================================================
+// ALL OTHER SEARCH_PROFILE FIELDS
+// =====================================================
 
-            // These fields are not manually entered
-            // during the initial participant-search stage.
-            input.disabled = true;
+else if (
+    currentSectionId === "SEARCH_PROFILE"
+) {
 
-            input.oninput = function () {
+    console.log(
+        "CREATING PROFILE FIELD:",
+        r.field_id
+    );
 
-                handleFieldChange(
-                    this,
-                    r
-                );
+    const input =
+        document.createElement("input");
 
-            };
+    input.type = "text";
+    input.id = r.field_id;
+    input.autocomplete = "off";
 
-            holder.appendChild(input);
+    // -------------------------------------------------
+    // MERS V3 : RESTORE SAVED VALUE
+    // -------------------------------------------------
 
-        }
+    const savedValue =
+        getFieldValue(r.field_id);
+
+    console.log(
+        "SEARCH_PROFILE RESTORE:",
+        r.field_id,
+        "→",
+        savedValue
+    );
+
+    if (
+        savedValue !== undefined &&
+        savedValue !== null
+    ) {
+
+        input.value =
+            String(savedValue);
+
+    }
+
+    // These fields are not manually entered
+    // during the initial participant-search stage.
+    input.disabled = true;
+
+    input.oninput = function () {
+
+        handleFieldChange(
+            this,
+            r
+        );
+
+    };
+
+    holder.appendChild(input);
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+          
 
         // =====================================================
         // NORMAL METADATA-DRIVEN FIELD
