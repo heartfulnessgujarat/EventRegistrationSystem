@@ -6813,6 +6813,85 @@ function evaluateSectionJump(
 
 }
 
+
+
+  // =====================================================
+// MERS V3 : Navigate to Logical Section
+// =====================================================
+
+function navigateToLogicalSection(targetSection) {
+
+    const target =
+        String(targetSection || "").trim();
+
+    console.log(
+        "MERS V3: NAVIGATE TO LOGICAL SECTION:",
+        target
+    );
+
+    // -------------------------------------------------
+    // SEARCH_PROFILE
+    // SEARCH_PROFILE is logically rendered inside
+    // the physical Section1 container.
+    // -------------------------------------------------
+
+    if (target === "SEARCH_PROFILE") {
+
+        console.log(
+            "MERS V3: SEARCH_PROFILE → physical container Section1"
+        );
+
+        const section0 =
+            document.getElementById("Section0");
+
+        const section1 =
+            document.getElementById("Section1");
+
+        const section2 =
+            document.getElementById("Section2");
+
+        if (section0) {
+            section0.style.display = "none";
+        }
+
+        if (section2) {
+            section2.style.display = "none";
+        }
+
+        if (!section1) {
+
+            console.error(
+                "MERS V3: Physical container Section1 not found."
+            );
+
+            return;
+        }
+
+        section1.style.display = "block";
+
+        console.log(
+            "MERS V3: Section1 made visible for SEARCH_PROFILE"
+        );
+
+        // IMPORTANT:
+        // Do not clear mersTempData.
+        // renderForm() will rebuild the UI while
+        // existing temporary values remain available.
+
+        renderForm();
+
+        return;
+    }
+
+    console.warn(
+        "MERS V3: No physical navigation mapping yet for:",
+        target
+    );
+}
+
+
+
+
   
   
 </script>
