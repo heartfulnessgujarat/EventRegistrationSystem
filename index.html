@@ -4920,18 +4920,33 @@ if (
     // Do NOT send it through buildExtraSections().
     // ------------------------------------------------
 
-    if (
-        targetSection.toUpperCase() ===
-        "SEARCH_PROFILE"
-    ) {
 
-        console.log(
-            "MERS V3: JUMP TARGET IS SEARCH_PROFILE → renderForm()"
-        );
 
-        renderForm();
 
-    } else {
+if (
+    targetSection.toUpperCase() ===
+    "SEARCH_PROFILE"
+) {
+
+    console.log(
+        "MERS V3: JUMP TARGET IS SEARCH_PROFILE"
+    );
+
+    navigateToLogicalSection(
+        targetSection
+    );
+
+}
+
+
+  
+  
+    
+    
+    
+    
+    
+    else {
 
         // ------------------------------------------------
         // Normal dynamic sections
