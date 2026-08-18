@@ -841,12 +841,18 @@ function renderParticipantClassification() {
 
     if (!container) return;
 
-    const rules =
-        fieldRules.filter(
-            r =>
-                r.section_id ===
-                'PARTICIPANT_CLASSIFICATION'
-        );
+
+
+const rules =
+    fieldRules.filter(
+        r =>
+            r.section_id ===
+            'SECTION0'
+    );
+
+
+
+  
 
     console.log(
         "TEST-2 Total Field Rules:",
@@ -885,10 +891,14 @@ function renderParticipantClassification() {
 
 if (rules.length === 0) {
 
-    console.log(
-        "MERS: No PARTICIPANT_CLASSIFICATION found. Starting direct registration."
-    );
 
+
+ console.log(
+    "MERS: No SECTION0 rules found. Starting direct registration."
+);
+
+
+  
     document
         .getElementById('Section0')
         .style.display = 'none';
