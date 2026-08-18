@@ -4891,28 +4891,73 @@ if (
                 jumpResult
             );
 
-            // ----------------------------------------
-            // Execute JUMP
-            // ----------------------------------------
 
-            if (
-                jumpResult &&
-                jumpResult.action === "JUMP" &&
-                jumpResult.targetSection
-            ) {
 
-                console.log(
-                    "MERS V3: EXECUTING JUMP →",
-                    jumpResult.targetSection
-                );
 
-                await buildExtraSections(
-                    jumpResult.targetSection
-                );
 
-                return;
+// ----------------------------------------
+// Execute JUMP
+// ----------------------------------------
 
-            }
+if (
+    jumpResult &&
+    jumpResult.action === "JUMP" &&
+    jumpResult.targetSection
+) {
+
+    const targetSection =
+        String(
+            jumpResult.targetSection
+        ).trim();
+
+    console.log(
+        "MERS V3: EXECUTING JUMP →",
+        targetSection
+    );
+
+    // ------------------------------------------------
+    // SEARCH_PROFILE has its own renderer.
+    // Do NOT send it through buildExtraSections().
+    // ------------------------------------------------
+
+    if (
+        targetSection.toUpperCase() ===
+        "SEARCH_PROFILE"
+    ) {
+
+        console.log(
+            "MERS V3: JUMP TARGET IS SEARCH_PROFILE → renderForm()"
+        );
+
+        renderForm();
+
+    } else {
+
+        // ------------------------------------------------
+        // Normal dynamic sections
+        // ------------------------------------------------
+
+        console.log(
+            "MERS V3: JUMP TARGET IS DYNAMIC SECTION →",
+            targetSection
+        );
+
+        await buildExtraSections(
+            targetSection
+        );
+
+    }
+
+    return;
+
+}
+
+
+
+
+
+
+          
 
         }
 
