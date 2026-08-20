@@ -7008,6 +7008,159 @@ function getMultipleConditionFields(
 }
 
 
+  //----------------------------------------------------
+// MERS V4 : Multiple Condition Combination Key
+//----------------------------------------------------
+
+function getMultipleConditionCombinationKey(
+    multipleConditionId
+) {
+
+    // -----------------------------------------------
+    // 1. Get all conditions belonging to this ID
+    // -----------------------------------------------
+
+    const conditions =
+        multipleConditionRules
+            .filter(
+                r =>
+                    String(r.multiple_condition_id) ===
+                    String(multipleConditionId)
+            )
+            .sort(
+                (a, b) =>
+                    Number(a.condition_sequence) -
+                    Number(b.condition_sequence)
+            );
+
+
+    console.log(
+        "MERS MC: Conditions for",
+        multipleConditionId,
+        conditions
+    );
+
+
+    // -----------------------------------------------
+    // 2. No conditions found
+    // -----------------------------------------------
+
+    if (!conditions.length) {
+
+        console.warn(
+            "MERS MC: No conditions found for:",
+            multipleConditionId
+        );
+
+        return null;
+    }
+
+
+    // -----------------------------------------------
+    // 3. Read each answer in sequence order
+    // -----------------------------------------------
+
+    let combinationKey = "";
+
+
+    for (const condition of conditions) {
+
+        const fieldId =
+            condition.field_id;
+
+        const select =
+            document.getElementById(
+                `pc_${fieldId}`
+            );
+
+        const answer =
+            select?.value || "";
+
+
+        console.log(
+            "MERS MC: Condition",
+            condition.condition_sequence,
+            "Field:",
+            fieldId,
+            "Answer:",
+            answer
+        );
+
+
+        // -------------------------------------------
+        // 4. Find the answer's configured sequence
+        // -------------------------------------------
+
+        const matchingValue =
+            multipleConditionRules.find(
+                r =>
+
+                    String(
+                        r.multiple_condition_id
+                    ) ===
+                    String(
+                        multipleConditionId
+                    )
+
+                    &&
+
+                    String(
+                        r.condition_sequence
+                    ) ===
+                    String(
+                        condition.condition_sequence
+                    )
+
+                    &&
+
+                    String(
+                        r.condition_value
+                    ) ===
+                    String(
+                        answer
+                    )
+            );
+
+
+        if (!matchingValue) {
+
+            console.warn(
+                "MERS MC: No matching condition value found:",
+                {
+                    multipleConditionId,
+                    fieldId,
+                    answer
+                }
+            );
+
+            return null;
+        }
+
+
+        // -------------------------------------------
+        // 5. Add its sequence to the combination key
+        // -------------------------------------------
+
+        combinationKey +=
+            String(
+                matchingValue.condition_value_sequence
+            );
+
+    }
+
+
+    // -----------------------------------------------
+    // 6. Return final combination key
+    // -----------------------------------------------
+
+    console.log(
+        "MERS MC: FINAL COMBINATION KEY =",
+        combinationKey
+    );
+
+    return combinationKey;
+}
+
   
   
 </script>
