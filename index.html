@@ -1495,21 +1495,14 @@ else {
         input =
             document.createElement("select");
 
-        input.className =
-            "form-control";
 
+      input.className =
+    "form-control";
 
-      input.style.width =
-    
-
-
+input.id =
+    r.field_id;
 
       
-
-     
-
-        input.id =
-            r.field_id;
 
 // ---------------------------------------------
 // PLACEHOLDER
@@ -1520,7 +1513,8 @@ const blank =
 
 blank.value = "";
 
-blank.text = "";
+blank.text =
+    "-- Select --";
 
 input.appendChild(blank);
       
