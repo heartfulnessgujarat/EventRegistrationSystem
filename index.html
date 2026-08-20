@@ -1592,31 +1592,6 @@ else if (
     );
 }
 
-
-
-
-
-  
-
-
-
-
-
-  
-
-
-
-  
-
-
-
-
-
-
-
-
-  
-
  
   async function onInputChange(fId, val) {
   if (fId === 'full_name' || fId === 'centre') handleSearch(fId, val);
@@ -7531,6 +7506,26 @@ function proceedFromMultipleCondition() {
     document
         .getElementById("Section0")
         .style.display = "none";
+
+
+
+  const nextSection =
+    document.getElementById(
+        nextSectionId
+    );
+
+if (!nextSection) {
+
+    console.error(
+        "MERS MC: Destination section not found:",
+        nextSectionId
+    );
+
+    return;
+}
+
+nextSection.style.display =
+    "block";
 
 
     // -----------------------------------------------
