@@ -1494,24 +1494,41 @@ else if (
 
             let input;
 
-            if (
-                r.lookup_tab &&
-                r.lookup_column
-            ) {
 
-                console.log(
-                    "CREATING SELECT:",
-                    r.field_id
-                );
 
-                input =
-                    document.createElement("select");
 
-                input.id =
-                    r.field_id;
 
-                input.style.width =
-                    "100%";
+
+          if (
+    r.lookup_tab &&
+    r.lookup_column
+) {
+
+    console.log(
+        "CREATING SELECT:",
+        r.field_id
+    );
+
+    input =
+        document.createElement("select");
+
+    input.className =
+        "form-control";
+
+    input.id =
+        r.field_id;
+
+    input.style.width =
+        "100%";
+
+
+
+
+
+
+
+
+              
 
                 const blank =
                     document.createElement("option");
