@@ -4671,10 +4671,15 @@ fieldWrapper.style.display =
                     input = document.createElement('select');
                     input.className = 'form-control';
                     input.id = inputId;
-                    
-                    const placeholder = document.createElement('option');
-                    placeholder.text = "-- Select --"; placeholder.value = "";
-                    input.appendChild(placeholder);
+
+
+
+                
+                    // TEMPORARY TEST:
+// Do not add the "-- Select --" placeholder.
+
+
+                
 
                     if (rule.lookup_tab && rule.lookup_column) {
 
