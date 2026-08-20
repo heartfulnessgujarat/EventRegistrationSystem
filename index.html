@@ -7408,7 +7408,122 @@ function resolveMultipleConditionRoute(
     return route;
 }
 
+//----------------------------------------------------
+// MERS V4 : Participant Classification Next
+//----------------------------------------------------
 
+function proceedFromMultipleCondition() {
+
+    console.log(
+        "MERS MC: Processing Section0"
+    );
+
+
+    // -----------------------------------------------
+    // 1. Find the multiple condition ID
+    // -----------------------------------------------
+
+    const conditionFields =
+        getMultipleConditionFields(
+            "Section0"
+        );
+
+
+    if (!conditionFields.length) {
+
+        console.warn(
+            "MERS MC: No multiple condition fields found."
+        );
+
+        return;
+    }
+
+
+    const multipleConditionId =
+        conditionFields[0]
+            .multiple_condition_id;
+
+
+    console.log(
+        "MERS MC: Multiple Condition ID:",
+        multipleConditionId
+    );
+
+
+    // -----------------------------------------------
+    // 2. Resolve route
+    // -----------------------------------------------
+
+    const route =
+        resolveMultipleConditionRoute(
+            multipleConditionId
+        );
+
+
+    if (!route) {
+
+        alert(
+            "Unable to determine the next section. Please check your selections."
+        );
+
+        return;
+    }
+
+
+    // -----------------------------------------------
+    // 3. Get destination section
+    // -----------------------------------------------
+
+    const nextSectionId =
+        route.next_section_id;
+
+
+    console.log(
+        "MERS MC: Proceeding to:",
+        nextSectionId
+    );
+
+
+    // -----------------------------------------------
+    // 4. Hide Section0
+    // -----------------------------------------------
+
+    document
+        .getElementById("Section0")
+        .style.display = "none";
+
+
+    // -----------------------------------------------
+    // 5. Show destination section
+    // -----------------------------------------------
+
+    const nextSection =
+        document.getElementById(
+            nextSectionId
+        );
+
+
+    if (!nextSection) {
+
+        console.error(
+            "MERS MC: Destination section not found:",
+            nextSectionId
+        );
+
+        return;
+    }
+
+
+    nextSection.style.display =
+        "block";
+
+
+    // -----------------------------------------------
+    // 6. Render destination section
+    // -----------------------------------------------
+
+    renderForm();
+}
 
 
 
