@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+                      <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -227,13 +227,19 @@
 
     <div id="participant-classification-container"></div>
 
-    <button
-        id="btn-section0-next"
-        class="primary-btn"
-        style="display:none;"
-    >
-        CONTINUE
-    </button>
+
+
+<button
+    id="btn-section0-next"
+    class="primary-btn"
+    style="display:none;"
+    onclick="proceedFromMultipleCondition()"
+>
+    CONTINUE
+</button>
+
+
+  
 
 </div>
 
@@ -325,10 +331,7 @@
 
 <script>
 
-
-
-
-  
+ 
 
   function getDisplayValue(fieldId, value) {
 
@@ -420,8 +423,9 @@ function formatFirebaseDate(fbDate) {
 
   
   let fieldRules = [], masterData = [], eventConfig = {}, moreSections = [];
-  let sectionJumpRules = [];
-
+  let multipleConditionRules = [];
+let multipleConditionRoutes = [];
+  
 function classifyStayOption(stayLabel) {
 
     const value =
@@ -753,20 +757,46 @@ console.log("%c MERS PING 1: Init sequence started. CurrentSection is: " + (type
 
 
 
-const jumpSnap =
+          const multipleConditionSnap =
     await db.ref(
-        'config/sectionJumpRules'
+        'masters/master_multiple_condition'
     ).once('value');
 
-sectionJumpRules =
+multipleConditionRules =
     Object.values(
-        jumpSnap.val() || {}
+        multipleConditionSnap.val() || {}
+    ).filter(
+        r =>
+            String(r.event_id).toUpperCase() === eventId
     );
 
 console.log(
-    'MERS: Section Jump Rules Loaded:',
-    sectionJumpRules.length
+    "MERS: Multiple Condition Rules Loaded:",
+    multipleConditionRules.length
 );
+
+
+          const multipleConditionRoutesSnap =
+    await db.ref(
+        'masters/master_multiple_condition_routes'
+    ).once('value');
+
+multipleConditionRoutes =
+    Object.values(
+        multipleConditionRoutesSnap.val() || {}
+    ).filter(
+        r =>
+            String(r.event_id).toUpperCase() === eventId
+    );
+
+console.log(
+    "MERS: Multiple Condition Routes Loaded:",
+    multipleConditionRoutes.length
+);
+
+
+
+
           
          
         } catch (ruleErr) {
@@ -844,12 +874,18 @@ function renderParticipantClassification() {
 
     if (!container) return;
 
-    const rules =
-        fieldRules.filter(
-            r =>
-                r.section_id ===
-                'PARTICIPANT_CLASSIFICATION'
-        );
+
+
+const rules =
+    fieldRules.filter(
+        r =>
+            r.section_id ===
+            'Section0'
+    );
+
+
+
+  
 
     console.log(
         "TEST-2 Total Field Rules:",
@@ -888,10 +924,14 @@ function renderParticipantClassification() {
 
 if (rules.length === 0) {
 
-    console.log(
-        "MERS: No PARTICIPANT_CLASSIFICATION found. Starting direct registration."
-    );
 
+
+ console.log(
+    "MERS: No Section0 rules found. Starting direct registration."
+);
+
+
+  
     document
         .getElementById('Section0')
         .style.display = 'none';
@@ -904,205 +944,176 @@ if (rules.length === 0) {
 
     return;
 }
-
-
-
-
   
     let html = '';
 
- 
-    rules.forEach(rule => {
+// =====================================================
+// MERS V3 : Metadata-driven Participant Classification
+// =====================================================
 
-        html += `
+container.innerHTML = "";
 
-        <div
-            class="field-container"
-            style="margin-bottom:20px;"
-        >
+rules.forEach(rule => {
 
-            <label>
-                ${rule.display_label}
-            </label>
+    const fieldContainer =
+        document.createElement("div");
 
-            <br><br>
+    fieldContainer.className =
+        "field-container";
 
-            <select
-                id="pc_${rule.field_id}"
-                onchange="handleParticipantClassificationChange()"
-                style="
-                    width:100%;
-                    padding:10px;
-                    border:1px solid #ced4da;
-                    border-radius:8px;
-                "
-            >
+    fieldContainer.style.marginBottom =
+        "20px";
 
-                <option value="">
-                    Select
-                </option>
 
-                <option value="YES">
-                    YES
-                </option>
+    // -------------------------------------------------
+    // LABEL
+    // -------------------------------------------------
 
-                <option value="NO">
-                    NO
-                </option>
+    const label =
+        document.createElement("label");
 
-            </select>
+    label.innerHTML =
+        rule.display_label || rule.field_id;
 
-        </div>
+    fieldContainer.appendChild(label);
 
-        `;
 
-    });
+    const spacer =
+        document.createElement("br");
 
-    container.innerHTML = html;
+    fieldContainer.appendChild(spacer);
 
-}
+    const spacer2 =
+        document.createElement("br");
 
-function handleParticipantClassificationChange() {
+    fieldContainer.appendChild(spacer2);
 
-    const practitioner =
 
-        document.getElementById(
-            'pc_is_practitioner'
-        )?.value || '';
+    // -------------------------------------------------
+    // SELECT
+    // -------------------------------------------------
 
-    const attended =
+    const select =
+        document.createElement("select");
 
-        document.getElementById(
-            'pc_attended_before'
-        )?.value || '';
+    select.id =
+        `pc_${rule.field_id}`;
 
-    mersTempData.is_practitioner =
-        practitioner;
+    select.style.width =
+        "100%";
 
-    mersTempData.attended_before =
-        attended;
+    select.style.padding =
+        "10px";
 
-          
-          console.log(
-    'Practitioner:',
-    practitioner
-);
+    select.style.border =
+        "1px solid #ced4da";
 
-console.log(
-    'Attended:',
-    attended
-);
+    select.style.borderRadius =
+        "8px";
 
-console.log(
-    'Jump Rules:',
-    sectionJumpRules
-);
+
+    // -------------------------------------------------
+    // PLACEHOLDER
+    // -------------------------------------------------
+
+    const placeholder =
+        document.createElement("option");
+
+    placeholder.value = "";
+
+    placeholder.text =
+        "Select";
+
+    select.appendChild(
+        placeholder
+    );
+
 
 
 
 
   
-    const route =
+    // -------------------------------------------------
+    // MERS V3 :
+    // POPULATE FROM MASTER USING FIELD_RULE
+    // -------------------------------------------------
 
-        sectionJumpRules.find(
+    if (
+        rule.lookup_tab &&
+        rule.lookup_column
+    ) {
 
-
-
-            r =>
-
-                r.is_practitioner ===
-                practitioner
-
-                &&
-
-                r.attended_before ===
-                attended
-
-                &&
-
-                r.route_active ===
-                'YES'
-
+        console.log(
+            "MERS V3: Participant Classification lookup:",
+            rule.field_id,
+            rule.lookup_tab,
+            rule.lookup_column
         );
 
-    const btn =
-
-        document.getElementById(
-            'btn-section0-next'
+        populateLookupField(
+            rule,
+            select
         );
-
-    if(route){
-
-console.log(
-    'Matched Route:',
-    route
-);
-
-      
-
-        btn.style.display =
-            'block';
-
-        btn.onclick =
-
-            function(){
-
-                proceedFromClassification(
-                    route
-                );
-
-            };
 
     } else {
 
-        btn.style.display =
-            'none';
+        console.warn(
+            "MERS V3: No lookup configuration for:",
+            rule.field_id
+        );
 
     }
 
+
+
+    // -------------------------------------------------
+    // MERS V4 :
+    // VALIDATE MULTIPLE-CONDITION ANSWERS
+    // -------------------------------------------------
+
+    select.onchange =
+        function () {
+
+            validateMultipleConditionAnswers();
+
+        };
+
+
+
+
+
+
+  
+
+    fieldContainer.appendChild(
+        select
+    );
+
+    container.appendChild(
+        fieldContainer
+    );
+
+});
+
+ 
 }
 
 
-  function proceedFromClassification(route){
 
-    console.log(
-        'Selected Route:',
-        route
-    );
-
-    console.log(
-        'next_section_id =',
-        '[' + route.next_section_id + ']'
-    );
-
-    document
-        .getElementById('Section0')
-        .style.display = 'none';
-
-    document
-        .getElementById('Section1')
-        .style.display = 'block';
-
-    console.log(
-        'Calling renderForm()'
-    );
-
-    renderForm();
-}
-
-
-
-
-
-
-
-
-function renderForm() {
+  function renderForm(targetSectionId = null) {
 
     const currentSectionId =
-        fieldRules.some(r => r.section_id === "SEARCH_PROFILE")
-            ? "SEARCH_PROFILE"
-            : "Section1";
+        targetSectionId ||
+        (
+            fieldRules.some(
+                r =>
+                    r.section_id === "SEARCH_PROFILE"
+            )
+                ? "SEARCH_PROFILE"
+                : "Section1"
+        );
+
+  
 
     console.log("================================");
     console.log("ENTERED renderForm()");
@@ -1155,6 +1166,10 @@ function renderForm() {
         div.id =
             `cont-${r.field_id}`;
 
+
+      div.style.marginBottom = "20px";
+div.style.textAlign = "left";
+
         div.style.display =
             (r.initial_state === 'Hidden')
                 ? 'none'
@@ -1173,9 +1188,15 @@ function renderForm() {
 
         div.innerHTML = `
             <div class="label-row">
+
+            
                 <label>
-                    ${r.display_label || r.field_id}
-                </label>
+    <strong>
+        ${r.display_label || r.field_id}
+    </strong>
+</label>
+
+                
 
                 ${
                     needsEditLink
@@ -1300,78 +1321,226 @@ function renderForm() {
                 `field-holder-${r.field_id}`
             );
 
+
+// =====================================================
+// SPECIAL CASE:
+// SEARCH_PROFILE / FULL NAME
+// =====================================================
+
+if (
+    currentSectionId === "SEARCH_PROFILE" &&
+    r.field_id === "full_name"
+) {
+
+    console.log(
+        "CREATING PROFILE SEARCH INPUT:",
+        r.field_id
+    );
+
+    const input =
+        document.createElement("input");
+
+    input.type = "text";
+    input.id = r.field_id;
+    input.autocomplete = "off";
+    input.disabled = false;
+
+    // -------------------------------------------------
+    // MERS V3 : RESTORE SAVED FULL NAME
+    // -------------------------------------------------
+
+    const savedValue =
+        getFieldValue(r.field_id);
+
+    console.log(
+        "SEARCH_PROFILE RESTORE:",
+        r.field_id,
+        "→",
+        savedValue
+    );
+
+    if (
+        savedValue !== undefined &&
+        savedValue !== null
+    ) {
+
+        input.value =
+            String(savedValue);
+
+    }
+
+    input.oninput = function () {
+
+        console.log(
+            "PROFILE SEARCH:",
+            r.field_id,
+            this.value
+        );
+
+        handleSearch(
+            r.field_id,
+            this.value
+        );
+
+        checkAllValidations();
+    };
+
+    holder.appendChild(input);
+
+    // Full Name is the ONLY field visible
+    // during the initial profile-search stage.
+    div.style.display = 'block';
+
+}
+
+      
+
+// =====================================================
+// ALL OTHER SEARCH_PROFILE FIELDS
+// =====================================================
+
+else if (
+    currentSectionId === "SEARCH_PROFILE"
+) {
+
+    console.log(
+        "CREATING PROFILE FIELD:",
+        r.field_id
+    );
+
+    const input =
+        document.createElement("input");
+
+    input.type = "text";
+    input.id = r.field_id;
+    input.autocomplete = "off";
+
+    // -------------------------------------------------
+    // MERS V3 : RESTORE SAVED VALUE
+    // -------------------------------------------------
+
+    const savedValue =
+        getFieldValue(r.field_id);
+
+    console.log(
+        "SEARCH_PROFILE RESTORE:",
+        r.field_id,
+        "→",
+        savedValue
+    );
+
+    if (
+        savedValue !== undefined &&
+        savedValue !== null
+    ) {
+
+        input.value =
+            String(savedValue);
+
+    }
+
+    // These fields are not manually entered
+    // during the initial participant-search stage.
+    input.disabled = true;
+
+    input.oninput = function () {
+
+        handleFieldChange(
+            this,
+            r
+        );
+
+    };
+
+    holder.appendChild(input);
+
+}
+          
+
         // =====================================================
-        // SPECIAL CASE:
-        // SEARCH_PROFILE / FULL NAME
+        // NORMAL METADATA-DRIVEN FIELD
+        // Used by Section1 / other non-profile sections
         // =====================================================
 
-        if (
-            currentSectionId === "SEARCH_PROFILE" &&
-            r.field_id === "full_name"
-        ) {
 
-            console.log(
-                "CREATING PROFILE SEARCH INPUT:",
-                r.field_id
-            );
+// =====================================================
+// NORMAL METADATA-DRIVEN FIELD
+// Used by Section1 / other non-profile sections
+// =====================================================
 
-            const input =
-                document.createElement("input");
+else {
 
-            input.type = "text";
-            input.id = r.field_id;
-            input.autocomplete = "off";
-            input.disabled = false;
+    console.log(
+        "CREATING NORMAL FIELD:",
+        r.field_id
+    );
 
-            input.oninput = function () {
+    let input;
 
-                console.log(
-                    "PROFILE SEARCH:",
-                    r.field_id,
-                    this.value
-                );
 
-                handleSearch(
-                    r.field_id,
-                    this.value
-                );
+    // =================================================
+    // LOOKUP FIELD → SELECT
+    // =================================================
 
-                checkAllValidations();
-            };
+    if (
+        r.lookup_tab &&
+        r.lookup_column
+    ) {
 
-            holder.appendChild(input);
+        console.log(
+            "CREATING SELECT:",
+            r.field_id
+        );
 
-            // Full Name is the ONLY field visible
-            // during the initial profile-search stage.
-            div.style.display = 'block';
+        input =
+            document.createElement("select");
 
-        }
+        input.className =
+            "form-control";
 
-        // =====================================================
-        // ALL OTHER SEARCH_PROFILE FIELDS
-        // =====================================================
 
-        else if (
-            currentSectionId === "SEARCH_PROFILE"
-        ) {
+      input.style.width =
+    
 
-            console.log(
-                "CREATING PROFILE FIELD:",
-                r.field_id
-            );
 
-            const input =
-                document.createElement("input");
 
-            input.type = "text";
-            input.id = r.field_id;
-            input.autocomplete = "off";
+      
 
-            // These fields are not manually entered
-            // during the initial participant-search stage.
-            input.disabled = true;
+     
 
-            input.oninput = function () {
+        input.id =
+            r.field_id;
+
+// ---------------------------------------------
+// PLACEHOLDER
+// ---------------------------------------------
+
+const blank =
+    document.createElement("option");
+
+blank.value = "";
+
+blank.text = "";
+
+input.appendChild(blank);
+      
+
+        // ---------------------------------------------
+        // POPULATE FROM MASTER
+        // ---------------------------------------------
+
+        populateLookupField(
+            r,
+            input
+        );
+
+
+        // ---------------------------------------------
+        // CHANGE HANDLER
+        // ---------------------------------------------
+
+        input.onchange =
+            function () {
 
                 handleFieldChange(
                     this,
@@ -1380,100 +1549,100 @@ function renderForm() {
 
             };
 
-            holder.appendChild(input);
 
-        }
+    }
 
-        // =====================================================
-        // NORMAL METADATA-DRIVEN FIELD
-        // Used by Section1 / other non-profile sections
-        // =====================================================
+    // =================================================
+    // NORMAL TEXT / DATE / TIME FIELD
+    // =================================================
 
-        else {
+    else {
 
-            console.log(
-                "CREATING NORMAL FIELD:",
-                r.field_id
-            );
+        console.log(
+            "CREATING INPUT:",
+            r.field_id
+        );
 
-            let input;
+        input =
+            document.createElement("input");
 
-            if (
-                r.lookup_tab &&
-                r.lookup_column
-            ) {
 
-                console.log(
-                    "CREATING SELECT:",
-                    r.field_id
+        const fieldLower =
+            String(
+                r.field_id || ""
+            ).toLowerCase();
+
+
+        // ---------------------------------------------
+        // RESTORE ORIGINAL FIELD TYPE LOGIC
+        // ---------------------------------------------
+
+        input.type =
+            fieldLower.includes("date")
+                ? "date"
+                : (
+                    fieldLower.includes("time")
+                        ? "time"
+                        : "text"
                 );
 
-                input =
-                    document.createElement("select");
 
-                input.id =
-                    r.field_id;
+        input.className =
+            "form-control";
 
-                input.style.width =
-                    "100%";
 
-                const blank =
-                    document.createElement("option");
+        input.id =
+            r.field_id;
 
-                blank.value = "";
-                blank.text =
-                    "-- Select --";
 
-                input.appendChild(blank);
+// ---------------------------------------------
+// PLACEHOLDER
+// ---------------------------------------------
 
-                populateLookupField(
-                    r,
-                    input
+const placeholder =
+    document.createElement("option");
+
+placeholder.text =
+    "-- Select --";
+
+placeholder.value =
+    "";
+
+input.appendChild(
+    placeholder
+);
+
+
+        input.autocomplete =
+            "off";
+
+
+        input.oninput =
+            function () {
+
+                handleFieldChange(
+                    this,
+                    r
                 );
 
-                input.onchange =
-                    function () {
+            };
 
-                        handleFieldChange(
-                            this,
-                            r
-                        );
+    }
 
-                    };
 
-            } else {
+    // =================================================
+    // APPEND CONTROL
+    // =================================================
 
-                console.log(
-                    "CREATING INPUT:",
-                    r.field_id
-                );
+    holder.appendChild(
+        input
+    );
+}
 
-                input =
-                    document.createElement("input");
 
-                input.type =
-                    "text";
 
-                input.id =
-                    r.field_id;
 
-                input.autocomplete =
-                    "off";
-
-                input.oninput =
-                    function () {
-
-                        handleFieldChange(
-                            this,
-                            r
-                        );
-
-                    };
-            }
-
-            holder.appendChild(input);
-        }
-
+      
     });
 
     // =====================================================
@@ -1495,31 +1664,6 @@ function renderForm() {
         window.getComputedStyle(container).display
     );
 }
-
-
-
-
-
-  
-
-
-
-
-
-  
-
-
-
-  
-
-
-
-
-
-
-
-
-  
 
  
   async function onInputChange(fId, val) {
@@ -4545,10 +4689,15 @@ fieldWrapper.style.display =
                     input = document.createElement('select');
                     input.className = 'form-control';
                     input.id = inputId;
-                    
-                    const placeholder = document.createElement('option');
-                    placeholder.text = "-- Select --"; placeholder.value = "";
-                    input.appendChild(placeholder);
+
+
+
+                
+                    // TEMPORARY TEST:
+// Do not add the "-- Select --" placeholder.
+
+
+                
 
                     if (rule.lookup_tab && rule.lookup_column) {
 
@@ -4790,6 +4939,205 @@ try {
     // -----------------------------
     refreshSectionVisibility(section);
   updateButtonState();
+
+// ----------------------------------------------------
+// MERS V3 : Metadata-driven Section Jump
+// ----------------------------------------------------
+
+if (
+    String(rule.jump_enabled)
+        .trim()
+        .toUpperCase() === "YES"
+) {
+
+    console.log(
+        "MERS V3: Section jump enabled for",
+        fId
+    );
+
+    try {
+
+        const lookupTab =
+            rule.lookup_tab;
+
+        const lookupColumn =
+            rule.lookup_column;
+
+        if (
+            lookupTab &&
+            lookupColumn
+        ) {
+
+            console.log(
+                "MERS V3: Loading jump master:",
+                lookupTab
+            );
+
+            const snap =
+                await db.ref(
+                    `masters/${lookupTab}`
+                ).once("value");
+
+            const raw =
+                snap.val() || {};
+
+            const records =
+                Array.isArray(raw)
+                    ? raw
+                    : Object.values(raw);
+
+            console.log(
+                "MERS V3: Jump master records:",
+                records
+            );
+
+            // ----------------------------------------
+            // Find master record matching selection
+            // ----------------------------------------
+
+            const masterRecord =
+                records.find(record => {
+
+                    const recordValue =
+                        String(
+                            record[lookupColumn] || ""
+                        ).trim();
+
+                    const eventMatches =
+                        !record.event_id ||
+                        String(
+                            record.event_id
+                        ).trim() ===
+                        String(eventId).trim();
+
+                    return (
+                        eventMatches &&
+                        recordValue ===
+                        String(val).trim()
+                    );
+
+                });
+
+            console.log(
+                "MERS V3: Matching jump master record:",
+                masterRecord
+            );
+
+            // ----------------------------------------
+            // Evaluate Section Jump
+            // ----------------------------------------
+
+            const jumpResult =
+                evaluateSectionJump(
+                    rule,
+                    val,
+                    masterRecord,
+                    section
+                );
+
+            console.log(
+                "MERS V3: Section Jump Result:",
+                jumpResult
+            );
+
+
+
+
+
+// ----------------------------------------
+// Execute JUMP
+// ----------------------------------------
+
+if (
+    jumpResult &&
+    jumpResult.action === "JUMP" &&
+    jumpResult.targetSection
+) {
+
+    const targetSection =
+        String(
+            jumpResult.targetSection
+        ).trim();
+
+    console.log(
+        "MERS V3: EXECUTING JUMP →",
+        targetSection
+    );
+
+    // ------------------------------------------------
+    // SEARCH_PROFILE has its own renderer.
+    // Do NOT send it through buildExtraSections().
+    // ------------------------------------------------
+
+
+
+
+if (
+    targetSection.toUpperCase() ===
+    "SEARCH_PROFILE"
+) {
+
+    console.log(
+        "MERS V3: JUMP TARGET IS SEARCH_PROFILE"
+    );
+
+    navigateToLogicalSection(
+        targetSection
+    );
+
+}
+
+
+  
+  
+    
+    
+    
+    
+    
+    else {
+
+        // ------------------------------------------------
+        // Normal dynamic sections
+        // ------------------------------------------------
+
+        console.log(
+            "MERS V3: JUMP TARGET IS DYNAMIC SECTION →",
+            targetSection
+        );
+
+        await buildExtraSections(
+            targetSection
+        );
+
+    }
+
+    return;
+
+}
+
+
+
+
+
+
+          
+
+        }
+
+    } catch (err) {
+
+        console.error(
+            "MERS V3: Section Jump Error:",
+            err
+        );
+
+    }
+
+}
+
+
+  
 
     // -----------------------------
     // Verification behaviour
@@ -6445,11 +6793,917 @@ function getISTDateTime() {
     );
 }
 
+// ============================================================
+// MERS V3 : UNIVERSAL SECTION JUMP EVALUATOR
+// ============================================================
+
+function evaluateSectionJump(
+    rule,
+    selectedValue,
+    masterRecord,
+    currentSectionId
+) {
+
+    console.log(
+        "========== SECTION JUMP EVALUATION =========="
+    );
+
+    console.log(
+        "Field:",
+        rule ? rule.field_id : null
+    );
+
+    console.log(
+        "Selected Value:",
+        selectedValue
+    );
+
+    console.log(
+        "Current Section:",
+        currentSectionId
+    );
+
+    console.log(
+        "Jump Enabled:",
+        rule ? rule.jump_enabled : null
+    );
+
+    console.log(
+        "Master Record:",
+        masterRecord
+    );
+
+
+    // ========================================================
+    // 1. SAFETY CHECK
+    // ========================================================
+
+    if (!rule) {
+
+        console.log(
+            "SECTION JUMP: No Field_Rule found → NONE"
+        );
+
+        return {
+            action: "NONE",
+            targetSection: null
+        };
+    }
+
+
+    // ========================================================
+    // 2. IS SECTION JUMP ENABLED FOR THIS FIELD?
+    // ========================================================
+
+    if (
+        String(rule.jump_enabled)
+            .trim()
+            .toUpperCase() !== "YES"
+    ) {
+
+        console.log(
+            "SECTION JUMP: Disabled for this field → NONE"
+        );
+
+        return {
+            action: "NONE",
+            targetSection: null
+        };
+    }
+
+
+    // ========================================================
+    // 3. MASTER RECORD MUST EXIST
+    // ========================================================
+
+    if (!masterRecord) {
+
+        console.log(
+            "SECTION JUMP: Master record not available"
+        );
+
+        // Use configured default
+        if (
+            String(rule.jump_default)
+                .trim()
+                .toUpperCase() === "NEXT"
+        ) {
+
+            return {
+                action: "NEXT",
+                targetSection: null
+            };
+
+        }
+
+        return {
+            action: "NONE",
+            targetSection: null
+        };
+    }
+
+
+    // ========================================================
+    // 4. READ DESTINATION FROM MASTER RECORD
+    // ========================================================
+
+    const targetSection =
+        String(
+            masterRecord.jump_to_section_id || ""
+        ).trim();
+
+
+    console.log(
+        "Configured Jump Destination:",
+        targetSection
+    );
+
+
+    // ========================================================
+    // 5. EXPLICIT JUMP EXISTS
+    // ========================================================
+
+    if (targetSection !== "") {
+
+        console.log(
+            "SECTION JUMP: EXPLICIT JUMP →",
+            targetSection
+        );
+
+        return {
+            action: "JUMP",
+            targetSection: targetSection
+        };
+    }
+
+
+    // ========================================================
+    // 6. NO EXPLICIT JUMP → APPLY DEFAULT
+    // ========================================================
+
+    const defaultAction =
+        String(
+            rule.jump_default || ""
+        )
+        .trim()
+        .toUpperCase();
+
+
+    if (defaultAction === "NEXT") {
+
+        console.log(
+            "SECTION JUMP: No destination → NEXT"
+        );
+
+        return {
+            action: "NEXT",
+            targetSection: null
+        };
+    }
+
+
+    // ========================================================
+    // 7. SAFE FALLBACK
+    // ========================================================
+
+    console.log(
+        "SECTION JUMP: No valid jump/default → NONE"
+    );
+
+    return {
+        action: "NONE",
+        targetSection: null
+    };
+
+}
+
+
+
+  // =====================================================
+// MERS V3 : Navigate to Logical Section
+// =====================================================
+
+function navigateToLogicalSection(targetSection) {
+
+    const target =
+        String(targetSection || "").trim();
+
+    console.log(
+        "MERS V3: NAVIGATE TO LOGICAL SECTION:",
+        target
+    );
+
+    // -------------------------------------------------
+    // SEARCH_PROFILE
+    // SEARCH_PROFILE is logically rendered inside
+    // the physical Section1 container.
+    // -------------------------------------------------
+
+    if (target === "SEARCH_PROFILE") {
+
+        console.log(
+            "MERS V3: SEARCH_PROFILE → physical container Section1"
+        );
+
+        const section0 =
+            document.getElementById("Section0");
+
+        const section1 =
+            document.getElementById("Section1");
+
+        const section2 =
+            document.getElementById("Section2");
+
+        if (section0) {
+            section0.style.display = "none";
+        }
+
+        if (section2) {
+            section2.style.display = "none";
+        }
+
+        if (!section1) {
+
+            console.error(
+                "MERS V3: Physical container Section1 not found."
+            );
+
+            return;
+        }
+
+        section1.style.display = "block";
+
+        console.log(
+            "MERS V3: Section1 made visible for SEARCH_PROFILE"
+        );
+
+        // IMPORTANT:
+        // Do not clear mersTempData.
+        // renderForm() will rebuild the UI while
+        // existing temporary values remain available.
+
+        renderForm();
+
+        return;
+    }
+
+    console.warn(
+        "MERS V3: No physical navigation mapping yet for:",
+        target
+    );
+}
+
+
+function buildMultipleConditionKey(
+    conditionAnswers,
+    conditionRules
+) {
+
+    console.log(
+        "MERS MC: Condition Answers:",
+        conditionAnswers
+    );
+
+    console.log(
+        "MERS MC: Condition Rules:",
+        conditionRules
+    );
+
+    // Temporary return for testing
+    return "";
+}
+
+
+function getMultipleConditionFields(
+    sectionId
+) {
+
+    const conditions =
+        fieldRules
+            .filter(
+                rule =>
+                    rule.section_id === sectionId &&
+                    String(rule.multiple_condition).toUpperCase() === 'YES' &&
+                    rule.multiple_condition_id
+            )
+            .sort(
+                (a, b) =>
+                    Number(a.multiple_condition_sequence) -
+                    Number(b.multiple_condition_sequence)
+            );
+
+    console.log(
+        "MERS MC: Multiple Condition Fields:",
+        conditions
+    );
+
+    return conditions;
+}
+
+//----------------------------------------------------
+// MERS V4 : Multiple Condition Combination Key
+//----------------------------------------------------
+
+function getMultipleConditionCombinationKey(
+    multipleConditionId
+) {
+
+    // -----------------------------------------------
+    // 1. Get all rows belonging to this condition ID
+    // -----------------------------------------------
+
+    const conditions =
+        multipleConditionRules
+            .filter(
+                r =>
+                    String(r.multiple_condition_id) ===
+                    String(multipleConditionId)
+            );
+
+
+    console.log(
+        "MERS MC: Conditions for",
+        multipleConditionId,
+        conditions
+    );
+
+
+    // -----------------------------------------------
+    // 2. No conditions found
+    // -----------------------------------------------
+
+    if (!conditions.length) {
+
+        console.warn(
+            "MERS MC: No conditions found for:",
+            multipleConditionId
+        );
+
+        return null;
+    }
+
+
+    // -----------------------------------------------
+    // 3. Get UNIQUE condition sequences
+    //
+    // Example:
+    //
+    // MCID1
+    //   condition_sequence 1 → No
+    //   condition_sequence 1 → Yes
+    //   condition_sequence 2 → No
+    //   condition_sequence 2 → Yes
+    //
+    // Therefore:
+    //
+    // unique sequences = [1, 2]
+    // -----------------------------------------------
+
+    const conditionSequences =
+        [
+            ...new Set(
+                conditions.map(
+                    r =>
+                        String(
+                            r.condition_sequence
+                        )
+                )
+            )
+        ]
+        .sort(
+            (a, b) =>
+                Number(a) - Number(b)
+        );
+
+
+    console.log(
+        "MERS MC: Unique Condition Sequences =",
+        conditionSequences
+    );
+
+
+    // -----------------------------------------------
+    // 4. Build combination key
+    // -----------------------------------------------
+
+    let combinationKey = "";
+
+
+    for (
+        const conditionSequence
+        of conditionSequences
+    ) {
+
+
+        // -------------------------------------------
+        // 4A. Find the FIELD associated with
+        //     this condition sequence
+        //
+        //     Field_Rules is the source of truth
+        //     for field_id.
+        // -------------------------------------------
+
+        const fieldRule =
+            fieldRules.find(
+                r =>
+
+                    String(
+                        r.multiple_condition_id
+                    ) ===
+                    String(
+                        multipleConditionId
+                    )
+
+                    &&
+
+                    String(
+                        r.multiple_condition_sequence
+                    ) ===
+                    String(
+                        conditionSequence
+                    )
+            );
+
+
+        if (!fieldRule) {
+
+            console.warn(
+                "MERS MC: No Field Rule found for condition:",
+                {
+                    multipleConditionId,
+                    conditionSequence
+                }
+            );
+
+            return null;
+        }
+
+
+        const fieldId =
+            fieldRule.field_id;
+
+
+        // -------------------------------------------
+        // 4B. Read answer from the UI
+        // -------------------------------------------
+
+        const select =
+            document.getElementById(
+                `pc_${fieldId}`
+            );
+
+
+        const answer =
+            select?.value || "";
+
+
+        console.log(
+            "MERS MC: Condition",
+            conditionSequence,
+            "Field:",
+            fieldId,
+            "Answer:",
+            answer
+        );
+
+
+        // -------------------------------------------
+        // 4C. User has not answered this condition
+        // -------------------------------------------
+
+        if (!answer) {
+
+            console.warn(
+                "MERS MC: Condition not answered:",
+                {
+                    multipleConditionId,
+                    conditionSequence,
+                    fieldId
+                }
+            );
+
+            return null;
+        }
+
+
+        // -------------------------------------------
+        // 4D. Find configured answer
+        // -------------------------------------------
+
+        const matchingValue =
+            conditions.find(
+                r =>
+
+                    String(
+                        r.condition_sequence
+                    ) ===
+                    String(
+                        conditionSequence
+                    )
+
+                    &&
+
+                    String(
+                        r.condition_value
+                    ) ===
+                    String(
+                        answer
+                    )
+            );
+
+
+        if (!matchingValue) {
+
+            console.warn(
+                "MERS MC: No matching condition value found:",
+                {
+                    multipleConditionId,
+                    conditionSequence,
+                    fieldId,
+                    answer
+                }
+            );
+
+            return null;
+        }
+
+
+        // -------------------------------------------
+        // 4E. Add answer sequence to key
+        // -------------------------------------------
+
+        combinationKey +=
+            String(
+                matchingValue.condition_value_sequence
+            );
+
+
+    }
+
+
+    // -----------------------------------------------
+    // 5. Final combination key
+    // -----------------------------------------------
+
+    console.log(
+        "MERS MC: FINAL COMBINATION KEY =",
+        combinationKey
+    );
+
+
+    return combinationKey;
+}
+
+
+
+  //----------------------------------------------------
+// MERS V4 : Multiple Condition Route Lookup
+//----------------------------------------------------
+
+function getMultipleConditionRoute(
+    multipleConditionId,
+    combinationKey
+) {
+
+    console.log(
+        "MERS MC: Looking for route:",
+        multipleConditionId,
+        combinationKey
+    );
+
+
+    const route =
+        multipleConditionRoutes.find(
+            r =>
+
+                String(
+                    r.multiple_condition_id
+                ) ===
+                String(
+                    multipleConditionId
+                )
+
+                &&
+
+                String(
+                    r.combination_key
+                ) ===
+                String(
+                    combinationKey
+                )
+
+                &&
+
+                String(
+                    r.route_active
+                ).toUpperCase() ===
+                "YES"
+        );
+
+
+    console.log(
+        "MERS MC: Matched Route:",
+        route
+    );
+
+
+    if (!route) {
+
+        console.warn(
+            "MERS MC: No route found:",
+            {
+                multipleConditionId,
+                combinationKey
+            }
+        );
+
+        return null;
+    }
+
+
+    return route;
+}
+
+//----------------------------------------------------
+// MERS V4 : Resolve Multiple Condition Route
+//----------------------------------------------------
+
+function resolveMultipleConditionRoute(
+    multipleConditionId
+) {
+
+    console.log(
+        "MERS MC: Resolving route for:",
+        multipleConditionId
+    );
+
+
+    // -----------------------------------------------
+    // 1. Generate combination key
+    // -----------------------------------------------
+
+    const combinationKey =
+        getMultipleConditionCombinationKey(
+            multipleConditionId
+        );
+
+
+    if (!combinationKey) {
+
+        console.warn(
+            "MERS MC: Could not generate combination key."
+        );
+
+        return null;
+    }
+
+
+    // -----------------------------------------------
+    // 2. Find matching route
+    // -----------------------------------------------
+
+    const route =
+        getMultipleConditionRoute(
+            multipleConditionId,
+            combinationKey
+        );
+
+
+    if (!route) {
+
+        console.warn(
+            "MERS MC: Could not resolve route.",
+            {
+                multipleConditionId,
+                combinationKey
+            }
+        );
+
+        return null;
+    }
+
+
+    // -----------------------------------------------
+    // 3. Final resolved route
+    // -----------------------------------------------
+
+    console.log(
+        "MERS MC: FINAL RESOLVED ROUTE:",
+        {
+            multipleConditionId,
+            combinationKey,
+            nextSectionId:
+                route.next_section_id
+        }
+    );
+
+
+    return route;
+}
+
+//----------------------------------------------------
+// MERS V4 : Participant Classification Next
+//----------------------------------------------------
+
+function proceedFromMultipleCondition() {
+
+    console.log(
+        "MERS MC: Processing Section0"
+    );
+
+
+    // -----------------------------------------------
+    // 1. Find the multiple condition ID
+    // -----------------------------------------------
+
+    const conditionFields =
+        getMultipleConditionFields(
+            "Section0"
+        );
+
+
+    if (!conditionFields.length) {
+
+        console.warn(
+            "MERS MC: No multiple condition fields found."
+        );
+
+        return;
+    }
+
+
+    const multipleConditionId =
+        conditionFields[0]
+            .multiple_condition_id;
+
+
+    console.log(
+        "MERS MC: Multiple Condition ID:",
+        multipleConditionId
+    );
+
+
+    // -----------------------------------------------
+    // 2. Resolve route
+    // -----------------------------------------------
+
+    const route =
+        resolveMultipleConditionRoute(
+            multipleConditionId
+        );
+
+
+    if (!route) {
+
+        alert(
+            "Unable to determine the next section. Please check your selections."
+        );
+
+        return;
+    }
+
+
+    // -----------------------------------------------
+    // 3. Get destination section
+    // -----------------------------------------------
+
+    const nextSectionId =
+        route.next_section_id;
+
+
+    console.log(
+        "MERS MC: Proceeding to:",
+        nextSectionId
+    );
+
+
+
+// -----------------------------------------------
+// 4. Hide Participant Classification
+// -----------------------------------------------
+
+document
+    .getElementById("Section0")
+    .style.display = "none";
+
+
+// -----------------------------------------------
+// 5. Show physical dynamic-form container
+// -----------------------------------------------
+
+const sectionContainer =
+    document.getElementById("Section1");
+
+if (!sectionContainer) {
+
+    console.error(
+        "MERS MC: Physical rendering container Section1 not found."
+    );
+
+    return;
+}
+
+sectionContainer.style.display = "block";
+
+
+// -----------------------------------------------
+// 6. Render logical destination section
+// -----------------------------------------------
+
+renderForm(
+    nextSectionId
+);
+
+
+
+  
+
+
 
 
 
 
   
+
+}
+
+ 
+//----------------------------------------------------
+// MERS V4 : Validate Multiple Condition Answers
+//----------------------------------------------------
+
+function validateMultipleConditionAnswers() {
+
+    const fields =
+        getMultipleConditionFields(
+            "Section0"
+        );
+
+    console.log(
+        "MERS MC: Validating Section0 conditions:",
+        fields
+    );
+
+
+    const btn =
+        document.getElementById(
+            "btn-section0-next"
+        );
+
+
+    if (!btn) {
+
+        console.warn(
+            "MERS MC: Section0 CONTINUE button not found."
+        );
+
+        return;
+    }
+
+
+    // -----------------------------------------------
+    // Check every condition field
+    // -----------------------------------------------
+
+    const allAnswered =
+        fields.length > 0 &&
+        fields.every(
+            field => {
+
+                const select =
+                    document.getElementById(
+                        `pc_${field.field_id}`
+                    );
+
+                return (
+                    select &&
+                    String(
+                        select.value || ""
+                    ).trim() !== ""
+                );
+
+            }
+        );
+
+
+    console.log(
+        "MERS MC: All conditions answered:",
+        allAnswered
+    );
+
+
+    // -----------------------------------------------
+    // Show / hide CONTINUE button
+    // -----------------------------------------------
+
+    btn.style.display =
+        allAnswered
+            ? "block"
+            : "none";
+}
+
+
+
   
 </script>
 
