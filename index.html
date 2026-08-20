@@ -7531,7 +7531,79 @@ function proceedFromMultipleCondition() {
     renderForm();
 }
 
+//----------------------------------------------------
+// MERS V4 : Validate Multiple Condition Answers
+//----------------------------------------------------
 
+function validateMultipleConditionAnswers() {
+
+    const fields =
+        getMultipleConditionFields(
+            "Section0"
+        );
+
+    console.log(
+        "MERS MC: Validating Section0 conditions:",
+        fields
+    );
+
+
+    const btn =
+        document.getElementById(
+            "btn-section0-next"
+        );
+
+
+    if (!btn) {
+
+        console.warn(
+            "MERS MC: Section0 CONTINUE button not found."
+        );
+
+        return;
+    }
+
+
+    // -----------------------------------------------
+    // Check every condition field
+    // -----------------------------------------------
+
+    const allAnswered =
+        fields.length > 0 &&
+        fields.every(
+            field => {
+
+                const select =
+                    document.getElementById(
+                        `pc_${field.field_id}`
+                    );
+
+                return (
+                    select &&
+                    String(
+                        select.value || ""
+                    ).trim() !== ""
+                );
+
+            }
+        );
+
+
+    console.log(
+        "MERS MC: All conditions answered:",
+        allAnswered
+    );
+
+
+    // -----------------------------------------------
+    // Show / hide CONTINUE button
+    // -----------------------------------------------
+
+    btn.style.display =
+        allAnswered
+            ? "block"
+            : "none";
+}
 
 
 
