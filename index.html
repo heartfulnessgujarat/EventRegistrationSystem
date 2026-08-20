@@ -6981,7 +6981,31 @@ function buildMultipleConditionKey(
 }
 
 
+function getMultipleConditionFields(
+    sectionId
+) {
 
+    const conditions =
+        fieldRules
+            .filter(
+                rule =>
+                    rule.section_id === sectionId &&
+                    String(rule.multiple_condition).toUpperCase() === 'YES' &&
+                    rule.multiple_condition_id
+            )
+            .sort(
+                (a, b) =>
+                    Number(a.multiple_condition_sequence) -
+                    Number(b.multiple_condition_sequence)
+            );
+
+    console.log(
+        "MERS MC: Multiple Condition Fields:",
+        conditions
+    );
+
+    return conditions;
+}
   
 
 
