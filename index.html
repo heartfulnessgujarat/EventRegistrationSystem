@@ -1029,6 +1029,10 @@ rules.forEach(rule => {
     );
 
 
+
+
+
+  
     // -------------------------------------------------
     // MERS V3 :
     // POPULATE FROM MASTER USING FIELD_RULE
@@ -1061,6 +1065,25 @@ rules.forEach(rule => {
     }
 
 
+
+    // -------------------------------------------------
+    // MERS V4 :
+    // VALIDATE MULTIPLE-CONDITION ANSWERS
+    // -------------------------------------------------
+
+    select.onchange =
+        function () {
+
+            validateMultipleConditionAnswers();
+
+        };
+
+
+
+
+
+
+  
 
     fieldContainer.appendChild(
         select
