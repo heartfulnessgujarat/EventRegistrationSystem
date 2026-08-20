@@ -1008,19 +1008,51 @@ rules.forEach(rule => {
     select.style.border =
         "1px solid #ced4da";
 
-    select.style.borderRadius =
-        "8px";
 
+
+
+select.style.borderRadius =
+    "8px";
+
+
+// -------------------------------------------------
+// PLACEHOLDER
+// -------------------------------------------------
+
+const placeholder =
+    document.createElement("option");
+
+placeholder.value =
+    "";
+
+placeholder.text =
+    "-- Select --";
+
+select.appendChild(
+    placeholder
+);
+
+
+// -------------------------------------------------
+// MERS V3 :
+// POPULATE FROM MASTER USING FIELD_RULE
+// -------------------------------------------------
+
+if (
+    rule.lookup_tab &&
+    rule.lookup_column
+) {
   
-    // -------------------------------------------------
-    // MERS V3 :
-    // POPULATE FROM MASTER USING FIELD_RULE
-    // -------------------------------------------------
 
-    if (
-        rule.lookup_tab &&
-        rule.lookup_column
-    ) {
+
+
+
+
+
+
+
+
+      
 
         console.log(
             "MERS V3: Participant Classification lookup:",
