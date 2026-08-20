@@ -7260,7 +7260,76 @@ function getMultipleConditionCombinationKey(
 
     return combinationKey;
 }
-  
+
+
+
+  //----------------------------------------------------
+// MERS V4 : Multiple Condition Route Lookup
+//----------------------------------------------------
+
+function getMultipleConditionRoute(
+    multipleConditionId,
+    combinationKey
+) {
+
+    console.log(
+        "MERS MC: Looking for route:",
+        multipleConditionId,
+        combinationKey
+    );
+
+
+    const route =
+        multipleConditionRoutes.find(
+            r =>
+
+                String(
+                    r.multiple_condition_id
+                ) ===
+                String(
+                    multipleConditionId
+                )
+
+                &&
+
+                String(
+                    r.combination_key
+                ) ===
+                String(
+                    combinationKey
+                )
+
+                &&
+
+                String(
+                    r.route_active
+                ).toUpperCase() ===
+                "YES"
+        );
+
+
+    console.log(
+        "MERS MC: Matched Route:",
+        route
+    );
+
+
+    if (!route) {
+
+        console.warn(
+            "MERS MC: No route found:",
+            {
+                multipleConditionId,
+                combinationKey
+            }
+        );
+
+        return null;
+    }
+
+
+    return route;
+}
   
 </script>
 
