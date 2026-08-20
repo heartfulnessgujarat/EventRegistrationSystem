@@ -1502,23 +1502,27 @@ else {
       input.style.width =
     "100%";
 
+
+
+      
+
      
 
         input.id =
             r.field_id;
 
+// ---------------------------------------------
+// PLACEHOLDER
+// ---------------------------------------------
 
-        // ---------------------------------------------
-        // PLACEHOLDER
-        // ---------------------------------------------
+const blank =
+    document.createElement("option");
 
+blank.value = "";
 
+blank.text = "";
 
-
-      // TEMPORARY TEST — no manual placeholder
-
-
-
+input.appendChild(blank);
       
 
         // ---------------------------------------------
