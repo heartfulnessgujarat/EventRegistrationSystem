@@ -1110,10 +1110,22 @@ rules.forEach(rule => {
 
 function renderForm() {
 
+
+
+  function renderForm(targetSectionId = null) {
+
     const currentSectionId =
-        fieldRules.some(r => r.section_id === "SEARCH_PROFILE")
-            ? "SEARCH_PROFILE"
-            : "Section1";
+        targetSectionId ||
+        (
+            fieldRules.some(
+                r =>
+                    r.section_id === "SEARCH_PROFILE"
+            )
+                ? "SEARCH_PROFILE"
+                : "Section1"
+        );
+
+  
 
     console.log("================================");
     console.log("ENTERED renderForm()");
