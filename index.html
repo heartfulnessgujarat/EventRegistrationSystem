@@ -1011,27 +1011,6 @@ rules.forEach(rule => {
     select.style.borderRadius =
         "8px";
 
-
-    // -------------------------------------------------
-    // PLACEHOLDER
-    // -------------------------------------------------
-
-    const placeholder =
-        document.createElement("option");
-
-    placeholder.value = "";
-
-    placeholder.text =
-        "Select";
-
-    select.appendChild(
-        placeholder
-    );
-
-
-
-
-
   
     // -------------------------------------------------
     // MERS V3 :
@@ -1504,6 +1483,7 @@ input.id =
 
       
 
+      
 // ---------------------------------------------
 // PLACEHOLDER
 // ---------------------------------------------
@@ -1517,7 +1497,7 @@ blank.text =
     "-- Select --";
 
 input.appendChild(blank);
-      
+     
 
         // ---------------------------------------------
         // POPULATE FROM MASTER
@@ -1589,23 +1569,7 @@ input.appendChild(blank);
             r.field_id;
 
 
-// ---------------------------------------------
-// PLACEHOLDER
-// ---------------------------------------------
-
-const placeholder =
-    document.createElement("option");
-
-placeholder.text =
-    "-- Select --";
-
-placeholder.value =
-    "";
-
-input.appendChild(
-    placeholder
-);
-
+    
 
         input.autocomplete =
             "off";
@@ -1632,9 +1596,6 @@ input.appendChild(
         input
     );
 }
-
-
-
 
       
     });
