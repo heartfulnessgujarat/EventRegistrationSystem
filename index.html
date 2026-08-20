@@ -417,8 +417,7 @@ function formatFirebaseDate(fbDate) {
 
   
   let fieldRules = [], masterData = [], eventConfig = {}, moreSections = [];
-  let sectionJumpRules = [];
-
+  
 function classifyStayOption(stayLabel) {
 
     const value =
@@ -747,24 +746,7 @@ console.log("%c MERS PING 1: Init sequence started. CurrentSection is: " + (type
             const allRules = rulesSnap.val() || {};
             fieldRules = Object.values(allRules).filter(r => String(r.event_id).toUpperCase() === eventId);
             console.log("MERS: Field Rules Loaded:", fieldRules.length);
-
-
-
-const jumpSnap =
-    await db.ref(
-        'config/sectionJumpRules'
-    ).once('value');
-
-sectionJumpRules =
-    Object.values(
-        jumpSnap.val() || {}
-    );
-
-console.log(
-    'MERS: Section Jump Rules Loaded:',
-    sectionJumpRules.length
-);
-          
+         
          
         } catch (ruleErr) {
             console.error("MERS: Field Rules fetch error:", ruleErr);
@@ -1028,17 +1010,6 @@ rules.forEach(rule => {
     }
 
 
-    // -------------------------------------------------
-    // CHANGE EVENT
-    // -------------------------------------------------
-
-    select.onchange =
-        function () {
-
-            handleParticipantClassificationChange();
-
-        };
-
 
     fieldContainer.appendChild(
         select
@@ -1054,136 +1025,7 @@ rules.forEach(rule => {
 
 }
 
-function handleParticipantClassificationChange() {
-
-    const practitioner =
-
-        document.getElementById(
-            'pc_is_practitioner'
-        )?.value || '';
-
-    const attended =
-
-        document.getElementById(
-            'pc_attended_before'
-        )?.value || '';
-
-    mersTempData.is_practitioner =
-        practitioner;
-
-    mersTempData.attended_before =
-        attended;
-
-          
-          console.log(
-    'Practitioner:',
-    practitioner
-);
-
-console.log(
-    'Attended:',
-    attended
-);
-
-console.log(
-    'Jump Rules:',
-    sectionJumpRules
-);
-
-
-
-
   
-    const route =
-
-        sectionJumpRules.find(
-
-
-
-            r =>
-
-                r.is_practitioner ===
-                practitioner
-
-                &&
-
-                r.attended_before ===
-                attended
-
-                &&
-
-                r.route_active ===
-                'YES'
-
-        );
-
-    const btn =
-
-        document.getElementById(
-            'btn-section0-next'
-        );
-
-    if(route){
-
-console.log(
-    'Matched Route:',
-    route
-);
-
-      
-
-        btn.style.display =
-            'block';
-
-        btn.onclick =
-
-            function(){
-
-                proceedFromClassification(
-                    route
-                );
-
-            };
-
-    } else {
-
-        btn.style.display =
-            'none';
-
-    }
-
-}
-
-
-
-
-  
-  function proceedFromClassification(route){
-
-    console.log(
-        'Selected Route:',
-        route
-    );
-
-    console.log(
-        'next_section_id =',
-        '[' + route.next_section_id + ']'
-    );
-
-    document
-        .getElementById('Section0')
-        .style.display = 'none';
-
-    document
-        .getElementById('Section1')
-        .style.display = 'block';
-
-    console.log(
-        'Calling renderForm()'
-    );
-
-    renderForm();
-}
 
 
 
