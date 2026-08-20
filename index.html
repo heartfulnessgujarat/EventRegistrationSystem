@@ -417,6 +417,8 @@ function formatFirebaseDate(fbDate) {
 
   
   let fieldRules = [], masterData = [], eventConfig = {}, moreSections = [];
+  let multipleConditionRules = [];
+let multipleConditionRoutes = [];
   
 function classifyStayOption(stayLabel) {
 
@@ -746,7 +748,50 @@ console.log("%c MERS PING 1: Init sequence started. CurrentSection is: " + (type
             const allRules = rulesSnap.val() || {};
             fieldRules = Object.values(allRules).filter(r => String(r.event_id).toUpperCase() === eventId);
             console.log("MERS: Field Rules Loaded:", fieldRules.length);
-         
+
+
+
+          const multipleConditionSnap =
+    await db.ref(
+        'masters/master_multiple_condition'
+    ).once('value');
+
+multipleConditionRules =
+    Object.values(
+        multipleConditionSnap.val() || {}
+    ).filter(
+        r =>
+            String(r.event_id).toUpperCase() === eventId
+    );
+
+console.log(
+    "MERS: Multiple Condition Rules Loaded:",
+    multipleConditionRules.length
+);
+
+
+          const multipleConditionRoutesSnap =
+    await db.ref(
+        'masters/master_multiple_condition_routes'
+    ).once('value');
+
+multipleConditionRoutes =
+    Object.values(
+        multipleConditionRoutesSnap.val() || {}
+    ).filter(
+        r =>
+            String(r.event_id).toUpperCase() === eventId
+    );
+
+console.log(
+    "MERS: Multiple Condition Routes Loaded:",
+    multipleConditionRoutes.length
+);
+
+
+
+
+          
          
         } catch (ruleErr) {
             console.error("MERS: Field Rules fetch error:", ruleErr);
@@ -6916,6 +6961,28 @@ function navigateToLogicalSection(targetSection) {
 }
 
 
+function buildMultipleConditionKey(
+    conditionAnswers,
+    conditionRules
+) {
+
+    console.log(
+        "MERS MC: Condition Answers:",
+        conditionAnswers
+    );
+
+    console.log(
+        "MERS MC: Condition Rules:",
+        conditionRules
+    );
+
+    // Temporary return for testing
+    return "";
+}
+
+
+
+  
 
 
   
