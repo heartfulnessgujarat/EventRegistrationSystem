@@ -1096,18 +1096,7 @@ rules.forEach(rule => {
 });
 
  
-
 }
-
-  
-
-
-
-
-
-
-
-
 
 
 
@@ -1467,17 +1456,6 @@ else if (
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
           
 
         // =====================================================
@@ -1485,108 +1463,163 @@ else if (
         // Used by Section1 / other non-profile sections
         // =====================================================
 
-        else {
 
-            console.log(
-                "CREATING NORMAL FIELD:",
-                r.field_id
-            );
+// =====================================================
+// NORMAL METADATA-DRIVEN FIELD
+// Used by Section1 / other non-profile sections
+// =====================================================
 
-            let input;
-
-
-
-
-
-
-          if (
-    r.lookup_tab &&
-    r.lookup_column
-) {
+else {
 
     console.log(
-        "CREATING SELECT:",
+        "CREATING NORMAL FIELD:",
         r.field_id
     );
 
-    input =
-        document.createElement("select");
-
-    input.className =
-        "form-control";
-
-    input.id =
-        r.field_id;
-
-    input.style.width =
-        "100%";
+    let input;
 
 
+    // =================================================
+    // LOOKUP FIELD → SELECT
+    // =================================================
+
+    if (
+        r.lookup_tab &&
+        r.lookup_column
+    ) {
+
+        console.log(
+            "CREATING SELECT:",
+            r.field_id
+        );
+
+        input =
+            document.createElement("select");
+
+        input.className =
+            "form-control";
+
+        input.id =
+            r.field_id;
 
 
+        // ---------------------------------------------
+        // PLACEHOLDER
+        // ---------------------------------------------
+
+        const blank =
+            document.createElement("option");
+
+        blank.value = "";
+
+        blank.text =
+            "-- Select --";
+
+        input.appendChild(
+            blank
+        );
 
 
+        // ---------------------------------------------
+        // POPULATE FROM MASTER
+        // ---------------------------------------------
+
+        populateLookupField(
+            r,
+            input
+        );
 
 
-              
+        // ---------------------------------------------
+        // CHANGE HANDLER
+        // ---------------------------------------------
 
-                const blank =
-                    document.createElement("option");
+        input.onchange =
+            function () {
 
-                blank.value = "";
-                blank.text =
-                    "-- Select --";
-
-                input.appendChild(blank);
-
-                populateLookupField(
-                    r,
-                    input
+                handleFieldChange(
+                    this,
+                    r
                 );
 
-                input.onchange =
-                    function () {
+            };
 
-                        handleFieldChange(
-                            this,
-                            r
-                        );
 
-                    };
+    }
 
-            } else {
+    // =================================================
+    // NORMAL TEXT / DATE / TIME FIELD
+    // =================================================
 
-                console.log(
-                    "CREATING INPUT:",
-                    r.field_id
+    else {
+
+        console.log(
+            "CREATING INPUT:",
+            r.field_id
+        );
+
+        input =
+            document.createElement("input");
+
+
+        const fieldLower =
+            String(
+                r.field_id || ""
+            ).toLowerCase();
+
+
+        // ---------------------------------------------
+        // RESTORE ORIGINAL FIELD TYPE LOGIC
+        // ---------------------------------------------
+
+        input.type =
+            fieldLower.includes("date")
+                ? "date"
+                : (
+                    fieldLower.includes("time")
+                        ? "time"
+                        : "text"
                 );
 
-                input =
-                    document.createElement("input");
 
-                input.type =
-                    "text";
+        input.className =
+            "form-control";
 
-                input.id =
-                    r.field_id;
 
-                input.autocomplete =
-                    "off";
+        input.id =
+            r.field_id;
 
-                input.oninput =
-                    function () {
 
-                        handleFieldChange(
-                            this,
-                            r
-                        );
+        input.autocomplete =
+            "off";
 
-                    };
-            }
 
-            holder.appendChild(input);
-        }
+        input.oninput =
+            function () {
 
+                handleFieldChange(
+                    this,
+                    r
+                );
+
+            };
+
+    }
+
+
+    // =================================================
+    // APPEND CONTROL
+    // =================================================
+
+    holder.appendChild(
+        input
+    );
+}
+
+
+
+
+      
     });
 
     // =====================================================
