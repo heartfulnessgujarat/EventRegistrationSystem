@@ -7565,44 +7565,43 @@ function proceedFromMultipleCondition() {
 
 
 
-// -----------------------------------------------
-// 4. Hide Participant Classification
-// -----------------------------------------------
+    // -----------------------------------------------
+    // 4. Hide Participant Classification
+    // -----------------------------------------------
 
-document
-    .getElementById("Section0")
-    .style.display = "none";
+    document.getElementById("Section0").style.display = "none";
 
 
-// -----------------------------------------------
-// 5. Show physical dynamic-form container
-// -----------------------------------------------
+    // -----------------------------------------------
+    // 5. Route to the correct rendering workflow
+    // -----------------------------------------------
 
-const sectionContainer =
-    document.getElementById("Section1");
+    if (
+        ["Section2", "Section3", "Section4", "Section5"]
+            .includes(nextSectionId)
+    ) {
 
-if (!sectionContainer) {
+        document.getElementById("Section1").style.display = "none";
+        document.getElementById("Section2").style.display = "block";
 
-    console.error(
-        "MERS MC: Physical rendering container Section1 not found."
-    );
+        buildExtraSections(nextSectionId);
 
-    return;
-}
+    } else {
 
-sectionContainer.style.display = "block";
+        const sectionContainer =
+            document.getElementById("Section1");
 
+        if (!sectionContainer) {
+            console.error(
+                "MERS MC: Physical rendering container Section1 not found."
+            );
+            return;
+        }
 
-// -----------------------------------------------
-// 6. Render logical destination section
-// -----------------------------------------------
+        sectionContainer.style.display = "block";
 
-renderForm(
-    nextSectionId
-);
-
-
-
+        renderForm(nextSectionId);
+    }
   
 
 
