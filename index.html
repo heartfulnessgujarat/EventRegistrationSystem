@@ -5532,6 +5532,22 @@ actionBtn.innerText =
     const rulesArray = Array.isArray(fieldRules) ? fieldRules : Object.values(fieldRules);
     const sectionRules = rulesArray.filter(r => r.section_number === sectionName);
 
+
+console.log(
+    "REFLOW PROPERTY CHECK:",
+    rulesArray.slice(0, 5).map(r => ({
+        field_id: r.field_id,
+        section_id: r.section_id,
+        section_number: r.section_number,
+        section_name: r.section_name
+    }))
+);
+
+
+
+
+    
+
     console.log(
     "REFLOW SECTION RULES:",
     sectionRules
