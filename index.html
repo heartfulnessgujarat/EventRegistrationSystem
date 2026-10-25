@@ -5435,16 +5435,24 @@ function updateButtonState() {
             Value: val
         });
 
-        console.log('MERS VALIDATION CHECK:', {
-            fieldId: input.id,
-            sectionId: rule.section_id,
-            visibilityRule: rule.visibility_rule,
-            fieldValidation: rule.field_validation,
-            visible: isVisible,
-            value: val,
-            totalVisibleRequired: totalVisibleRequired,
-            totalFilled: totalFilled
-        });
+       console.log('MERS VALIDATION CHECK:', {
+    fieldId: input.id,
+    sectionId: rule.section_id,
+    wrapperDisplay: group.style.display,
+    computedDisplay: window.getComputedStyle(group).display,
+    visibilityRule: rule.visibility_rule,
+    initialState: rule.initial_state,
+    fieldValidation: rule.field_validation,
+    value: val,
+    totalVisibleRequired: totalVisibleRequired,
+    totalFilled: totalFilled
+});
+
+
+
+
+
+      
     }
 
 
