@@ -5384,71 +5384,77 @@ function updateButtonState() {
     let totalFilled = 0;
     let diagData = [];
 
-    // 1. Identify the current section using the "Hybrid Bridge"
-    for (let input of allInputs) {
-        const group = input.closest('.form-group') || input.closest('.input-group');
-        const isVisible = group && group.style.display !== 'none';
-        
-        if (isVisible) {
-            // BRIDGE: Remove 'extra_' or 'inp-' just to find the rule match
-            const cleanId = input.id.replace('extra_', '').replace('inp-', '');
-            const rule = rulesArray.find(r => r.field_id === cleanId);
-            
-            if (rule) {
-                // Once we find one rule, we know which section we are validating
-             
-                
+    // 1. Identify the active section and validate its visible fields
+    for (const input of allInputs) {
 
-              if (!dynamicSectionName)
-    dynamicSectionName =
-        rule.section_id;
-                
-                // Only validate fields for the ACTIVE section
+        const group =
+            input.closest('.form-group') ||
+            input.closest('.input-group');
 
+        if (!group) continue;
 
-              if (
-    rule.section_id ===
-    dynamicSectionName
-)
-              
-              {
+        // Ignore fields whose own group is hidden.
+        const isVisible =
+            window.getComputedStyle(group).display !== 'none';
 
-                  
-                    totalVisibleRequired++;
-                    const val = input.value.trim();
+        if (!isVisible) continue;
 
-                console.log("MERS VALIDATION CHECK:", {
-    fieldId: input.id,
-    sectionId: rule.section_id,
-    initialState: rule.initial_state,
-    visibilityRule: rule.visibility_rule,
-    fieldValidation: rule.field_validation,
-    visible: isVisible,
-    value: val,
-    totalVisibleRequired: totalVisibleRequired
-});
+        // Match the input to its Field_Rules record.
+        const cleanId = input.id
+            .replace('extra_', '')
+            .replace('inp-', '');
 
+        const rule = rulesArray.find(
+            r => r.field_id === cleanId
+        );
 
+        if (!rule) continue;
 
-
-
-
-
-
-                
-                    if (val !== "" && val !== "-- Select --") {
-                        totalFilled++;
-                    }
-                    diagData.push({ 
-                        ID: input.id, 
-                        RuleMatch: rule.field_id, 
-                        Value: val 
-                    });
-                }
-            }
+        // Identify the active section from the first matching field.
+        if (!dynamicSectionName) {
+            dynamicSectionName = rule.section_id;
         }
+
+        // Validate only fields belonging to that section.
+        if (rule.section_id !== dynamicSectionName) {
+            continue;
+        }
+
+        const val = String(input.value || '').trim();
+
+        // Count the field only if it is currently visible.
+        totalVisibleRequired++;
+
+        if (val !== '' && val !== '-- Select --') {
+            totalFilled++;
+        }
+
+        diagData.push({
+            ID: input.id,
+            RuleMatch: rule.field_id,
+            Value: val
+        });
+
+        console.log('MERS VALIDATION CHECK:', {
+            fieldId: input.id,
+            sectionId: rule.section_id,
+            visibilityRule: rule.visibility_rule,
+            fieldValidation: rule.field_validation,
+            visible: isVisible,
+            value: val,
+            totalVisibleRequired: totalVisibleRequired,
+            totalFilled: totalFilled
+        });
     }
 
+
+
+
+
+
+
+
+  
     // 2. Log the "X-RAY" for debugging
     if (diagData.length > 0) {
        
