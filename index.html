@@ -4265,8 +4265,9 @@ function shouldFieldBeVisible(
     if (currentIndex === 0) {
 
         return (
-            rule.initial_state !==
-            "Hidden"
+           String(rule.initial_state || "")
+    .trim()
+    .toUpperCase() !== "HIDDEN"
         );
 
     }
@@ -4311,8 +4312,9 @@ function shouldFieldBeVisible(
     //--------------------------------------------------
 
     return (
-        rule.initial_state !==
-        "Hidden"
+        String(rule.initial_state || "")
+    .trim()
+    .toUpperCase() !== "HIDDEN"
     );
 
 }
