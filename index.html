@@ -5566,16 +5566,9 @@ actionBtn.innerText =
 }
 
 
-  
-    // 4. THE UNLOCK LOGIC
-    // If we are in a section with dynamic rules (Sect 2 or 3)
 
+// 4. THE UNLOCK LOGIC
 
-
-
-
-  
-   
 if (totalVisibleRequired > 0) {
 
     console.log("MERS BUTTON STATE:", {
@@ -5587,13 +5580,17 @@ if (totalVisibleRequired > 0) {
     });
 
     if (totalFilled === totalVisibleRequired) {
+
         actionBtn.disabled = false;
         actionBtn.style.opacity = "1";
         actionBtn.style.cursor = "pointer";
+
     } else {
+
         actionBtn.disabled = true;
         actionBtn.style.opacity = "0.5";
         actionBtn.style.cursor = "not-allowed";
+
     }
 
     console.log("MERS BUTTON STATE AFTER UPDATE:", {
@@ -5601,27 +5598,30 @@ if (totalVisibleRequired > 0) {
         text: actionBtn.innerText
     });
 
-}
- 
-    
-    
-    
-    
-    
-    else {
-        // Fallback for Section 1 (Profile)
-        if (currentNum === 1) {
-            actionBtn.disabled = false;
-            actionBtn.style.opacity = "1";
-        } else {
-            // Safety lock if we are lost between sections
-            actionBtn.disabled = true;
-            actionBtn.style.opacity = "0.5";
-        }
+} else {
+
+    // Fallback for Section 1 (Profile)
+    if (currentNum === 1) {
+
+        actionBtn.disabled = false;
+        actionBtn.style.opacity = "1";
+
+    } else {
+
+        // Safety lock if we are lost between sections
+        actionBtn.disabled = true;
+        actionBtn.style.opacity = "0.5";
+
     }
 }
 
+
+
+
+
+
   
+}
 
   
 
