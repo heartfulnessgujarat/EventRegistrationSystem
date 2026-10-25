@@ -5569,17 +5569,47 @@ actionBtn.innerText =
   
     // 4. THE UNLOCK LOGIC
     // If we are in a section with dynamic rules (Sect 2 or 3)
-    if (totalVisibleRequired > 0) {
-        if (totalFilled === totalVisibleRequired) {
-            actionBtn.disabled = false;
-            actionBtn.style.opacity = "1";
-            actionBtn.style.cursor = "pointer";
-        } else {
-            actionBtn.disabled = true;
-            actionBtn.style.opacity = "0.5";
-            actionBtn.style.cursor = "not-allowed";
-        }
+
+
+
+
+
+  
+   ```javascript
+if (totalVisibleRequired > 0) {
+
+    console.log("MERS BUTTON STATE:", {
+        dynamicSectionName: dynamicSectionName,
+        totalVisibleRequired: totalVisibleRequired,
+        totalFilled: totalFilled,
+        shouldEnable: totalFilled === totalVisibleRequired,
+        buttonDisabledBeforeUpdate: actionBtn.disabled
+    });
+
+    if (totalFilled === totalVisibleRequired) {
+        actionBtn.disabled = false;
+        actionBtn.style.opacity = "1";
+        actionBtn.style.cursor = "pointer";
     } else {
+        actionBtn.disabled = true;
+        actionBtn.style.opacity = "0.5";
+        actionBtn.style.cursor = "not-allowed";
+    }
+
+    console.log("MERS BUTTON STATE AFTER UPDATE:", {
+        disabled: actionBtn.disabled,
+        text: actionBtn.innerText
+    });
+
+}
+```
+    
+    
+    
+    
+    
+    
+    else {
         // Fallback for Section 1 (Profile)
         if (currentNum === 1) {
             actionBtn.disabled = false;
