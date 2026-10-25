@@ -5416,6 +5416,26 @@ function updateButtonState() {
                   
                     totalVisibleRequired++;
                     const val = input.value.trim();
+
+                console.log("MERS VALIDATION CHECK:", {
+    fieldId: input.id,
+    sectionId: rule.section_id,
+    initialState: rule.initial_state,
+    visibilityRule: rule.visibility_rule,
+    fieldValidation: rule.field_validation,
+    visible: isVisible,
+    value: val,
+    totalVisibleRequired: totalVisibleRequired
+});
+
+
+
+
+
+
+
+
+                
                     if (val !== "" && val !== "-- Select --") {
                         totalFilled++;
                     }
