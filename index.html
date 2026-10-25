@@ -4735,7 +4735,10 @@ fieldWrapper.style.display =
             }
         }
 
-        actionBtn.onclick = function() {
+      
+
+          actionBtn.onclick = async function() {
+            
             // THE "FINAL SYNC" LOCK
             const finalInputs = container.querySelectorAll("input, select, textarea");
             finalInputs.forEach(input => { 
