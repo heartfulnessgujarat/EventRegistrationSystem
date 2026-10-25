@@ -5438,6 +5438,15 @@ function updateButtonState() {
     const currentNum = window.currentSection || 1;
 
 
+  console.log(
+    "BUTTON LABEL DIAGNOSTIC",
+    {
+        dynamicSectionName: dynamicSectionName,
+        nextSectionForButton: getNextSection(dynamicSectionName),
+        currentSection: window.currentSection
+    }
+);
+
   const nextSectionForButton =
     getNextSection(dynamicSectionName);
 
