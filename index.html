@@ -4753,14 +4753,31 @@ console.log(
 const nextSection =
     getNextSection(targetSectionNumber);
 
+console.log("========== MERS NAVIGATION DIAGNOSTIC ==========");
+console.log("Current target section:", targetSectionNumber);
+console.log("Calculated next section:", nextSection);
 console.log(
-    "NEXT SECTION:",
-    nextSection
+    "Current section rules:",
+    fieldRules.filter(
+        r => r.section_id === targetSectionNumber
+    ).map(r => r.field_id)
 );
 
 if (nextSection) {
 
-    buildExtraSections(nextSection);
+    console.log(
+        "Next section rules:",
+        fieldRules.filter(
+            r => r.section_id === nextSection
+        ).map(r => r.field_id)
+    );
+
+    console.log(
+        "Calling buildExtraSections() for:",
+        nextSection
+    );
+
+    await buildExtraSections(nextSection);
 
 } else {
 
@@ -4771,7 +4788,13 @@ if (nextSection) {
     submitData();
 }
 
-         
+console.log("========== END NAVIGATION DIAGNOSTIC ==========");
+
+
+
+
+
+          
         };
 
         if (backBtn) {
