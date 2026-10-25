@@ -5420,21 +5420,40 @@ function updateButtonState() {
             continue;
         }
 
+
+
         const val = String(input.value || '').trim();
 
-        // Count the field only if it is currently visible.
-        totalVisibleRequired++;
+        // Determine whether this field is required.
+        // A field is required unless Field_Rules explicitly
+        // marks it as optional.
+        const isRequired =
+            String(rule.required || '')
+                .trim()
+                .toUpperCase() !== 'NO';
 
-        if (val !== '' && val !== '-- Select --') {
-            totalFilled++;
+        // Count only required fields in the active section.
+        if (isRequired) {
+            totalVisibleRequired++;
+
+            if (val !== '' && val !== '-- Select --') {
+                totalFilled++;
+            }
         }
 
         diagData.push({
             ID: input.id,
             RuleMatch: rule.field_id,
-            Value: val
+            Value: val,
+            Required: isRequired,
+            Filled: val !== '' && val !== '-- Select --'
         });
 
+
+      
+
+
+      
        console.log('MERS VALIDATION CHECK:', {
     fieldId: input.id,
     sectionId: rule.section_id,
