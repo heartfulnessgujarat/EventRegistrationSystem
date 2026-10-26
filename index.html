@@ -5500,16 +5500,15 @@ if (isFieldValid) {
 }
 
           
-   //     }
+  
 
-        diagData.push({
-            ID: input.id,
-            RuleMatch: rule.field_id,
-            Value: val,
-            Required: isRequired,
-            Filled: val !== '' && val !== '-- Select --'
-        });
-
+       diagData.push({
+    ID: input.id,
+    RuleMatch: rule.field_id,
+    Value: val,
+    Valid: isFieldValid,
+    Filled: val !== '' && val !== '-- Select --'
+});
 
       
 
