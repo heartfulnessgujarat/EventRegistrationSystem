@@ -1835,17 +1835,7 @@ function selectParticipant(p) {
         
         // UI: Handle Container Visibility (Section 1)
         if (cont) {
-         // cont.style.display = (r.initial_state === 'Hidden') ? 'none' : 'block';
-
-
-          div.style.display =
-    String(r.initial_state || "")
-        .trim()
-        .toUpperCase() === "HIDDEN"
-            ? "none"
-            : "block";
-
-         
+          cont.style.display = (r.initial_state === 'Hidden') ? 'none' : 'block';
         }
         
         // UI: Block the field and hide the Edit link
@@ -4735,10 +4725,7 @@ fieldWrapper.style.display =
             }
         }
 
-      
-
-          actionBtn.onclick = async function() {
-            
+        actionBtn.onclick = function() {
             // THE "FINAL SYNC" LOCK
             const finalInputs = container.querySelectorAll("input, select, textarea");
             finalInputs.forEach(input => { 
@@ -4756,31 +4743,14 @@ console.log(
 const nextSection =
     getNextSection(targetSectionNumber);
 
-console.log("========== MERS NAVIGATION DIAGNOSTIC ==========");
-console.log("Current target section:", targetSectionNumber);
-console.log("Calculated next section:", nextSection);
 console.log(
-    "Current section rules:",
-    fieldRules.filter(
-        r => r.section_id === targetSectionNumber
-    ).map(r => r.field_id)
+    "NEXT SECTION:",
+    nextSection
 );
 
 if (nextSection) {
 
-    console.log(
-        "Next section rules:",
-        fieldRules.filter(
-            r => r.section_id === nextSection
-        ).map(r => r.field_id)
-    );
-
-    console.log(
-        "Calling buildExtraSections() for:",
-        nextSection
-    );
-
-    await buildExtraSections(nextSection);
+    buildExtraSections(nextSection);
 
 } else {
 
@@ -4791,13 +4761,7 @@ if (nextSection) {
     submitData();
 }
 
-console.log("========== END NAVIGATION DIAGNOSTIC ==========");
-
-
-
-
-
-          
+         
         };
 
         if (backBtn) {
@@ -5246,24 +5210,10 @@ function getFieldValue(fieldId) {
                 index
             );
 
-
-
-      
-      wrapper.style.display =
-    show
-        ? "block"
-        : "none";
-
-console.log("MERS VISIBILITY UPDATE:", {
-    fieldId: rule.field_id,
-    visibilityRule: rule.visibility_rule,
-    initialState: rule.initial_state,
-    fieldValue: getFieldValue(rule.field_id),
-    shouldShow: show,
-    actualDisplay: wrapper.style.display
-});
-
-      
+        wrapper.style.display =
+            show
+                ? "block"
+                : "none";
 
     });
 
@@ -5424,104 +5374,51 @@ function updateButtonState() {
     let totalFilled = 0;
     let diagData = [];
 
-    // 1. Identify the active section and validate its visible fields
-    for (const input of allInputs) {
+    // 1. Identify the current section using the "Hybrid Bridge"
+    for (let input of allInputs) {
+        const group = input.closest('.form-group') || input.closest('.input-group');
+        const isVisible = group && group.style.display !== 'none';
+        
+        if (isVisible) {
+            // BRIDGE: Remove 'extra_' or 'inp-' just to find the rule match
+            const cleanId = input.id.replace('extra_', '').replace('inp-', '');
+            const rule = rulesArray.find(r => r.field_id === cleanId);
+            
+            if (rule) {
+                // Once we find one rule, we know which section we are validating
+             
+                
 
-        const group =
-            input.closest('.form-group') ||
-            input.closest('.input-group');
-
-        if (!group) continue;
-
-        // Ignore fields whose own group is hidden.
-        const isVisible =
-            window.getComputedStyle(group).display !== 'none';
-
-        if (!isVisible) continue;
-
-        // Match the input to its Field_Rules record.
-        const cleanId = input.id
-            .replace('extra_', '')
-            .replace('inp-', '');
-
-        const rule = rulesArray.find(
-            r => r.field_id === cleanId
-        );
-
-        if (!rule) continue;
-
-        // Identify the active section from the first matching field.
-        if (!dynamicSectionName) {
-            dynamicSectionName = rule.section_id;
-        }
-
-        // Validate only fields belonging to that section.
-        if (rule.section_id !== dynamicSectionName) {
-            continue;
-        }
+              if (!dynamicSectionName)
+    dynamicSectionName =
+        rule.section_id;
+                
+                // Only validate fields for the ACTIVE section
 
 
+              if (
+    rule.section_id ===
+    dynamicSectionName
+)
+              
+              {
 
-        const val = String(input.value || '').trim();
-
-        // Determine whether this field is required.
-        // A field is required unless Field_Rules explicitly
-        // marks it as optional.
-        const isRequired =
-            String(rule.required || '')
-                .trim()
-                .toUpperCase() !== 'NO';
-
-        // Count only required fields in the active section.
-        if (isRequired) {
-            totalVisibleRequired++;
-
-            if (val !== '' && val !== '-- Select --') {
-                totalFilled++;
+                  
+                    totalVisibleRequired++;
+                    const val = input.value.trim();
+                    if (val !== "" && val !== "-- Select --") {
+                        totalFilled++;
+                    }
+                    diagData.push({ 
+                        ID: input.id, 
+                        RuleMatch: rule.field_id, 
+                        Value: val 
+                    });
+                }
             }
         }
-
-        diagData.push({
-            ID: input.id,
-            RuleMatch: rule.field_id,
-            Value: val,
-            Required: isRequired,
-            Filled: val !== '' && val !== '-- Select --'
-        });
-
-
-      
-
-
-      
-       console.log('MERS VALIDATION CHECK:', {
-    fieldId: input.id,
-    sectionId: rule.section_id,
-    wrapperDisplay: group.style.display,
-    computedDisplay: window.getComputedStyle(group).display,
-    visibilityRule: rule.visibility_rule,
-    initialState: rule.initial_state,
-    fieldValidation: rule.field_validation,
-    value: val,
-    totalVisibleRequired: totalVisibleRequired,
-    totalFilled: totalFilled
-});
-
-
-
-
-
-      
     }
 
-
-
-
-
-
-
-
-  
     // 2. Log the "X-RAY" for debugging
     if (diagData.length > 0) {
        
@@ -5530,15 +5427,6 @@ function updateButtonState() {
     // 3. Button Text Update
     const currentNum = window.currentSection || 1;
 
-
-  console.log(
-    "BUTTON LABEL DIAGNOSTIC",
-    {
-        dynamicSectionName: dynamicSectionName,
-        nextSectionForButton: getNextSection(dynamicSectionName),
-        currentSection: window.currentSection
-    }
-);
 
   const nextSectionForButton =
     getNextSection(dynamicSectionName);
@@ -5580,62 +5468,33 @@ actionBtn.innerText =
 }
 
 
-
-// 4. THE UNLOCK LOGIC
-
-if (totalVisibleRequired > 0) {
-
-    console.log("MERS BUTTON STATE:", {
-        dynamicSectionName: dynamicSectionName,
-        totalVisibleRequired: totalVisibleRequired,
-        totalFilled: totalFilled,
-        shouldEnable: totalFilled === totalVisibleRequired,
-        buttonDisabledBeforeUpdate: actionBtn.disabled
-    });
-
-    if (totalFilled === totalVisibleRequired) {
-
-        actionBtn.disabled = false;
-        actionBtn.style.opacity = "1";
-        actionBtn.style.cursor = "pointer";
-
+  
+    // 4. THE UNLOCK LOGIC
+    // If we are in a section with dynamic rules (Sect 2 or 3)
+    if (totalVisibleRequired > 0) {
+        if (totalFilled === totalVisibleRequired) {
+            actionBtn.disabled = false;
+            actionBtn.style.opacity = "1";
+            actionBtn.style.cursor = "pointer";
+        } else {
+            actionBtn.disabled = true;
+            actionBtn.style.opacity = "0.5";
+            actionBtn.style.cursor = "not-allowed";
+        }
     } else {
-
-        actionBtn.disabled = true;
-        actionBtn.style.opacity = "0.5";
-        actionBtn.style.cursor = "not-allowed";
-
-    }
-
-    console.log("MERS BUTTON STATE AFTER UPDATE:", {
-        disabled: actionBtn.disabled,
-        text: actionBtn.innerText
-    });
-
-} else {
-
-    // Fallback for Section 1 (Profile)
-    if (currentNum === 1) {
-
-        actionBtn.disabled = false;
-        actionBtn.style.opacity = "1";
-
-    } else {
-
-        // Safety lock if we are lost between sections
-        actionBtn.disabled = true;
-        actionBtn.style.opacity = "0.5";
-
+        // Fallback for Section 1 (Profile)
+        if (currentNum === 1) {
+            actionBtn.disabled = false;
+            actionBtn.style.opacity = "1";
+        } else {
+            // Safety lock if we are lost between sections
+            actionBtn.disabled = true;
+            actionBtn.style.opacity = "0.5";
+        }
     }
 }
-
-
-
-
-
 
   
-}
 
   
 
@@ -5653,22 +5512,6 @@ if (totalVisibleRequired > 0) {
     
     const rulesArray = Array.isArray(fieldRules) ? fieldRules : Object.values(fieldRules);
     const sectionRules = rulesArray.filter(r => r.section_number === sectionName);
-
-
-console.log(
-    "REFLOW PROPERTY CHECK:",
-    rulesArray.slice(0, 5).map(r => ({
-        field_id: r.field_id,
-        section_id: r.section_id,
-        section_number: r.section_number,
-        section_name: r.section_name
-    }))
-);
-
-
-
-
-    
 
     console.log(
     "REFLOW SECTION RULES:",
