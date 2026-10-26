@@ -5462,23 +5462,49 @@ function updateButtonState() {
 
 
 
-        const val = String(input.value || '').trim();
 
-        // Determine whether this field is required.
-        // A field is required unless Field_Rules explicitly
-        // marks it as optional.
-        const isRequired =
-            String(rule.required || '')
-                .trim()
-                .toUpperCase() !== 'NO';
+      
+const val = String(input.value || '').trim();
 
-        // Count only required fields in the active section.
-        if (isRequired) {
-            totalVisibleRequired++;
+// Count the field only if it is currently visible.
+totalVisibleRequired++;
 
-            if (val !== '' && val !== '-- Select --') {
-                totalFilled++;
-            }
+// Check whether the field is filled AND valid.
+let isFieldValid = false;
+
+if (val !== '' && val !== '-- Select --') {
+
+    if (
+        rule.field_validation &&
+        rule.field_validation !== 'NULL' &&
+        rule.field_validation !== 'N/A'
+    ) {
+
+        isFieldValid = validateField(
+            rule.field_id,
+            val,
+            rule.field_validation
+        );
+
+    } else {
+
+        // No validation rule: require a non-empty value.
+        isFieldValid = true;
+
+    }
+
+}
+
+if (isFieldValid) {
+    totalFilled++;
+}
+
+
+
+
+
+
+          
         }
 
         diagData.push({
