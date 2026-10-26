@@ -1832,21 +1832,22 @@ function selectParticipant(p) {
         if (typeof originalData !== 'undefined') {
           originalData[r.field_id] = masterValue;
         }
-        
-        // UI: Handle Container Visibility (Section 1)
+
+
+      
+                // UI: Handle Container Visibility (Section 1)
         if (cont) {
-         // cont.style.display = (r.initial_state === 'Hidden') ? 'none' : 'block';
-
-
-          div.style.display =
-    String(r.initial_state || "")
-        .trim()
-        .toUpperCase() === "HIDDEN"
-            ? "none"
-            : "block";
-
-         
+            cont.style.display =
+                String(r.initial_state || "")
+                    .trim()
+                    .toUpperCase() === "HIDDEN"
+                        ? "none"
+                        : "block";
         }
+
+
+
+      
         
         // UI: Block the field and hide the Edit link
         el.disabled = true;
