@@ -5246,10 +5246,24 @@ function getFieldValue(fieldId) {
                 index
             );
 
-        wrapper.style.display =
-            show
-                ? "block"
-                : "none";
+
+
+      
+      wrapper.style.display =
+    show
+        ? "block"
+        : "none";
+
+console.log("MERS VISIBILITY UPDATE:", {
+    fieldId: rule.field_id,
+    visibilityRule: rule.visibility_rule,
+    initialState: rule.initial_state,
+    fieldValue: getFieldValue(rule.field_id),
+    shouldShow: show,
+    actualDisplay: wrapper.style.display
+});
+
+      
 
     });
 
