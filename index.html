@@ -5500,15 +5500,13 @@ if (isFieldValid) {
 
           
   
-
-       diagData.push({
+diagData.push({
     ID: input.id,
     RuleMatch: rule.field_id,
     Value: val,
-    Valid: isFieldValid,
+    Required: isRequired,
     Filled: val !== '' && val !== '-- Select --'
 });
-
       
 
 
