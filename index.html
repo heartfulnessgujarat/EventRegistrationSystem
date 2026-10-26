@@ -1837,15 +1837,13 @@ function selectParticipant(p) {
       
                 // UI: Handle Container Visibility (Section 1)
         if (cont) {
-            cont.style.display =
-                String(r.initial_state || "")
-                    .trim()
-                    .toUpperCase() === "HIDDEN"
-                        ? "none"
-                        : "block";
-        }
-
-
+    div.style.display =
+        String(r.initial_state || "")
+            .trim()
+            .toUpperCase() === "HIDDEN"
+                ? "none"
+                : "block";
+}
 
       
         
@@ -7591,6 +7589,7 @@ function getMultipleConditionRoute(
     return route;
 }
 
+  
 //----------------------------------------------------
 // MERS V4 : Resolve Multiple Condition Route
 //----------------------------------------------------
@@ -7668,6 +7667,7 @@ function resolveMultipleConditionRoute(
     return route;
 }
 
+  
 //----------------------------------------------------
 // MERS V4 : Participant Classification Next
 //----------------------------------------------------
