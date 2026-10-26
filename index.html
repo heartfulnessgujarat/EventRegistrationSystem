@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+                      <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -1832,20 +1832,21 @@ function selectParticipant(p) {
         if (typeof originalData !== 'undefined') {
           originalData[r.field_id] = masterValue;
         }
-
-
-      
-                // UI: Handle Container Visibility (Section 1)
+        
+        // UI: Handle Container Visibility (Section 1)
         if (cont) {
-    div.style.display =
-        String(r.initial_state || "")
-            .trim()
-            .toUpperCase() === "HIDDEN"
-                ? "none"
-                : "block";
-}
+         // cont.style.display = (r.initial_state === 'Hidden') ? 'none' : 'block';
 
-      
+
+          div.style.display =
+    String(r.initial_state || "")
+        .trim()
+        .toUpperCase() === "HIDDEN"
+            ? "none"
+            : "block";
+
+         
+        }
         
         // UI: Block the field and hide the Edit link
         el.disabled = true;
@@ -5461,52 +5462,34 @@ function updateButtonState() {
 
 
 
+        const val = String(input.value || '').trim();
 
-      
-const val = String(input.value || '').trim();
+        // Determine whether this field is required.
+        // A field is required unless Field_Rules explicitly
+        // marks it as optional.
+        const isRequired =
+            String(rule.required || '')
+                .trim()
+                .toUpperCase() !== 'NO';
 
-// Count the field only if it is currently visible.
-totalVisibleRequired++;
+        // Count only required fields in the active section.
+        if (isRequired) {
+            totalVisibleRequired++;
 
-// Check whether the field is filled AND valid.
-let isFieldValid = false;
+            if (val !== '' && val !== '-- Select --') {
+                totalFilled++;
+            }
+        }
 
-if (val !== '' && val !== '-- Select --') {
+        diagData.push({
+            ID: input.id,
+            RuleMatch: rule.field_id,
+            Value: val,
+            Required: isRequired,
+            Filled: val !== '' && val !== '-- Select --'
+        });
 
-    if (
-        rule.field_validation &&
-        rule.field_validation !== 'NULL' &&
-        rule.field_validation !== 'N/A'
-    ) {
 
-        isFieldValid = validateField(
-            rule.field_id,
-            val,
-            rule.field_validation
-        );
-
-    } else {
-
-        // No validation rule: require a non-empty value.
-        isFieldValid = true;
-
-    }
-
-}
-
-if (isFieldValid) {
-    totalFilled++;
-}
-
-          
-  
-diagData.push({
-    ID: input.id,
-    RuleMatch: rule.field_id,
-    Value: val,
-    Required: isRequired,
-    Filled: val !== '' && val !== '-- Select --'
-});
       
 
 
@@ -5652,7 +5635,7 @@ if (totalVisibleRequired > 0) {
 
 
   
- }
+}
 
   
 
@@ -7587,7 +7570,6 @@ function getMultipleConditionRoute(
     return route;
 }
 
-  
 //----------------------------------------------------
 // MERS V4 : Resolve Multiple Condition Route
 //----------------------------------------------------
@@ -7665,7 +7647,6 @@ function resolveMultipleConditionRoute(
     return route;
 }
 
-  
 //----------------------------------------------------
 // MERS V4 : Participant Classification Next
 //----------------------------------------------------
