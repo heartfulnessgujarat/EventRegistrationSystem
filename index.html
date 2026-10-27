@@ -5436,45 +5436,43 @@ function updateButtonState() {
     const currentNum = window.currentSection || 1;
 
 
+
+
+
   const nextSectionForButton =
-    getNextSection(dynamicSectionName);
+    getEffectiveNextSection(dynamicSectionName);
 
 if (nextSectionForButton) {
 
+    if (nextSectionForButton === "SEARCH_PROFILE") {
 
+        actionBtn.innerText = "PROCEED TO SEARCH PROFILE";
 
-  
-    const nextSectionObj =
-        moreSections.find(
-            s => s.section_number === nextSectionForButton
-        );
+    } else {
 
+        const nextSectionRules =
+            fieldRules.filter(
+                r =>
+                    String(r.section_id || "").trim() ===
+                    String(nextSectionForButton).trim()
+            );
 
+        const nextSectionName =
+            nextSectionRules[0]?.section_name ||
+            nextSectionForButton;
 
-const nextSectionRules =
-    fieldRules.filter(
-        r =>
-            r.section_id ===
-            nextSectionForButton
-    );
-
-const nextSectionName =
-    nextSectionRules[0]
-        ?.section_name ||
-    nextSectionForButton;
-
-actionBtn.innerText =
-    `PROCEED TO ${nextSectionName.toUpperCase()}`;
-
-
-  
+        actionBtn.innerText =
+            `PROCEED TO ${nextSectionName.toUpperCase()}`;
+    }
 
 } else {
 
-    actionBtn.innerText =
-        "CONFIRM & REGISTER";
+    actionBtn.innerText = "CONFIRM & REGISTER";
 }
 
+
+
+  
 
   
     // 4. THE UNLOCK LOGIC
@@ -5503,10 +5501,6 @@ actionBtn.innerText =
 }
 
   
-
-  
-
-
   
 
 /**
