@@ -1181,11 +1181,16 @@ if (
       div.style.marginBottom = "20px";
 div.style.textAlign = "left";
 
+
+      
         div.style.display =
-            (r.initial_state === 'Hidden')
+           // (r.initial_state === 'Hidden')
+          String(r.initial_state || '').trim().toUpperCase() === 'HIDDEN'
                 ? 'none'
                 : 'block';
 
+
+      
         const needsEditLink =
             [
                 'Editable',
