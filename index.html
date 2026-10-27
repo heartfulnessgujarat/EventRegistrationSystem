@@ -4822,26 +4822,16 @@ backBtn.onclick = () => {
 
 
 
-  const nextSectionForLabel = getEffectiveNextSection(targetSectionNumber);
+  const nextSectionForLabel = getNextSection(targetSectionNumber);
 
 if (nextSectionForLabel) {
-    if (nextSectionForLabel === "SEARCH_PROFILE") {
-        actionBtn.innerText = "PROCEED TO SEARCH PROFILE";
-    } else {
-        const nextSectionRules = fieldRules.filter(
-            r => String(r.section_id || "").trim() === String(nextSectionForLabel).trim()
-        );
-
-        const nextSectionName =
-            nextSectionRules[0]?.section_name || nextSectionForLabel;
-
-        actionBtn.innerText = `PROCEED TO ${nextSectionName.toUpperCase()}`;
-    }
+    const nextSectionRules = fieldRules.filter(r => r.section_id === nextSectionForLabel);
+    const nextSectionName = nextSectionRules[0]?.section_name || nextSectionForLabel;
+    actionBtn.innerText = `PROCEED TO ${nextSectionName.toUpperCase()}`;
 } else {
     actionBtn.innerText = "CONFIRM & REGISTER";
 }
-
-
+  
 
 
 
