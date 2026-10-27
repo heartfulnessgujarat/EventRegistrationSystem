@@ -6707,6 +6707,110 @@ function getSectionIndex(sectionNumber) {
       return sections[currentIndex + 1] || null;
   }
 
+
+// ============================================================
+// MERS V4: GET EFFECTIVE NEXT SECTION
+// Supports direct section-level jumps via Field_Rules
+// ============================================================
+
+function getEffectiveNextSection(currentSection) {
+
+    console.log(
+        "MERS V4: Resolving effective next section:",
+        currentSection
+    );
+
+    // 1. Get rules for the current section
+    const sectionRules = fieldRules.filter(
+        r => String(r.section_id || "").trim() ===
+             String(currentSection || "").trim()
+    );
+
+    if (!sectionRules.length) {
+
+        console.warn(
+            "MERS V4: No Field_Rules found for section:",
+            currentSection
+        );
+
+        return getNextSection(currentSection);
+    }
+
+    // 2. Sort rules by field_sequence to identify the last question
+    const sortedRules = [...sectionRules].sort(
+        (a, b) =>
+            Number(a.field_sequence || 0) -
+            Number(b.field_sequence || 0)
+    );
+
+    const lastRule =
+        sortedRules[sortedRules.length - 1];
+
+    console.log(
+        "MERS V4: Last question rule:",
+        lastRule
+    );
+
+    // 3. Check whether the last question enables section jumping
+    const jumpEnabled =
+        String(lastRule.jump_enabled || "")
+            .trim()
+            .toUpperCase();
+
+    const jumpTo =
+        String(lastRule.jump_to || "").trim();
+
+    if (jumpEnabled === "YES") {
+
+        // Blank destination: log warning and continue normally
+        if (!jumpTo) {
+
+            console.warn(
+                "MERS V4 WARNING: jump_enabled is YES but jump_to is blank for field:",
+                lastRule.field_id,
+                "- proceeding to the next section."
+            );
+
+            return getNextSection(currentSection);
+        }
+
+        // 4. Validate destination
+        if (
+            jumpTo.toUpperCase() !== "SEARCH_PROFILE" &&
+            !fieldRules.some(
+                r =>
+                    String(r.section_id || "").trim() ===
+                    jumpTo
+            )
+        ) {
+
+            console.warn(
+                "MERS V4 WARNING: Invalid jump_to destination:",
+                jumpTo,
+                "- proceeding to the next section."
+            );
+
+            return getNextSection(currentSection);
+        }
+
+        console.log(
+            "MERS V4: Section-level jump selected:",
+            currentSection,
+            "→",
+            jumpTo
+        );
+
+        return jumpTo;
+    }
+
+    // 5. No direct jump configured: preserve normal sequence
+    return getNextSection(currentSection);
+}
+
+
+
+
+  
 function getPreviousSection(currentSection) {
 
     const sections =
@@ -6722,77 +6826,6 @@ function getPreviousSection(currentSection) {
     return sections[currentIndex - 1];
 }
   
-
-// ============================================================
-// MERS V4: GET EFFECTIVE NEXT SECTION
-// Supports section-level jumps configured in Field_Rules
-// ============================================================
-
-function getEffectiveNextSection(currentSection) {
-
-    // 1. Find all rules belonging to the current section
-    const sectionRules = fieldRules.filter(
-        r => r.section_id === currentSection
-    );
-
-    if (!sectionRules.length) {
-        console.warn(
-            "MERS V4: No rules found for section:",
-            currentSection
-        );
-
-        return null;
-    }
-
-    // 2. Identify the last question by field_sequence
-    const sortedRules = [...sectionRules].sort(
-        (a, b) =>
-            Number(a.field_sequence || 0) -
-            Number(b.field_sequence || 0)
-    );
-
-    const lastRule =
-        sortedRules[sortedRules.length - 1];
-
-    console.log(
-        "MERS V4: Last question in section:",
-        currentSection,
-        lastRule.field_id
-    );
-
-    // 3. Check whether a section-level jump is enabled
-    const jumpEnabled =
-        String(lastRule.jump_enabled || "")
-            .trim()
-            .toUpperCase();
-
-    const jumpTo =
-        String(lastRule.jump_to || "")
-            .trim();
-
-    if (jumpEnabled === "YES" && jumpTo !== "") {
-
-        console.log(
-            "MERS V4: Section-level jump enabled:",
-            currentSection,
-            "→",
-            jumpTo
-        );
-
-        return jumpTo;
-    }
-
-    // 4. Otherwise, preserve the existing normal sequence
-    const nextSection =
-        getNextSection(currentSection);
-
-    console.log(
-        "MERS V4: Using normal next section:",
-        nextSection
-    );
-
-    return nextSection;
-}
 
   
 
