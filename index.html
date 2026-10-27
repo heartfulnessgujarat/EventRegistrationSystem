@@ -4822,6 +4822,22 @@ backBtn.onclick = () => {
 
 const nextSectionForLabel = getEffectiveNextSection(targetSectionNumber);
 
+  console.log(
+    "MERS LABEL DIAGNOSTIC:",
+    {
+        currentSection: targetSectionNumber,
+        effectiveNextSection: nextSectionForLabel,
+        configuredJumpEnabled: fieldRules.filter(
+            r => String(r.section_id || "").trim() === String(targetSectionNumber).trim()
+        ).map(r => ({
+            field_id: r.field_id,
+            field_sequence: r.field_sequence,
+            jump_enabled: r.jump_enabled,
+            jump_to: r.jump_to
+        }))
+    }
+);
+
 if (nextSectionForLabel) {
     if (nextSectionForLabel === "SEARCH_PROFILE") {
         actionBtn.innerText = "PROCEED TO SEARCH PROFILE";
