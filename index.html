@@ -4835,7 +4835,7 @@ console.log(
 
 
 
-  if (backBtn) {
+if (backBtn) {
 
     backBtn.onclick = () => {
 
@@ -4849,7 +4849,10 @@ console.log(
             mersSectionHistory
         );
 
-        // Remove the current section from the history.
+        // -----------------------------------------------
+        // STEP 1: Remove the current section from history
+        // -----------------------------------------------
+
         if (
             mersSectionHistory.length > 0 &&
             mersSectionHistory[mersSectionHistory.length - 1] === targetSectionNumber
@@ -4857,7 +4860,10 @@ console.log(
             mersSectionHistory.pop();
         }
 
-        // The last remaining entry is the actual previous section.
+        // -----------------------------------------------
+        // STEP 2: Identify the previous dynamic section
+        // -----------------------------------------------
+
         const previousSection =
             mersSectionHistory.length > 0
                 ? mersSectionHistory[mersSectionHistory.length - 1]
@@ -4872,6 +4878,10 @@ console.log(
             "MERS BACK: Navigation history after:",
             mersSectionHistory
         );
+
+        // -----------------------------------------------
+        // STEP 3: Navigate to the previous destination
+        // -----------------------------------------------
 
         if (previousSection === "SEARCH_PROFILE") {
 
@@ -4889,23 +4899,65 @@ console.log(
 
         } else {
 
-            // No previous dynamic section in history:
-            // return to the profile screen.
-            const section2 = document.getElementById("Section2");
-            const section1 = document.getElementById("Section1");
+            // -----------------------------------------------
+            // STEP 4: No dynamic history remains.
+            // Return to the actual originating profile.
+            // -----------------------------------------------
 
-            if (section2) section2.style.display = "none";
-            if (section1) section1.style.display = "block";
+            const section2 =
+                document.getElementById("Section2");
+
+            const section1 =
+                document.getElementById("Section1");
+
+            const section0 =
+                document.getElementById("Section0");
+
+            if (section2) {
+                section2.style.display = "none";
+            }
+
+            if (
+                window.mersProfileOrigin === "Section0"
+            ) {
+
+                // New-profile route:
+                // Section2 → Section1 → Section0
+
+                if (section1) {
+                    section1.style.display = "none";
+                }
+
+                if (section0) {
+                    section0.style.display = "block";
+                }
+
+                console.log(
+                    "MERS BACK: Returning to Section0."
+                );
+
+            } else {
+
+                // Default route:
+                // Return to the profile screen.
+
+                if (section1) {
+                    section1.style.display = "block";
+                }
+
+                console.log(
+                    "MERS BACK: Returning to Section1."
+                );
+
+            }
+
         }
 
     };
 
 }
 
-
-
   
-
 
 
 
