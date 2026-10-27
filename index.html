@@ -7113,6 +7113,40 @@ function navigateToLogicalSection(targetSection) {
 }
 
 
+// ============================================================
+// MERS V4: NAVIGATE TO EFFECTIVE SECTION
+// Handles logical and dynamic section destinations
+// ============================================================
+
+async function navigateToEffectiveSection(targetSection) {
+
+    const target =
+        String(targetSection || "").trim();
+
+    if (!target) {
+        console.error(
+            "MERS V4: No destination section provided."
+        );
+        return;
+    }
+
+    console.log(
+        "MERS V4: Navigating to effective destination:",
+        target
+    );
+
+    // Logical section: SEARCH_PROFILE
+    if (target.toUpperCase() === "SEARCH_PROFILE") {
+
+        navigateToLogicalSection(target);
+        return;
+    }
+
+    // Dynamic sections: Section2, Section3, etc.
+    await buildExtraSections(target);
+}
+  
+
 function buildMultipleConditionKey(
     conditionAnswers,
     conditionRules
