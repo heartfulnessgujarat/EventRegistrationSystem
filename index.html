@@ -4768,56 +4768,88 @@ if (nextSection === "SEARCH_PROFILE") {
           
         };
 
-        if (backBtn) {
 
 
+if (backBtn) {
 
+    backBtn.onclick = () => {
 
+        console.log(
+            "MERS BACK: Current section:",
+            targetSectionNumber
+        );
 
+        // Find the actual previous section using the configured
+        // forward-jump destinations.
+        let previousSection = null;
 
-          
-          const previousSection =
-    getPreviousSection(targetSectionNumber);
+        const allSections = getAllDynamicSections();
 
-backBtn.onclick = () => {
+        // Check whether an earlier section jumps directly
+        // to the current section.
+        for (const section of allSections) {
 
-    if (previousSection) {
+            if (section === targetSectionNumber) {
+                continue;
+            }
 
-        buildExtraSections(previousSection);
+            const effectiveNext =
+                getEffectiveNextSection(section);
 
-      
-      
-     if (
-    previousSection === getFirstDynamicSection()
-) {
+            if (effectiveNext === targetSectionNumber) {
+                previousSection = section;
+            }
+        }
 
-    refreshSection2BusinessLogic();
+        // If no configured jump leads here, use sequential Back.
+        if (!previousSection) {
+            previousSection =
+                getPreviousSection(targetSectionNumber);
+        }
+
+        console.log(
+            "MERS BACK: Destination:",
+            previousSection
+        );
+
+        if (previousSection === "SEARCH_PROFILE") {
+
+            navigateToLogicalSection("SEARCH_PROFILE");
+
+        } else if (previousSection) {
+
+            buildExtraSections(previousSection);
+
+            if (
+                previousSection === getFirstDynamicSection()
+            ) {
+                refreshSection2BusinessLogic();
+            }
+
+        } else {
+
+            document.getElementById('Section2').style.display =
+                'none';
+
+            document.getElementById('Section1').style.display =
+                'block';
+        }
+
+    };
 
 }
 
 
 
-      
-
-    } else {
-
-        document.getElementById('Section2').style.display =
-            'none';
-
-        document.getElementById('Section1').style.display =
-            'block';
-    }
-};
 
 
 
 
-          
-          
-        }
+
+
+  
 
    //     actionBtn.innerText = (targetSectionNumber === "Section2") ? "PROCEED TO TRAVEL DETAILS" : "CONFIRM & REGISTER";
-
 
 
 const nextSectionForLabel = getEffectiveNextSection(targetSectionNumber);
