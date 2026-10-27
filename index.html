@@ -425,6 +425,11 @@ function formatFirebaseDate(fbDate) {
   let fieldRules = [], masterData = [], eventConfig = {}, moreSections = [];
   let multipleConditionRules = [];
 let multipleConditionRoutes = [];
+
+// MERS: Track the actual section navigation path
+let mersSectionHistory = [];
+
+  
   
 function classifyStayOption(stayLabel) {
 
@@ -4747,20 +4752,50 @@ console.log(
 
 
 
-  const nextSection = getEffectiveNextSection(targetSectionNumber);
+
+          
+
+ const nextSection = getEffectiveNextSection(targetSectionNumber);
 
 console.log("EFFECTIVE NEXT SECTION:", nextSection);
 
-if (nextSection === "SEARCH_PROFILE") {
-    navigateToLogicalSection(nextSection);
-} else if (nextSection) {
-    buildExtraSections(nextSection);
+// Record the destination before navigating forward.
+if (nextSection) {
+
+    if (nextSection === "SEARCH_PROFILE") {
+
+        navigateToLogicalSection(nextSection);
+
+    } else {
+
+        // Remove any existing occurrence of the destination
+        // from the forward history, then record the new visit.
+        const existingIndex = mersSectionHistory.indexOf(nextSection);
+
+        if (existingIndex !== -1) {
+            mersSectionHistory =
+                mersSectionHistory.slice(0, existingIndex + 1);
+        } else {
+            mersSectionHistory.push(targetSectionNumber);
+            mersSectionHistory.push(nextSection);
+        }
+
+        console.log(
+            "MERS NAVIGATION HISTORY:",
+            mersSectionHistory
+        );
+
+        buildExtraSections(nextSection);
+    }
+
 } else {
+
     console.log("MERS: Finalizing Submission with updated values...");
     submitData();
 }
 
 
+          
 
 
 
@@ -4770,7 +4805,7 @@ if (nextSection === "SEARCH_PROFILE") {
 
 
 
-if (backBtn) {
+  if (backBtn) {
 
     backBtn.onclick = () => {
 
@@ -4779,37 +4814,33 @@ if (backBtn) {
             targetSectionNumber
         );
 
-        // Find the actual previous section using the configured
-        // forward-jump destinations.
-        let previousSection = null;
+        console.log(
+            "MERS BACK: Navigation history before:",
+            mersSectionHistory
+        );
 
-        const allSections = getAllDynamicSections();
-
-        // Check whether an earlier section jumps directly
-        // to the current section.
-        for (const section of allSections) {
-
-            if (section === targetSectionNumber) {
-                continue;
-            }
-
-            const effectiveNext =
-                getEffectiveNextSection(section);
-
-            if (effectiveNext === targetSectionNumber) {
-                previousSection = section;
-            }
+        // Remove the current section from the history.
+        if (
+            mersSectionHistory.length > 0 &&
+            mersSectionHistory[mersSectionHistory.length - 1] === targetSectionNumber
+        ) {
+            mersSectionHistory.pop();
         }
 
-        // If no configured jump leads here, use sequential Back.
-        if (!previousSection) {
-            previousSection =
-                getPreviousSection(targetSectionNumber);
-        }
+        // The last remaining entry is the actual previous section.
+        const previousSection =
+            mersSectionHistory.length > 0
+                ? mersSectionHistory[mersSectionHistory.length - 1]
+                : null;
 
         console.log(
             "MERS BACK: Destination:",
             previousSection
+        );
+
+        console.log(
+            "MERS BACK: Navigation history after:",
+            mersSectionHistory
         );
 
         if (previousSection === "SEARCH_PROFILE") {
@@ -4828,11 +4859,13 @@ if (backBtn) {
 
         } else {
 
-            document.getElementById('Section2').style.display =
-                'none';
+            // No previous dynamic section in history:
+            // return to the profile screen.
+            const section2 = document.getElementById("Section2");
+            const section1 = document.getElementById("Section1");
 
-            document.getElementById('Section1').style.display =
-                'block';
+            if (section2) section2.style.display = "none";
+            if (section1) section1.style.display = "block";
         }
 
     };
@@ -4840,6 +4873,8 @@ if (backBtn) {
 }
 
 
+
+  
 
 
 
