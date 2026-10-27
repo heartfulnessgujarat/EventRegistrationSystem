@@ -7742,6 +7742,7 @@ function resolveMultipleConditionRoute(
     return route;
 }
 
+  
 //----------------------------------------------------
 // MERS V4 : Participant Classification Next
 //----------------------------------------------------
@@ -7818,12 +7819,24 @@ function proceedFromMultipleCondition() {
     );
 
 
+// -----------------------------------------------
+// 4. Hide Participant Classification
+// -----------------------------------------------
 
-    // -----------------------------------------------
-    // 4. Hide Participant Classification
-    // -----------------------------------------------
+// Preserve Section0 as the previous screen when the
+// user proceeds to the new-profile workflow.
+if (nextSectionId === "Section1") {
 
-    document.getElementById("Section0").style.display = "none";
+    window.mersProfileOrigin = "Section0";
+
+    console.log(
+        "MERS: Profile origin recorded:",
+        window.mersProfileOrigin
+    );
+
+}
+
+document.getElementById("Section0").style.display = "none";
 
 
     // -----------------------------------------------
