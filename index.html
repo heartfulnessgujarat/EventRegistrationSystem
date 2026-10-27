@@ -4740,28 +4740,27 @@ console.log(
     targetSectionNumber
 );
 
-const nextSection =
-    getNextSection(targetSectionNumber);
 
-console.log(
-    "NEXT SECTION:",
-    nextSection
-);
 
-if (nextSection) {
+  const nextSection = getEffectiveNextSection(targetSectionNumber);
 
+console.log("EFFECTIVE NEXT SECTION:", nextSection);
+
+if (nextSection === "SEARCH_PROFILE") {
+    navigateToLogicalSection(nextSection);
+} else if (nextSection) {
     buildExtraSections(nextSection);
-
 } else {
-
-    console.log(
-        "MERS: Finalizing Submission with updated values..."
-    );
-
+    console.log("MERS: Finalizing Submission with updated values...");
     submitData();
 }
 
-         
+
+
+
+
+
+          
         };
 
         if (backBtn) {
