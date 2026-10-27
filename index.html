@@ -4768,17 +4768,47 @@ if (nextSection) {
 
     } else {
 
-        // Remove any existing occurrence of the destination
-        // from the forward history, then record the new visit.
-        const existingIndex = mersSectionHistory.indexOf(nextSection);
 
-        if (existingIndex !== -1) {
-            mersSectionHistory =
-                mersSectionHistory.slice(0, existingIndex + 1);
-        } else {
-            mersSectionHistory.push(targetSectionNumber);
-            mersSectionHistory.push(nextSection);
-        }
+
+
+      // MERS: Maintain the actual navigation path without duplicates.
+const existingIndex = mersSectionHistory.indexOf(nextSection);
+
+if (existingIndex !== -1) {
+
+    // Destination already exists in history.
+    // Return to that point and discard later sections.
+    mersSectionHistory =
+        mersSectionHistory.slice(0, existingIndex + 1);
+
+} else {
+
+    // Ensure the current section is recorded only once.
+    if (
+        mersSectionHistory.length === 0 ||
+        mersSectionHistory[mersSectionHistory.length - 1] !== targetSectionNumber
+    ) {
+        mersSectionHistory.push(targetSectionNumber);
+    }
+
+    // Record the destination.
+    if (
+        mersSectionHistory[mersSectionHistory.length - 1] !== nextSection
+    ) {
+        mersSectionHistory.push(nextSection);
+    }
+}
+
+console.log(
+    "MERS NAVIGATION HISTORY:",
+    mersSectionHistory
+);
+
+
+
+
+
+      
 
         console.log(
             "MERS NAVIGATION HISTORY:",
