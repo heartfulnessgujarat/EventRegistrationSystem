@@ -5394,11 +5394,27 @@ refreshSection2BusinessLogic();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     // Trigger the STABLE builder for dynamic logistics
-    if (typeof buildExtraSections === "function") {
-        buildExtraSections('Section2');
-    } else {
-        console.warn("MERS: buildExtraSections function not defined yet.");
-    }
+
+
+// MERS: Initialize navigation history when entering Section2.
+mersSectionHistory = ['Section2'];
+
+console.log(
+    "MERS: Navigation history initialized:",
+    mersSectionHistory
+);
+
+if (typeof buildExtraSections === "function") {
+    buildExtraSections('Section2');
+} else {
+    console.warn("MERS: buildExtraSections function not defined yet.");
+}
+
+
+
+  
+
+  
 }
 
 // Back Button Logic
