@@ -6723,7 +6723,76 @@ function getPreviousSection(currentSection) {
 }
   
 
+// ============================================================
+// MERS V4: GET EFFECTIVE NEXT SECTION
+// Supports section-level jumps configured in Field_Rules
+// ============================================================
 
+function getEffectiveNextSection(currentSection) {
+
+    // 1. Find all rules belonging to the current section
+    const sectionRules = fieldRules.filter(
+        r => r.section_id === currentSection
+    );
+
+    if (!sectionRules.length) {
+        console.warn(
+            "MERS V4: No rules found for section:",
+            currentSection
+        );
+
+        return null;
+    }
+
+    // 2. Identify the last question by field_sequence
+    const sortedRules = [...sectionRules].sort(
+        (a, b) =>
+            Number(a.field_sequence || 0) -
+            Number(b.field_sequence || 0)
+    );
+
+    const lastRule =
+        sortedRules[sortedRules.length - 1];
+
+    console.log(
+        "MERS V4: Last question in section:",
+        currentSection,
+        lastRule.field_id
+    );
+
+    // 3. Check whether a section-level jump is enabled
+    const jumpEnabled =
+        String(lastRule.jump_enabled || "")
+            .trim()
+            .toUpperCase();
+
+    const jumpTo =
+        String(lastRule.jump_to || "")
+            .trim();
+
+    if (jumpEnabled === "YES" && jumpTo !== "") {
+
+        console.log(
+            "MERS V4: Section-level jump enabled:",
+            currentSection,
+            "→",
+            jumpTo
+        );
+
+        return jumpTo;
+    }
+
+    // 4. Otherwise, preserve the existing normal sequence
+    const nextSection =
+        getNextSection(currentSection);
+
+    console.log(
+        "MERS V4: Using normal next section:",
+        nextSection
+    );
+
+    return nextSection;
+}
 
   
 
@@ -6782,6 +6851,7 @@ function getISTDateTime() {
     );
 }
 
+  
 // ============================================================
 // MERS V3 : UNIVERSAL SECTION JUMP EVALUATOR
 // ============================================================
