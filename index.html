@@ -7869,11 +7869,15 @@ function proceedFromMultipleCondition() {
         route.next_section_id;
 
 
+
+  
     console.log(
         "MERS MC: Proceeding to:",
         nextSectionId
     );
 
+
+  
 
 // -----------------------------------------------
 // 4. Hide Participant Classification
@@ -7881,17 +7885,33 @@ function proceedFromMultipleCondition() {
 
 // Preserve Section0 as the previous screen when the
 // user proceeds to the new-profile workflow.
-if (nextSectionId === "Section1") {
+
+  
+  
+  if (nextSectionId === "Section1") {
 
     window.mersProfileOrigin = "Section0";
+
+    // MERS: Start navigation history from Participant Classification.
+    mersSectionHistory = ["Section0"];
 
     console.log(
         "MERS: Profile origin recorded:",
         window.mersProfileOrigin
     );
 
+    console.log(
+        "MERS: Navigation history initialized:",
+        mersSectionHistory
+    );
+
 }
 
+
+
+
+
+  
 document.getElementById("Section0").style.display = "none";
 
 
@@ -7925,13 +7945,6 @@ document.getElementById("Section0").style.display = "none";
 
         renderForm(nextSectionId);
     }
-  
-
-
-
-
-
-
   
 
 }
