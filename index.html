@@ -5659,6 +5659,14 @@ if (dynamicSectionName === "Section0") {
     return;
 }
 
+
+
+  console.log("BUTTON STATE DIAGNOSTIC:", {
+    windowCurrentSection: window.currentSection,
+    dynamicSectionName: dynamicSectionName,
+    nextSectionForButton: getEffectiveNextSection(dynamicSectionName)
+});
+
 const nextSectionForButton =
     getEffectiveNextSection(dynamicSectionName);
 
@@ -6741,6 +6749,7 @@ console.log("MERS: Dropdown updated correctly");
     );
 }
 
+  
 function refreshSection2BusinessLogic() {
 
     setTimeout(() => {
