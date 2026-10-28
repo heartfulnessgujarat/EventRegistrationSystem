@@ -4890,25 +4890,45 @@ if (backBtn) {
             mersSectionHistory
         );
 
-        // -----------------------------------------------
-        // STEP 3: Navigate to the previous destination
-        // -----------------------------------------------
 
-        if (previousSection === "SEARCH_PROFILE") {
+      
+// -----------------------------------------------
+// STEP 3: Navigate to the previous destination
+// -----------------------------------------------
 
-            navigateToLogicalSection("SEARCH_PROFILE");
+if (previousSection === "SEARCH_PROFILE") {
 
-        } else if (previousSection) {
+    navigateToLogicalSection("SEARCH_PROFILE");
 
-            buildExtraSections(previousSection);
+} else if (previousSection === "Section0") {
 
-            if (
-                previousSection === getFirstDynamicSection()
-            ) {
-                refreshSection2BusinessLogic();
-            }
+    // Restore Section0 using its dedicated renderer.
+    const section0 = document.getElementById("Section0");
+    const section1 = document.getElementById("Section1");
+    const section2 = document.getElementById("Section2");
 
-        } else {
+    if (section1) section1.style.display = "none";
+    if (section2) section2.style.display = "none";
+    if (section0) section0.style.display = "block";
+
+    renderParticipantClassification();
+
+    console.log("MERS BACK: Section0 restored using its dedicated renderer.");
+
+} else if (previousSection) {
+
+    buildExtraSections(previousSection);
+
+    if (
+        previousSection === getFirstDynamicSection()
+    ) {
+        refreshSection2BusinessLogic();
+    }
+
+} else {
+
+
+          
 
             // -----------------------------------------------
             // STEP 4: No dynamic history remains.
