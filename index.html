@@ -4563,6 +4563,7 @@ function getFirstDynamicSection() {
   
   async function buildExtraSections(targetSectionNumber) {
     if (!targetSectionNumber) targetSectionNumber = "Section2";
+    window.mersActiveDynamicSection = targetSectionNumber;
 
     const container = document.getElementById('dynamic-sections-content');
     const titleHeader = document.getElementById('title-Section2');
@@ -5576,7 +5577,14 @@ function updateButtonState() {
     const allInputs = document.querySelectorAll('input, select, textarea');
     const rulesArray = Array.isArray(fieldRules) ? fieldRules : Object.values(fieldRules);
     
-    let dynamicSectionName = "";
+   // let dynamicSectionName = "";
+
+let dynamicSectionName =
+    window.mersActiveDynamicSection || "";
+
+
+
+  
     let totalVisibleRequired = 0;
     let totalFilled = 0;
     let diagData = [];
@@ -5613,9 +5621,9 @@ const isVisible =
              
                 
 
-              if (!dynamicSectionName)
-    dynamicSectionName =
-        rule.section_id;
+         //     if (!dynamicSectionName)
+//    dynamicSectionName =
+//        rule.section_id;
                 
                 // Only validate fields for the ACTIVE section
 
