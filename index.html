@@ -2819,11 +2819,9 @@ getFieldElement(id);
           eventId;
   }
 
-
-
-        
 // ----------------------------------------------------
 // MERS V2 : Search Profile is Optional
+// Name is accepted from either Search Profile or New Profile
 // ----------------------------------------------------
 
 const hasSearchProfile =
@@ -2831,17 +2829,25 @@ const hasSearchProfile =
         r => r.section_id === "SEARCH_PROFILE"
     );
 
-if (
-    hasSearchProfile &&
-    !updatedSection1.full_name
-) {
-
-    throw new Error(
-        "Critical Error: 'full_name' is missing. Please ensure Search Profile is completed."
+const hasFullName =
+    Boolean(
+        String(updatedSection1.full_name || "").trim()
     );
 
-}
+const hasFullNameE =
+    Boolean(
+        String(updatedSection1.full_name_e || "").trim()
+    );
 
+if (
+    hasSearchProfile &&
+    !hasFullName &&
+    !hasFullNameE
+) {
+    throw new Error(
+        "Critical Error: Participant name is missing. Please ensure Search Profile or New Profile is completed."
+    );
+}
 
 
 
