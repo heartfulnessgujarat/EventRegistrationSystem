@@ -5582,8 +5582,25 @@ function updateButtonState() {
 
     // 1. Identify the current section using the "Hybrid Bridge"
     for (let input of allInputs) {
-        const group = input.closest('.form-group') || input.closest('.input-group');
-        const isVisible = group && group.style.display !== 'none';
+
+
+      
+   //    const group = input.closest('.form-group') || input.closest('.input-group');
+   //     const isVisible = group && group.style.display !== 'none';
+
+      const group =
+    input.closest('.form-group') ||
+    input.closest('.input-group') ||
+    input.closest('.field-container');
+
+const isVisible =
+    group &&
+    group.style.display !== 'none' &&
+    getComputedStyle(group).display !== 'none';
+
+
+
+      
         
         if (isVisible) {
             // BRIDGE: Remove 'extra_' or 'inp-' just to find the rule match
