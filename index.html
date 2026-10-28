@@ -4567,6 +4567,9 @@ function getFirstDynamicSection() {
     const container = document.getElementById('dynamic-sections-content');
     const titleHeader = document.getElementById('title-Section2');
     const actionBtn = document.getElementById('btn-next-action'); 
+
+
+    
     const backBtn = document.getElementById('btn-back-to-profile');
 
     // --- 1. SYNC CURRENT SECTION INPUTS BEFORE REDRAWING ---
@@ -4761,11 +4764,18 @@ console.log(
 );
 
 
-
-
           
 
  const nextSection = getEffectiveNextSection(targetSectionNumber);
+
+console.log("MERS HISTORY DIAGNOSTIC:", {
+    currentSection: targetSectionNumber,
+    nextSection: nextSection,
+    historyBeforeUpdate: [...mersSectionHistory],
+    profileOrigin: window.mersProfileOrigin
+});
+
+          
 
 console.log("EFFECTIVE NEXT SECTION:", nextSection);
 
@@ -4814,10 +4824,6 @@ console.log(
     mersSectionHistory
 );
 
-
-
-
-
       
 
         console.log(
@@ -4834,12 +4840,7 @@ console.log(
     submitData();
 }
 
-
-          
-
-
-
-
+    
           
         };
 
