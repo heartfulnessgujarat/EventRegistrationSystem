@@ -5478,14 +5478,18 @@ refreshSection2BusinessLogic();
     // Trigger the STABLE builder for dynamic logistics
 
 
-// MERS: Initialize navigation history when entering Section2.
-mersSectionHistory = ['Section2'];
 
+// MERS: Preserve navigation history when entering Section2.
 console.log(
-    "MERS: Navigation history initialized:",
+    "MERS: Preserving navigation history:",
     mersSectionHistory
 );
+  
 
+
+
+
+  
 if (typeof buildExtraSections === "function") {
     buildExtraSections('Section2');
 } else {
