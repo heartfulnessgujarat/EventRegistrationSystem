@@ -2733,9 +2733,15 @@ getFieldElement(id);
               if (typeof originalData !== 'undefined' && typeof originalData[id] !== 'undefined') return originalData[id];
               return "";
           };
-  
+
+
+
+
+
+        
           const updatedSection1 = {
               full_name: getFreshVal('full_name'),
+            full_name_e: getFreshVal('full_name_e'),
   
             
             email: getFreshVal('email'),
@@ -2747,11 +2753,16 @@ getFieldElement(id);
               pincode: getFreshVal('pincode'),
               full_address: getFreshVal('full_address'),
               centre: getFreshVal('centre'),
+              city: getFreshVal('city'),
               zone: getFreshVal('zone'),
               district: getFreshVal('district'),
               state: getFreshVal('state'),
+              region: getFreshVal('region),
               country: getFreshVal('country')
           };
+
+
+        
   
   // =====================================================
   // MASKED VALUES FOR EMAIL COMMUNICATION
