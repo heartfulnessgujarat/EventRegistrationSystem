@@ -7923,9 +7923,14 @@ function proceedFromMultipleCondition() {
 // Preserve Section0 as the previous screen when the
 // user proceeds to the new-profile workflow.
 
-  
-  
-  if (nextSectionId === "Section1") {
+
+
+
+
+
+  if (
+    ["Section1", "Section3"].includes(nextSectionId)
+) {
 
     window.mersProfileOrigin = "Section0";
 
@@ -7946,6 +7951,9 @@ function proceedFromMultipleCondition() {
 
 
 
+
+
+  
 
 
   
