@@ -5372,40 +5372,38 @@ function getFieldValue(fieldId) {
 }
 
 
-  function refreshSectionVisibility(sectionId) {
 
-    const sectionRules =
-        fieldRules.filter(
-            r => r.section_id === sectionId
-        );
+
+
+ function refreshSectionVisibility(sectionId) {
+    const sectionRules = fieldRules.filter(
+        r => r.section_id === sectionId
+    );
 
     sectionRules.forEach((rule, index) => {
 
+        // Support both dynamic-section and renderForm wrappers.
         const wrapper =
-            document.getElementById(
-                "wrapper_" +
-                rule.field_id
-            );
+            document.getElementById("wrapper_" + rule.field_id) ||
+            document.getElementById("cont-" + rule.field_id);
 
         if (!wrapper) return;
 
+        const show = shouldFieldBeVisible(
+            rule,
+            sectionRules,
+            index
+        );
 
-
-        const show =
-            shouldFieldBeVisible(
-                rule,
-                sectionRules,
-                index
-            );
-
-        wrapper.style.display =
-            show
-                ? "block"
-                : "none";
-
+        wrapper.style.display = show ? "block" : "none";
     });
-
 }
+
+
+
+
+
+
 
   
 
