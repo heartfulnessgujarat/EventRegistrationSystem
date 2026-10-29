@@ -2261,13 +2261,15 @@ if (panel) {
 
 
 
-        let verifyKey = "";
+        
+let verifyKey = "";
 
-if (type === 'email') {
+if (type === 'email' || type === 'email_e') {
 
   verifyKey =
-    getFieldElement('email')
+    getFieldElement(type)
     .value
+    .trim()
     .replace(/[.#$[\]]/g, "_");
 
 }
@@ -2282,6 +2284,8 @@ else if (type === 'mobile') {
 
 }
 
+
+        
 const snap =
   await db.ref("verificationCodes/" + verifyKey).once('value');
 
