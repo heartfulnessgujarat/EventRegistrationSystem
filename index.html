@@ -4750,16 +4750,47 @@ fieldWrapper.style.display =
                 }
 
                 input.value = valToSet;
-                input.dataset.mandatory = isMandatory;                  
-                
-                input.onchange = function() {
-                    if (typeof validateField === 'function') {
-                        if (validateField(this.id.replace('extra_', ''), this.value, rule.field_validation) === false) return;
-                    }
-                    handleFieldChange(this, rule); //[cite: 1]
-                };
+                input.dataset.mandatory = isMandatory; 
 
-                input.oninput = function() { updateButtonState(); };
+
+              
+           input.oninput = async function() {
+    const value = this.value.trim();
+
+    // Update the temporary data immediately.
+    mersTempData[rule.field_id] = value;
+
+    // Empty fields must not reveal the next question.
+    if (value === "") {
+        refreshSectionVisibility(rule.section_id);
+        updateButtonState();
+        return;
+    }
+
+    // Validate the current answer.
+    const isValid = validateField(
+        rule.field_id,
+        value,
+        rule.field_validation
+    );
+
+    // Do not progress when validation fails.
+    if (!isValid) {
+        refreshSectionVisibility(rule.section_id);
+        updateButtonState();
+        return;
+    }
+
+    // Process a valid answer immediately.
+    await handleFieldChange(this, rule);
+};
+
+input.onchange = function() {
+    updateButtonState();
+};
+
+
+              
 
                 fieldWrapper.appendChild(input);
                 container.appendChild(fieldWrapper);
