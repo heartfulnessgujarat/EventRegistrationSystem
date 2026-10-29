@@ -2205,7 +2205,18 @@ fetch(
       
       
       setTimeout(() => {
-        document.getElementById(`panel-${type}`).style.backgroundColor = "#e3f2fd";
+     //   document.getElementById(`panel-${type}`).style.backgroundColor = "#e3f2fd";
+
+        const panel = document.getElementById(`panel-${type}`);
+
+if (panel) {
+    panel.style.display = "block";
+    panel.style.backgroundColor = "#e3f2fd";
+}
+
+
+
+        
         btn.style.display = "none";
         document.getElementById(`box-${type}`).style.display = "block";
         const codeInp = document.getElementById(`code-${type}`);
