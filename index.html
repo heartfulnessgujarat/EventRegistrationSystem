@@ -2245,7 +2245,12 @@ if (panel) {
 
   
     async function verifyCodeInput(type, code) {
-      if (   (type === 'email' && code.trim().length === 6) ||   (type === 'mobile' && code.trim().length >= 4) ) {
+   //   if (   (type === 'email' && code.trim().length === 6) ||   (type === 'mobile' && code.trim().length >= 4) ) {
+
+      if (
+    (['email', 'email_e'].includes(type) && code.trim().length === 6) ||
+    (type === 'mobile' && code.trim().length >= 4)
+) {
 
 
         
