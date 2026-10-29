@@ -2057,7 +2057,25 @@ if (cont) {
       verificationAttempts[type] = 0;
       const msg = document.getElementById(`vmsg-${type}`);
       if (msg) msg.style.display = "none";
-      const targetEmail = (type === 'email') ? getFieldElement('email').value : originalData['email'];
+
+    
+ //    const targetEmail = (type === 'email') ? getFieldElement('email').value : originalData['email'];
+
+let targetEmail = "";
+
+if (type === 'email') {
+    // Existing Search Profile email
+    targetEmail = getFieldElement('email').value.trim();
+
+} else if (type === 'email_e') {
+    // New Profile email
+    targetEmail = getFieldElement('email_e').value.trim();
+
+} else {
+    // Preserve the existing fallback
+    targetEmail = originalData['email'];
+}
+    
       const btn = document.getElementById(`vbtn-${type}`);
       btn.disabled = true;
       btn.innerText = "Sending Code...";
