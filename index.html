@@ -2243,145 +2243,216 @@ if (panel) {
 
 
 
+
+
+
+
   
-    async function verifyCodeInput(type, code) {
-   //   if (   (type === 'email' && code.trim().length === 6) ||   (type === 'mobile' && code.trim().length >= 4) ) {
+async function verifyCodeInput(type, code) {
 
-      if (
-    (['email', 'email_e'].includes(type) && code.trim().length === 6) ||
-    (type === 'mobile' && code.trim().length >= 4)
-) {
+    const isEmailType =
+        type === 'email' || type === 'email_e';
 
+    const isMobileType =
+        type === 'mobile';
 
-        
-      //  const emailKey = ((type === 'email') ? document.getElementById('inp-email').value : originalData['email']).replace(/[.#$[\]]/g, "_");
-   
-     //   const snap = await db.ref("verificationCodes/" + emailKey).once('value');
+    // --------------------------------------------------
+    // ACCEPT ONLY THE EXPECTED CODE LENGTH
+    // --------------------------------------------------
 
+    if (
+        (isEmailType && code.trim().length !== 6) ||
+        (isMobileType && code.trim().length < 4)
+    ) {
+        return;
+    }
 
+    // --------------------------------------------------
+    // DETERMINE THE CORRECT FIELD AND UI ELEMENTS
+    // --------------------------------------------------
 
+    const fieldId = type;
+    const emailInput = getFieldElement(fieldId);
 
-        
-let verifyKey = "";
+    const msg =
+        document.getElementById(`vmsg-${type}`);
 
-if (type === 'email' || type === 'email_e') {
+    const panel =
+        document.getElementById(`panel-${type}`);
 
-  verifyKey =
-    getFieldElement(type)
-    .value
-    .trim()
-    .replace(/[.#$[\]]/g, "_");
+    const codeInp =
+        document.getElementById(`code-${type}`);
 
-}
+    if (!emailInput || !msg || !codeInp) {
+        console.error(
+            "MERS: Verification elements missing for:",
+            type
+        );
+        return;
+    }
 
-else if (type === 'mobile') {
+    // --------------------------------------------------
+    // BUILD THE FIREBASE VERIFICATION KEY
+    // --------------------------------------------------
 
-  verifyKey =
-    "mobile_" +
-    getFieldElement('mobile')
-    .value
-    .trim();
+    let verifyKey = "";
 
-}
+    if (isEmailType) {
 
+        verifyKey = emailInput.value
+            .trim()
+            .replace(/[.#$[\]]/g, "_");
 
-        
-const snap =
-  await db.ref("verificationCodes/" + verifyKey).once('value');
+    } else if (isMobileType) {
 
+        verifyKey =
+            "mobile_" +
+            emailInput.value.trim();
 
+    }
 
+    try {
 
-        
+        const snap = await db.ref(
+            "verificationCodes/" + verifyKey
+        ).once('value');
 
-
-
-
-
-
-
-        
-
-
-
-
-
-
-
-
-
-        
         const data = snap.val();
-        const msg = document.getElementById(`vmsg-${type}`);
-        const panel = document.getElementById(`panel-${type}`);
-        const codeInp = document.getElementById(`code-${type}`);
 
-
-
-        
-     //   if (data && data.verification_ticket === code && (new Date().getTime() - data.timestamp < 300000)) {
+        // --------------------------------------------------
+        // CHECK THE CODE
+        // --------------------------------------------------
 
         let matched = false;
 
-// =====================================================
-// EMAIL VERIFICATION
-// =====================================================
-
-if (
-  type === 'email' &&
-  data &&
-  data.code === code
-) {
-
-  matched = true;
-}
-
-// =====================================================
-// MOBILE VERIFICATION
-// =====================================================
-
-if (
-  type === 'mobile' &&
-  data &&
-  data.verification_ticket === code
-) {
-
-  matched = true;
-}
-
-// =====================================================
-// FINAL VALIDATION
-// =====================================================
-
-if (
-  matched &&
-  (new Date().getTime() - data.timestamp < 300000)
-) {
-
-
-
-
-          
-          msg.innerText = "Verified ✅"; msg.style.color = "#2e7d32"; msg.style.display = "block";
-          if (panel) panel.style.display = "none";
-          getFieldElement(type).disabled = true;
-          verificationStates[type] = true;
-          verificationAttempts[type] = 0;
-          checkAllValidations();
-        } else {
-          verificationAttempts[type]++;
-          if (verificationAttempts[type] >= 3) {
-            msg.innerText = "Too many failed attempts."; msg.style.color = "#d32f2f"; msg.style.display = "block";
-            codeInp.disabled = true; codeInp.value = "LOCKED";
-          } else {
-            msg.innerText = `Invalid Code. Attempt ${verificationAttempts[type]} of 3.`;
-            msg.style.color = "#d32f2f"; msg.style.display = "block";
-            setTimeout(() => { codeInp.value = ""; codeInp.focus(); }, 1000);
-          }
-          verificationStates[type] = false;
+        if (
+            isEmailType &&
+            data &&
+            String(data.code) === code.trim()
+        ) {
+            matched = true;
         }
-      }
+
+        if (
+            isMobileType &&
+            data &&
+            String(data.verification_ticket) === code.trim()
+        ) {
+            matched = true;
+        }
+
+        // --------------------------------------------------
+        // CHECK THE FIVE-MINUTE EXPIRY
+        // --------------------------------------------------
+
+        const isNotExpired =
+            data &&
+            Number.isFinite(Number(data.timestamp)) &&
+            (Date.now() - Number(data.timestamp) < 300000) &&
+            (Date.now() >= Number(data.timestamp));
+
+        // --------------------------------------------------
+        // SUCCESS
+        // --------------------------------------------------
+
+        if (matched && isNotExpired) {
+
+            msg.innerText = "Verified ✅";
+            msg.style.color = "#2e7d32";
+            msg.style.display = "block";
+
+            if (panel) {
+                panel.style.display = "none";
+            }
+
+            emailInput.disabled = true;
+
+            verificationStates[type] = true;
+            verificationAttempts[type] = 0;
+
+            codeInp.disabled = true;
+
+            console.log(
+                "MERS: Verification successful for:",
+                type
+            );
+
+            checkAllValidations();
+
+        } else {
+
+            // --------------------------------------------------
+            // FAILURE
+            // --------------------------------------------------
+
+            verificationAttempts[type] =
+                (verificationAttempts[type] || 0) + 1;
+
+            verificationStates[type] = false;
+
+            if (!data) {
+
+                msg.innerText =
+                    "Verification record not found. Please request a new code.";
+
+            } else if (!isNotExpired) {
+
+                msg.innerText =
+                    "Code expired. Please request a new code.";
+
+            } else {
+
+                msg.innerText =
+                    `Invalid Code. Attempt ${verificationAttempts[type]} of 3.`;
+
+            }
+
+            msg.style.color = "#d32f2f";
+            msg.style.display = "block";
+
+            if (verificationAttempts[type] >= 3) {
+
+                msg.innerText =
+                    "Too many failed attempts. Please request a new code.";
+
+                codeInp.disabled = true;
+                codeInp.value = "LOCKED";
+
+            } else {
+
+                setTimeout(() => {
+
+                    if (!codeInp.disabled) {
+                        codeInp.value = "";
+                        codeInp.focus();
+                    }
+
+                }, 1000);
+
+            }
+
+            console.warn(
+                "MERS: Verification failed for:",
+                type
+            );
+        }
+
+    } catch (error) {
+
+        console.error(
+            "MERS: Error verifying code:",
+            error
+        );
+
+        msg.innerText =
+            "Unable to verify the code. Please try again.";
+
+        msg.style.color = "#d32f2f";
+        msg.style.display = "block";
     }
+}
+
+
   
   
   
