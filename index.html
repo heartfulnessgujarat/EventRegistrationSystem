@@ -4834,12 +4834,27 @@ input.onchange = function() {
              //   container.appendChild(fieldWrapper);
 
 
+
+
+
+
+
+
+              
               fieldWrapper.appendChild(input);
 
 // =====================================================
 // MERS: NEW PROFILE EMAIL VERIFICATION CONTROLS
 // Applies only to email_e. Other fields remain unchanged.
 // =====================================================
+
+console.log(
+    "MERS EMAIL CONTROL CHECK:",
+    "fieldId =", fieldId,
+    "matches email_e =", fieldId === 'email_e'
+);
+
+              
 
 if (fieldId === 'email_e') {
 
