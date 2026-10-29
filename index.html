@@ -4830,8 +4830,101 @@ input.onchange = function() {
 
               
 
-                fieldWrapper.appendChild(input);
-                container.appendChild(fieldWrapper);
+              //  fieldWrapper.appendChild(input);
+             //   container.appendChild(fieldWrapper);
+
+
+              fieldWrapper.appendChild(input);
+
+// =====================================================
+// MERS: NEW PROFILE EMAIL VERIFICATION CONTROLS
+// Applies only to email_e. Other fields remain unchanged.
+// =====================================================
+
+if (fieldId === 'email_e') {
+
+    // Message area for email format and verification status
+    const emailMsg = document.createElement('div');
+    emailMsg.id = 'vmsg-email_e';
+    emailMsg.style.cssText =
+        'font-size:13px;margin-top:5px;font-weight:bold;display:none;';
+    fieldWrapper.appendChild(emailMsg);
+
+    // Verification panel
+    const emailPanel = document.createElement('div');
+    emailPanel.id = 'panel-email_e';
+    emailPanel.className = 'verify-panel';
+    emailPanel.style.cssText = 'margin-top:10px;';
+
+    // Button to check email format
+    const formatBtn = document.createElement('button');
+    formatBtn.type = 'button';
+    formatBtn.className = 'verify-btn';
+    formatBtn.id = 'vcheck-email_e';
+    formatBtn.innerText = 'Check Email Format';
+    formatBtn.style.cssText =
+        'background:#455a64;color:white;margin-bottom:10px;';
+
+    formatBtn.onclick = function () {
+        manualFormatCheck('email_e');
+    };
+
+    emailPanel.appendChild(formatBtn);
+
+    // Button to send the verification code
+    const sendBtn = document.createElement('button');
+    sendBtn.type = 'button';
+    sendBtn.className = 'verify-btn';
+    sendBtn.id = 'vbtn-email_e';
+    sendBtn.style.display = 'none';
+
+    sendBtn.onclick = function () {
+        sendCode('email_e');
+    };
+
+    emailPanel.appendChild(sendBtn);
+
+    // Verification code entry area
+    const codeBox = document.createElement('div');
+    codeBox.id = 'box-email_e';
+    codeBox.style.display = 'none';
+
+    const codeInput = document.createElement('input');
+    codeInput.type = 'text';
+    codeInput.id = 'code-email_e';
+    codeInput.className = 'form-control';
+    codeInput.placeholder = 'Enter 6-digit verification code';
+    codeInput.maxLength = 6;
+    codeInput.autocomplete = 'one-time-code';
+    codeInput.inputMode = 'numeric';
+
+    codeInput.oninput = function () {
+        this.value = this.value.replace(/\D/g, '').slice(0, 6);
+        verifyCodeInput('email_e', this.value);
+    };
+
+    codeBox.appendChild(codeInput);
+
+    // Resend-code timer area
+    const resendContainer = document.createElement('div');
+    resendContainer.id = 'resend-container-email_e';
+    resendContainer.style.marginTop = '8px';
+
+    codeBox.appendChild(resendContainer);
+    emailPanel.appendChild(codeBox);
+
+    fieldWrapper.appendChild(emailPanel);
+}
+
+// Keep the existing container insertion
+container.appendChild(fieldWrapper);
+
+
+
+
+              
+
+              
             }
         }
 
