@@ -3826,25 +3826,64 @@ return registrationId;
 }
 
 
-  
+  function manualFormatCheck(fieldId = 'email') {
 
-function manualFormatCheck() {
+    // =====================================================
+    // IDENTIFY THE EMAIL FIELD
+    // =====================================================
 
     const emailInput =
-        getFieldElement('email');
+        getFieldElement(fieldId);
+
+    if (!emailInput) {
+        console.error(
+            "MERS: Email field not found:",
+            fieldId
+        );
+        return;
+    }
 
     const emailVal =
         emailInput.value.trim();
 
+
+    // =====================================================
+    // IDENTIFY THE CORRESPONDING VERIFICATION CONTROLS
+    // =====================================================
+
+    const suffix =
+        fieldId === 'email_e'
+            ? 'email_e'
+            : 'email';
+
     const vBtn =
-        document.getElementById('vbtn-email');
+        document.getElementById(`vbtn-${suffix}`);
 
     const checkBtn =
-        document.getElementById('vcheck-email');
+        document.getElementById(`vcheck-${suffix}`);
 
     const msg =
-        document.getElementById('vmsg-email');
+        document.getElementById(`vmsg-${suffix}`);
 
+
+    // =====================================================
+    // CHECK WHETHER REQUIRED CONTROLS EXIST
+    // =====================================================
+
+    if (!vBtn || !checkBtn) {
+
+        console.error(
+            "MERS: Email verification controls not found:",
+            suffix
+        );
+
+        return;
+    }
+
+
+    // =====================================================
+    // EMAIL FORMAT VALIDATION
+    // =====================================================
 
     const strictRegex =
         /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,6}$/;
@@ -3931,7 +3970,7 @@ function manualFormatCheck() {
 
 
         // -----------------------------------------------
-        // Hide verification button
+        // HIDE VERIFICATION BUTTON
         // -----------------------------------------------
 
         vBtn.style.display =
@@ -3939,7 +3978,7 @@ function manualFormatCheck() {
 
 
         // -----------------------------------------------
-        // Highlight invalid field
+        // HIGHLIGHT INVALID FIELD
         // -----------------------------------------------
 
         emailInput.style.border =
@@ -3948,8 +3987,6 @@ function manualFormatCheck() {
         emailInput.focus();
     }
 }
-
-  
   
     function getMaskedDisplayValue(fieldId, value) {
   
@@ -4243,6 +4280,7 @@ function getFieldValue(fieldId) {
     return "";
 
 }
+  
 // ----------------------------------------------------
 // MERS V2 : Universal Field Lookup
 // ----------------------------------------------------
