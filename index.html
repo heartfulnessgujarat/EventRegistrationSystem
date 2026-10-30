@@ -4959,20 +4959,49 @@ fieldWrapper.appendChild(errorDiv);
         return;
     }
 
-    // Validate the current answer.
-    const isValid = validateField(
-        rule.field_id,
-        value,
-        rule.field_validation
-    );
 
-    // Do not progress when validation fails.
-    if (!isValid) {
-        refreshSectionVisibility(rule.section_id);
-        updateButtonState();
-        return;
+
+             
+   // Validate the current answer.
+const isValid = validateField(
+    rule.field_id,
+    value,
+    rule.field_validation
+);
+
+// Find this field's error-message container.
+const errDiv = document.getElementById(
+    `err-${rule.field_id}`
+);
+
+// Display the configured error message for invalid input.
+if (!isValid && value !== "") {
+
+    if (errDiv) {
+        errDiv.innerText =
+            rule.error_msg || "Invalid input";
+
+        errDiv.style.display = "block";
     }
 
+    refreshSectionVisibility(rule.section_id);
+    updateButtonState();
+    return;
+}
+
+// Hide the error when the field becomes valid or empty.
+if (errDiv) {
+    errDiv.style.display = "none";
+}
+
+// Process a valid answer immediately.
+await handleFieldChange(this, rule);
+
+
+
+
+
+             
     // Process a valid answer immediately.
     await handleFieldChange(this, rule);
 };
