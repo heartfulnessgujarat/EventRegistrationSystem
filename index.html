@@ -4462,24 +4462,54 @@ function shouldFieldBeVisible(
     // AFTER_PREVIOUS_COMPLETED
     //--------------------------------------------------
 
-    if (
-        rule.visibility_rule ===
-        "AFTER_PREVIOUS_COMPLETED"
-    ) {
 
-        const previousRule =
-            sectionRules[currentIndex - 1];
 
-        return (
-            getFieldValue(
-                previousRule.field_id
-            )
-            .toString()
-            .trim() !== ""
-        );
 
+
+if (
+    rule.visibility_rule ===
+    "AFTER_PREVIOUS_COMPLETED"
+) {
+
+    const previousRule =
+        sectionRules[currentIndex - 1];
+
+    if (!previousRule) {
+        return false;
     }
 
+    const previousValue = getFieldValue(
+        previousRule.field_id
+    ).toString().trim();
+
+    // Previous answer must not be empty.
+    if (previousValue === "") {
+        return false;
+    }
+
+    // Validate the previous answer using its Field_Rules.
+    if (previousRule.field_validation) {
+
+        const isPreviousValid = validateField(
+            previousRule.field_id,
+            previousValue,
+            previousRule.field_validation
+        );
+
+        if (!isPreviousValid) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+
+
+
+
+  
     //--------------------------------------------------
     // ALWAYS
     //--------------------------------------------------
