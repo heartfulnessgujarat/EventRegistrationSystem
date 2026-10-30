@@ -4928,8 +4928,21 @@ fieldWrapper.style.display =
                     input.id = inputId;
                 }
 
+
+
+              
                 input.value = valToSet;
                 input.dataset.mandatory = isMandatory; 
+
+
+
+              // MERS: Error message container for dynamic fields
+const errorDiv = document.createElement('div');
+errorDiv.id = `err-${fieldId}`;
+errorDiv.style.cssText =
+    'color:red;font-size:12px;margin-top:4px;display:none;';
+
+fieldWrapper.appendChild(errorDiv);
 
 
               
