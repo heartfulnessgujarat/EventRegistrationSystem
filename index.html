@@ -5992,9 +5992,24 @@ const isVisible =
                   
                     totalVisibleRequired++;
                     const val = input.value.trim();
-                    if (val !== "" && val !== "-- Select --") {
-                        totalFilled++;
-                    }
+
+
+
+                if (val !== "" && val !== "-- Select --") {
+
+    // A filled field counts only if its value is valid.
+    const isValid = validateField(
+        rule.field_id,
+        val,
+        rule.field_validation
+    );
+
+    if (isValid) {
+        totalFilled++;
+    }
+}
+
+                
                     diagData.push({ 
                         ID: input.id, 
                         RuleMatch: rule.field_id, 
