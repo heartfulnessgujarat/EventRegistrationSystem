@@ -4377,43 +4377,51 @@ function processFinalDeletion(regId, eventId, gender) {
 }
 
 
+
+
+  
 // ----------------------------------------------------
 // MERS V2 : Centralized Field Value Resolver
 // ----------------------------------------------------
+
+
+
 function getFieldValue(fieldId) {
 
-    // 1. Existing profile / registration
-    if (
-        originalData &&
-        originalData[fieldId] !== undefined &&
-        originalData[fieldId] !== null
-    ) {
-        return originalData[fieldId];
+    // Current value on screen takes priority
+    const control = document.getElementById(fieldId);
+
+    if (control && control.value !== "") {
+        return String(control.value);
     }
 
-    // 2. Temporary values while navigating Back/Next
+    // Temporary values while navigating
     if (
         mersTempData &&
         mersTempData[fieldId] !== undefined &&
-        mersTempData[fieldId] !== null
+        mersTempData[fieldId] !== null &&
+        String(mersTempData[fieldId]).trim() !== ""
     ) {
-        return mersTempData[fieldId];
+        return String(mersTempData[fieldId]);
     }
 
-    // 3. Current value on screen
-    const input =
-        document.getElementById(
-            "extra_" + fieldId
-        );
-
-    if (input) {
-        return input.value || "";
+    // Existing registration data
+    if (
+        originalData &&
+        originalData[fieldId] !== undefined &&
+        originalData[fieldId] !== null &&
+        String(originalData[fieldId]).trim() !== ""
+    ) {
+        return String(originalData[fieldId]);
     }
 
-    // 4. Nothing available
     return "";
-
 }
+
+
+
+
+
   
 // ----------------------------------------------------
 // MERS V2 : Universal Field Lookup
