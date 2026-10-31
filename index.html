@@ -4425,10 +4425,6 @@ function getFieldWrapper(fieldId) {
 
 
 
-
-
-
-  
 // ----------------------------------------------------
 // MERS V2 : Centralized Visibility Engine
 // ----------------------------------------------------
@@ -4437,6 +4433,28 @@ function shouldFieldBeVisible(
     sectionRules,
     currentIndex
 ) {
+
+    // --------------------------------------------------
+    // EMAIL VERIFICATION GATE
+    // Country must remain hidden until email_e is verified.
+    // --------------------------------------------------
+
+    if (currentIndex > 0) {
+
+        const previousRule =
+            sectionRules[currentIndex - 1];
+
+        if (
+            previousRule &&
+            previousRule.field_id === "email_e" &&
+            (
+                typeof verificationStates === "undefined" ||
+                verificationStates.email_e !== true
+            )
+        ) {
+            return false;
+        }
+    }
 
     // Existing value always remains visible
     if (
@@ -4451,89 +4469,76 @@ function shouldFieldBeVisible(
     if (currentIndex === 0) {
 
         return (
-           String(rule.initial_state || "")
-    .trim()
-    .toUpperCase() !== "HIDDEN"
+            String(rule.initial_state || "")
+                .trim()
+                .toUpperCase() !== "HIDDEN"
         );
 
     }
 
-    //--------------------------------------------------
+    // --------------------------------------------------
     // AFTER_PREVIOUS_COMPLETED
-    //--------------------------------------------------
-
-
-
-
-
-if (
-    rule.visibility_rule ===
-    "AFTER_PREVIOUS_COMPLETED"
-) {
-
-    const previousRule =
-        sectionRules[currentIndex - 1];
-
-    if (!previousRule) {
-        return false;
-    }
-
-    const previousValue = getFieldValue(
-        previousRule.field_id
-    ).toString().trim();
-
-    // Previous answer must not be empty.
-    if (previousValue === "") {
-        return false;
-    }
-
-    // Validate the previous answer using its Field_Rules.
-    if (previousRule.field_validation) {
-
-        const isPreviousValid = validateField(
-            previousRule.field_id,
-            previousValue,
-            previousRule.field_validation
-        );
-
-        if (!isPreviousValid) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-
-
-
-
-
-  
-    //--------------------------------------------------
-    // ALWAYS
-    //--------------------------------------------------
+    // --------------------------------------------------
 
     if (
         rule.visibility_rule ===
-        "ALWAYS"
+        "AFTER_PREVIOUS_COMPLETED"
     ) {
 
-        return true;
+        const previousRule =
+            sectionRules[currentIndex - 1];
 
+        if (!previousRule) {
+            return false;
+        }
+
+        const previousValue = getFieldValue(
+            previousRule.field_id
+        ).toString().trim();
+
+        if (previousValue === "") {
+            return false;
+        }
+
+        if (previousRule.field_validation) {
+
+            const isPreviousValid = validateField(
+                previousRule.field_id,
+                previousValue,
+                previousRule.field_validation
+            );
+
+            if (!isPreviousValid) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
-    //--------------------------------------------------
+    // --------------------------------------------------
+    // ALWAYS
+    // --------------------------------------------------
+
+    if (
+        rule.visibility_rule === "ALWAYS"
+    ) {
+        return true;
+    }
+
+    // --------------------------------------------------
     // Default
-    //--------------------------------------------------
+    // --------------------------------------------------
 
     return (
         String(rule.initial_state || "")
-    .trim()
-    .toUpperCase() !== "HIDDEN"
+            .trim()
+            .toUpperCase() !== "HIDDEN"
     );
 
 }
+
+
 
 
   //----------------------------------------------------
