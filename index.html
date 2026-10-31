@@ -2367,17 +2367,40 @@ async function verifyCodeInput(type, code) {
 
             emailInput.disabled = true;
 
-            verificationStates[type] = true;
-            verificationAttempts[type] = 0;
 
-            codeInp.disabled = true;
 
-            console.log(
-                "MERS: Verification successful for:",
-                type
-            );
+          
+          verificationStates[type] = true;
+verificationAttempts[type] = 0;
 
-            checkAllValidations();
+codeInp.disabled = true;
+
+console.log(
+    "MERS: Verification successful for:",
+    type
+);
+
+// Refresh the dynamic section immediately after verification.
+const verifiedRule = fieldRules.find(
+    r => r.field_id === fieldId
+);
+
+if (verifiedRule) {
+    refreshSectionVisibility(verifiedRule.section_id);
+}
+
+updateButtonState();
+
+console.log(
+    "MERS: Visibility refreshed after verification:",
+    fieldId
+);
+
+checkAllValidations();
+
+
+
+          
 
         } else {
 
