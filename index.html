@@ -4674,94 +4674,182 @@ function refreshAccommodationChoices() {
 }
 
   
+
+
 //----------------------------------------------------
-// MERS V2 : Universal Lookup Population Engine
+// MERS V2 : Dependency-aware Lookup Population Engine
 //----------------------------------------------------
 
-async function populateLookupField(
-    rule,
-    input
-) {
+async function populateLookupField(rule, input) {
 
     try {
 
-        const lookupSnap =
-            await db.ref(
-                `masters/${rule.lookup_tab}`
-            ).once('value');
+        const lookupSnap = await db.ref(
+            `masters/${rule.lookup_tab}`
+        ).once('value');
 
-        const lookupData =
-            lookupSnap.val();
+        const lookupData = lookupSnap.val();
 
-        if (lookupData) {
+        if (!lookupData) {
+            console.warn(
+                "MERS: Lookup data not found:",
+                rule.lookup_tab
+            );
+            return;
+        }
 
-            let choices =
-                Object.values(lookupData)
-                    .map(
-                        row =>
-                            row[
-                                rule.lookup_column
-                            ]
-                    )
-                    .filter(v => v);
+        const records = Array.isArray(lookupData)
+            ? lookupData
+            : Object.values(lookupData);
 
-            //----------------------------------------
-            // Existing Choice Elimination Logic
-            //----------------------------------------
+        let filteredRecords = records;
+
+        // --------------------------------------------
+        // DEPENDENCY FILTER
+        // --------------------------------------------
+
+        const dependencyField = String(
+            rule.dependency_field || ""
+        ).trim();
+
+        const dependencyValue = String(
+            rule.dependency_value || ""
+        ).trim();
+
+        if (dependencyField) {
+
+            let parentValue = "";
 
             if (
-                rule.field_id ===
-                "stay_option"
+                dependencyValue.toUpperCase() ===
+                "SELECTED_VALUE"
             ) {
 
-                choices =
-                    filterStayChoices(
-                        choices
-                    );
+                const parentInput =
+                    document.getElementById(dependencyField);
+
+                parentValue = parentInput
+                    ? parentInput.value.trim()
+                    : "";
+
+            } else {
+
+                parentValue = dependencyValue;
 
             }
 
-            //----------------------------------------
-            // Metadata-driven Filter
-            //----------------------------------------
+            if (!parentValue) {
 
-            choices =
-                applyLookupFilterRule(
-                    rule.lookup_filter_rule,
-                    rule.field_id,
-                    choices
-                );
+                filteredRecords = [];
 
-            //----------------------------------------
-            // Populate Dropdown
-            //----------------------------------------
+            } else {
 
-            [...new Set(choices)]
-                .forEach(choice => {
+                filteredRecords = records.filter(row => {
 
-                    const opt =
-                        document.createElement(
-                            "option"
-                        );
+                    const recordParentValue = String(
+                        row[dependencyField] || ""
+                    ).trim();
 
-                    opt.value =
-                        choice;
-
-                    opt.text =
-                        choice;
-
-                    input.appendChild(
-                        opt
+                    return (
+                        recordParentValue.toLowerCase() ===
+                        parentValue.toLowerCase()
                     );
 
                 });
 
+            }
+
+            console.log(
+                "MERS LOCATION DEPENDENCY:",
+                {
+                    field: rule.field_id,
+                    parentField: dependencyField,
+                    parentValue: parentValue,
+                    matchingRecords: filteredRecords.length
+                }
+            );
         }
+
+        // --------------------------------------------
+        // EXTRACT CHOICES AFTER FILTERING
+        // --------------------------------------------
+
+        let choices = filteredRecords
+            .map(row => row[rule.lookup_column])
+            .filter(value =>
+                value !== null &&
+                value !== undefined &&
+                String(value).trim() !== ""
+            )
+            .map(value => String(value).trim());
+
+        // --------------------------------------------
+        // EXISTING STAY OPTION FILTER
+        // --------------------------------------------
+
+        if (rule.field_id === "stay_option") {
+
+            choices = filterStayChoices(choices);
+
+        }
+
+        // --------------------------------------------
+        // EXISTING METADATA FILTER
+        // --------------------------------------------
+
+        choices = applyLookupFilterRule(
+            rule.lookup_filter_rule,
+            rule.field_id,
+            choices
+        );
+
+        // --------------------------------------------
+        // POPULATE DROPDOWN
+        // --------------------------------------------
+
+        input.innerHTML = "";
+
+        [...new Set(choices)].forEach(choice => {
+
+            const opt = document.createElement("option");
+
+            opt.value = choice;
+            opt.text = choice;
+
+            input.appendChild(opt);
+
+        });
+
+        // Do not automatically select the first option.
+        // Preserve an existing value only if it is available.
+
+        const savedValue = input.dataset.savedValue || "";
+
+        if (
+            savedValue &&
+            choices.includes(savedValue)
+        ) {
+
+            input.value = savedValue;
+
+        } else {
+
+            input.selectedIndex = -1;
+
+        }
+
+        console.log(
+            "MERS LOOKUP POPULATED:",
+            rule.field_id,
+            choices.length,
+            "choices"
+        );
 
     } catch (e) {
 
         console.error(
-            "Lookup Error",
+            "MERS Lookup Error:",
+            rule.field_id,
             e
         );
 
@@ -4770,6 +4858,97 @@ async function populateLookupField(
 }
 
 
+
+//----------------------------------------------------
+// MERS V2 : Clear and Reload Dependent Lookup Fields
+//----------------------------------------------------
+
+async function clearAndReloadDependentFields(parentFieldId) {
+
+    const dependentRules = fieldRules.filter(rule =>
+        String(rule.dependency_field || "").trim() ===
+        parentFieldId
+    );
+
+    for (const childRule of dependentRules) {
+
+        const childFieldId = childRule.field_id;
+
+        const childInput =
+            document.getElementById(childFieldId);
+
+        // Clear the dependent field's value.
+        if (childInput) {
+
+            childInput.value = "";
+
+            if (childInput.tagName === "SELECT") {
+
+                childInput.innerHTML = "";
+                childInput.selectedIndex = -1;
+
+            }
+
+        }
+
+        // Clear temporary and previously saved values.
+        mersTempData[childFieldId] = "";
+
+        if (originalData) {
+            originalData[childFieldId] = "";
+        }
+
+        // Clear lower-level descendants first.
+        await clearAndReloadDependentFields(
+            childFieldId
+        );
+
+        // Reload this child's choices using its parent.
+        if (
+            childInput &&
+            childInput.tagName === "SELECT"
+        ) {
+
+            await populateLookupField(
+                childRule,
+                childInput
+            );
+
+        }
+
+    }
+
+}
+
+
+//----------------------------------------------------
+// MERS V2 : Handle Parent Lookup Selection Change
+//----------------------------------------------------
+
+async function handleDependentLookupChange(rule, input) {
+
+    mersTempData[rule.field_id] = input.value;
+
+    await clearAndReloadDependentFields(
+        rule.field_id
+    );
+
+    refreshSectionVisibility(rule.section_id);
+
+    updateButtonState();
+
+    console.log(
+        "MERS: Dependent fields refreshed after:",
+        rule.field_id,
+        input.value
+    );
+
+}
+
+
+
+
+  
 
   //----------------------------------------------------
 // MERS V2 : First Dynamic Section Helper
@@ -5034,11 +5213,29 @@ await handleFieldChange(this, rule);
     await handleFieldChange(this, rule);
 };
 
-input.onchange = function() {
-    updateButtonState();
+
+              
+
+input.onchange = async function() {
+
+    if (this.tagName === "SELECT") {
+
+        await handleDependentLookupChange(
+            rule,
+            this
+        );
+
+    } else {
+
+        updateButtonState();
+
+    }
+
 };
 
 
+
+              
               
 
               //  fieldWrapper.appendChild(input);
