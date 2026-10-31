@@ -4388,14 +4388,14 @@ function processFinalDeletion(regId, eventId, gender) {
 
 function getFieldValue(fieldId) {
 
-    // Current value on screen takes priority
+    // 1. Current value on screen
     const control = document.getElementById(fieldId);
 
-    if (control && control.value !== "") {
+    if (control && String(control.value).trim() !== "") {
         return String(control.value);
     }
 
-    // Temporary values while navigating
+    // 2. Temporary values while navigating
     if (
         mersTempData &&
         mersTempData[fieldId] !== undefined &&
@@ -4405,7 +4405,7 @@ function getFieldValue(fieldId) {
         return String(mersTempData[fieldId]);
     }
 
-    // Existing registration data
+    // 3. Existing registration data
     if (
         originalData &&
         originalData[fieldId] !== undefined &&
@@ -4417,7 +4417,6 @@ function getFieldValue(fieldId) {
 
     return "";
 }
-
 
 
 
