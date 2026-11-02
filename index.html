@@ -4999,6 +4999,12 @@ function getFirstDynamicSection() {
     
     const backBtn = document.getElementById('btn-back-to-profile');
 
+
+
+
+
+    
+
     // --- 1. SYNC CURRENT SECTION INPUTS BEFORE REDRAWING ---
     const currentInputs = container.querySelectorAll("input, select, textarea");
     currentInputs.forEach(input => { 
@@ -5008,6 +5014,16 @@ function getFirstDynamicSection() {
         if (originalData) originalData[cleanId] = input.value; // Sync to originalData too
     });
 
+ // TEMPORARY DIAGNOSTIC — AFTER SYNCHRONIZATION
+    console.log("EMAIL STATE AFTER SECTION SYNC:", {
+        inputEmail: getFieldElement('email')?.value || "",
+        originalEmail: originalData?.email || "",
+        tempEmail: mersTempData?.email || ""
+    });
+
+
+
+    
     container.innerHTML = ""; 
 
 console.log(
