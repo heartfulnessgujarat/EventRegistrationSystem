@@ -4999,7 +4999,14 @@ function getFirstDynamicSection() {
     
     const backBtn = document.getElementById('btn-back-to-profile');
 
-
+ // TEMPORARY DIAGNOSTIC — BEFORE SYNCHRONIZATION
+    console.log("EMAIL STATE BEFORE SECTION SYNC:", {
+        inputEmail: getFieldElement('email')?.value || "",
+        originalEmail: originalData?.email || "",
+        tempEmail: mersTempData?.email || "",
+        datasetOriginal: getFieldElement('email')?.dataset.originalValue || "",
+        datasetMasked: getFieldElement('email')?.dataset.maskedValue || ""
+    });
 
 
 
