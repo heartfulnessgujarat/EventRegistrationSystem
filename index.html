@@ -8420,6 +8420,7 @@ function getMultipleConditionRoute(
     return route;
 }
 
+  
 //----------------------------------------------------
 // MERS V4 : Resolve Multiple Condition Route
 //----------------------------------------------------
@@ -8559,6 +8560,38 @@ function proceedFromMultipleCondition() {
         return;
     }
 
+
+
+
+  // -----------------------------------------------
+// MERS: CAPTURE SECTION 0 RESPONSES
+// -----------------------------------------------
+
+conditionFields.forEach(field => {
+
+    const fieldId = field.field_id;
+
+    const select = document.getElementById(
+        `pc_${fieldId}`
+    );
+
+    if (select) {
+
+        const answer = select.value.trim();
+
+        // Save using the original field_id
+        mersTempData[fieldId] = answer;
+        originalData[fieldId] = answer;
+
+        console.log(
+            "MERS MC: Section0 response captured:",
+            fieldId,
+            answer
+        );
+
+    }
+
+});
 
     // -----------------------------------------------
     // 3. Get destination section
