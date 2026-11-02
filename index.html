@@ -3042,6 +3042,30 @@ if (
               ...updatedSection1
           };
 
+
+        
+// =====================================================
+// MERS: FINAL EMAIL RESOLUTION
+// =====================================================
+
+const attendedBefore =
+    String(formData.attended_before || "")
+        .trim()
+        .toLowerCase();
+
+formData.final_email =
+    attendedBefore === "yes"
+        ? String(formData.email || "").trim()
+        : String(formData.email_e || "").trim();
+
+console.log("MERS FINAL EMAIL DIAGNOSTIC:", {
+    attended_before: formData.attended_before,
+    email: formData.email,
+    email_e: formData.email_e,
+    final_email: formData.final_email
+});
+
+
 // =====================================================
 // TEMPORARY EMAIL DATA FLOW DIAGNOSTIC
 // =====================================================
