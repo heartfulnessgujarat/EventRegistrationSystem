@@ -3086,6 +3086,13 @@ formData.final_district = isInternalProfile
     ? String(formData.centre || "").trim()
     : String(formData.centre_e || "").trim();
 
+formData.final_zone = isInternalProfile
+    ? String(formData.zone || "").trim()
+    : "";
+
+
+        
+
 formData.final_pincode = isInternalProfile
     ? String(formData.pincode || "").trim()
     : String(formData.pincode_e || "").trim();
@@ -3098,6 +3105,7 @@ console.log("MERS COMMON FIELD DIAGNOSTIC:", {
     final_country: formData.final_country,
     final_state: formData.final_state,
     final_district: formData.final_district,
+  final_zone:formData.final_zone,
 
   final_centre: formData.final_centre,
     final_pincode: formData.final_pincode
