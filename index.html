@@ -3043,9 +3043,9 @@ if (
           };
 
 
-        
+
 // =====================================================
-// MERS: FINAL EMAIL RESOLUTION
+// MERS: COMMON FIELD RESOLUTION
 // =====================================================
 
 const attendedBefore =
@@ -3053,18 +3053,62 @@ const attendedBefore =
         .trim()
         .toLowerCase();
 
-formData.final_email =
-    attendedBefore === "yes"
-        ? String(formData.email || "").trim()
-        : String(formData.email_e || "").trim();
+const isInternalProfile = attendedBefore === "yes";
 
-console.log("MERS FINAL EMAIL DIAGNOSTIC:", {
+// Resolve common fields
+
+formData.final_name = isInternalProfile
+    ? String(formData.full_name || "").trim()
+    : String(formData.full_name_e || "").trim();
+
+formData.final_mobile = isInternalProfile
+    ? String(formData.mobile || "").trim()
+    : String(formData.mobile_e || "").trim();
+
+formData.final_email = isInternalProfile
+    ? String(formData.email || "").trim()
+    : String(formData.email_e || "").trim();
+
+formData.final_country = isInternalProfile
+    ? String(formData.country || "").trim()
+    : String(formData.country_e || "").trim();
+
+formData.final_state = isInternalProfile
+    ? String(formData.state || "").trim()
+    : String(formData.state_e || "").trim();
+
+formData.final_district = isInternalProfile
+    ? String(formData.district || "").trim()
+    : String(formData.district_e || "").trim();
+
+
+        formData.final_centre = isInternalProfile
+    ? String(formData.centre || "").trim()
+    : String(formData.centre_e || "").trim();
+
+formData.final_pincode = isInternalProfile
+    ? String(formData.pincode || "").trim()
+    : String(formData.pincode_e || "").trim();
+
+console.log("MERS COMMON FIELD DIAGNOSTIC:", {
     attended_before: formData.attended_before,
-    email: formData.email,
-    email_e: formData.email_e,
-    final_email: formData.final_email
+    final_name: formData.final_name,
+    final_mobile: formData.final_mobile,
+    final_email: formData.final_email,
+    final_country: formData.final_country,
+    final_state: formData.final_state,
+    final_district: formData.final_district,
+
+  final_centre: formData.final_centre,
+    final_pincode: formData.final_pincode
+  
 });
 
+        
+
+
+
+        
 
 // =====================================================
 // TEMPORARY EMAIL DATA FLOW DIAGNOSTIC
