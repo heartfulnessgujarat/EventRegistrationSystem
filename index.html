@@ -2869,7 +2869,20 @@ getFieldElement(id);
           };
 
 
+// =====================================================
+// MERS EMAIL MASKING DIAGNOSTIC
+// =====================================================
 
+const emailElement = getFieldElement('email');
+
+console.log("MERS EMAIL ELEMENT DIAGNOSTIC:", {
+    inputValue: emailElement?.value,
+    originalValue: emailElement?.dataset.originalValue,
+    maskedValue: emailElement?.dataset.maskedValue,
+    isDisabled: emailElement?.disabled,
+    valuesMatch:
+        emailElement?.value === emailElement?.dataset.maskedValue
+});
 
 
         
