@@ -4560,8 +4560,10 @@ function getFieldWrapper(fieldId) {
 
 
 
+
+
 // ----------------------------------------------------
-// MERS V2 : Centralized Visibility Engine
+// MERS V3 : Centralized Visibility Engine
 // ----------------------------------------------------
 function shouldFieldBeVisible(
     rule,
@@ -4591,7 +4593,68 @@ function shouldFieldBeVisible(
         }
     }
 
-    // Existing value always remains visible
+    // --------------------------------------------------
+    // ANSWER-BASED VISIBILITY GATE
+    // Example:
+    // srcm_id appears only when is_practitioner = Yes.
+    // --------------------------------------------------
+
+    if (
+        rule.visibility_rule ===
+        "AFTER_PREVIOUS_COMPLETED_AND_ANSWER_MATCHES"
+    ) {
+
+        const dependencyField =
+            String(rule.dependency_field || "").trim();
+
+        const requiredAnswer =
+            String(rule.dependency_value || "").trim();
+
+        let actualAnswer = "";
+
+        if (
+            dependencyField &&
+            typeof mersTempData !== "undefined" &&
+            mersTempData[dependencyField] !== undefined
+        ) {
+            actualAnswer =
+                String(mersTempData[dependencyField]).trim();
+        }
+
+        // Fallback to originalData.
+        if (
+            actualAnswer === "" &&
+            dependencyField &&
+            typeof originalData !== "undefined" &&
+            originalData[dependencyField] !== undefined
+        ) {
+            actualAnswer =
+                String(originalData[dependencyField]).trim();
+        }
+
+        console.log(
+            "MERS VISIBILITY: Answer dependency check:",
+            {
+                field: rule.field_id,
+                dependencyField,
+                actualAnswer,
+                requiredAnswer
+            }
+        );
+
+        if (
+            !dependencyField ||
+            actualAnswer.toLowerCase() !==
+            requiredAnswer.toLowerCase()
+        ) {
+            return false;
+        }
+    }
+
+    // --------------------------------------------------
+    // EXISTING VALUE
+    // --------------------------------------------------
+
     if (
         getFieldValue(rule.field_id)
             .toString()
@@ -4600,7 +4663,10 @@ function shouldFieldBeVisible(
         return true;
     }
 
-    // First question
+    // --------------------------------------------------
+    // FIRST QUESTION
+    // --------------------------------------------------
+
     if (currentIndex === 0) {
 
         return (
@@ -4613,11 +4679,14 @@ function shouldFieldBeVisible(
 
     // --------------------------------------------------
     // AFTER_PREVIOUS_COMPLETED
+    // Also supports the combined answer-based rule.
     // --------------------------------------------------
 
     if (
         rule.visibility_rule ===
-        "AFTER_PREVIOUS_COMPLETED"
+            "AFTER_PREVIOUS_COMPLETED" ||
+        rule.visibility_rule ===
+            "AFTER_PREVIOUS_COMPLETED_AND_ANSWER_MATCHES"
     ) {
 
         const previousRule =
@@ -4662,7 +4731,7 @@ function shouldFieldBeVisible(
     }
 
     // --------------------------------------------------
-    // Default
+    // DEFAULT
     // --------------------------------------------------
 
     return (
@@ -4673,44 +4742,20 @@ function shouldFieldBeVisible(
 
 }
 
-
-
-
-  //----------------------------------------------------
-// MERS V2 : Metadata-driven Lookup Filter Engine
-//----------------------------------------------------
-
-function applyLookupFilterRule(
-    ruleName,
-    fieldId,
-    choices
-) {
-
-
- 
-
-    if (!ruleName) return choices;
-
-    switch (ruleName) {
-
-        case "ACCOMMODATION":
-
-            return filterAccommodationChoices(
-                fieldId,
-                choices
-            );
-
-        default:
-
-            return choices;
-
-    }
-
-}
+  
 
 
 
 
+
+
+
+
+
+
+
+
+  
 
 
 
