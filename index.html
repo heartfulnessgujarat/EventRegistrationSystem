@@ -4831,6 +4831,57 @@ function refreshAccommodationChoices() {
 }
 
   
+function applyLookupFilterRule(
+    filterRule,
+    fieldId,
+    choices
+) {
+
+    // No metadata filter configured.
+    if (
+        !filterRule ||
+        String(filterRule).trim() === ""
+    ) {
+        return choices;
+    }
+
+    const rule = String(filterRule).trim();
+
+    // --------------------------------------------
+    // ANSWER-BASED FILTER
+    // Example: is_practitioner=Yes
+    // --------------------------------------------
+
+    const match = rule.match(
+        /^([^=]+)=([^=]+)$/
+    );
+
+    if (!match) {
+        console.warn(
+            "MERS: Unrecognized lookup filter rule:",
+            fieldId,
+            rule
+        );
+        return choices;
+    }
+
+    const dependencyField = match[1].trim();
+    const requiredValue = match[2].trim();
+
+    const actualValue = getFieldValue(
+        dependencyField
+    ).trim();
+
+    if (
+        actualValue.toLowerCase() !==
+        requiredValue.toLowerCase()
+    ) {
+        return [];
+    }
+
+    return choices;
+}
+
 
 
 //----------------------------------------------------
