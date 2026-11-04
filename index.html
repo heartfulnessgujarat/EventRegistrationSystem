@@ -6071,21 +6071,75 @@ try {
         `err-${fId}`
     );
 
-    if (!isValid) {
 
-        if (errDiv) {
-            errDiv.innerText =
-                rule.error_msg || "Invalid input";
 
-            errDiv.style.display = "block";
-        }
+  
+   if (!isValid) {
 
-        checkAllValidations();
+    if (errDiv) {
+        errDiv.innerText =
+            rule.error_msg || "Invalid input";
 
-        return;
+        errDiv.style.display = "block";
     }
 
+    // EMAIL: Hide format-check and send-code buttons
+    // while the entered address is invalid.
 
+    if (fId === 'email') {
+
+        const checkBtn =
+            document.getElementById('vcheck-email');
+
+        const sendBtn =
+            document.getElementById('vbtn-email');
+
+        const msg =
+            document.getElementById('vmsg-email');
+
+        if (checkBtn)
+            checkBtn.style.display = 'none';
+
+        if (sendBtn)
+            sendBtn.style.display = 'none';
+
+        if (msg)
+            msg.style.display = 'none';
+    }
+
+    checkAllValidations();
+
+    return;
+}
+
+  
+// EMAIL: Show format-check button when the
+// entered address becomes syntactically valid.
+
+if (fId === 'email') {
+
+    const checkBtn =
+        document.getElementById('vcheck-email');
+
+    const sendBtn =
+        document.getElementById('vbtn-email');
+
+    const msg =
+        document.getElementById('vmsg-email');
+
+    if (checkBtn)
+        checkBtn.style.display = 'block';
+
+    if (sendBtn)
+        sendBtn.style.display = 'none';
+
+    if (msg)
+        msg.style.display = 'none';
+}
+
+
+
+  
 
   // Clear the error when the value becomes valid.
 if (errDiv) {
