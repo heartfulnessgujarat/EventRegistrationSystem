@@ -1879,6 +1879,20 @@ function selectParticipant(p) {
         }
       }
     });
+
+
+      // ============================================
+    // MERS: REAPPLY CONDITIONAL VISIBILITY
+    // AFTER EXISTING PROFILE IS POPULATED
+    // ============================================
+
+    if (typeof refreshSectionVisibility === 'function') {
+        console.log(
+            "MERS: Reapplying SEARCH_PROFILE visibility after profile selection"
+        );
+
+        refreshSectionVisibility("SEARCH_PROFILE");
+    }
   
     // UI: Reset search results and show navigation buttons
     const resName = document.getElementById('res-full_name');
