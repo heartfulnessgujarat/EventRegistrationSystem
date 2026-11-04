@@ -5983,6 +5983,9 @@ console.log(
   // -----------------------------
 // Validation
 // -----------------------------
+
+
+
 try {
 
     const isValid = validateField(
@@ -5991,17 +5994,49 @@ try {
         rule.field_validation
     );
 
-    // Mobile currently uses only Layer 1:
-    // exactly 10 digits, first digit 6–9.
-    //
-    // Run the main validation engine so that
-    // the validation error/success state is displayed.
+    // ---------------------------------------------
+    // MERS: Display validation result
+    // Applies to Search Profile and New Profile
+    // ---------------------------------------------
 
+    const errDiv = document.getElementById(
+        `err-${fId}`
+    );
+
+    if (!isValid) {
+
+        if (errDiv) {
+            errDiv.innerText =
+                rule.error_msg || "Invalid input";
+
+            errDiv.style.display = "block";
+        }
+
+        checkAllValidations();
+
+        return;
+    }
+
+    // Clear the error when the value becomes valid.
+    if (errDiv) {
+        errDiv.style.display = "none";
+    }
+
+    // Preserve existing mobile validation behaviour.
     if (fId === 'mobile') {
         checkAllValidations();
     }
 
 } catch (err) {
+
+
+
+
+
+  
+
+
+  
 
     alert("❌ " + err);
 
