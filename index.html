@@ -6717,6 +6717,11 @@ console.log(
     if (rule === 'MOB') return /^[6-9]\d{9}$/.test(val);
     if (rule === 'PIN') return /^\d{6}$/.test(val);
     if (rule === 'EMAIL') return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+  
+    if (rule === 'SRCM_WELCOME_ID') {
+        return /^(?:B\d{8}|[A-Z]{6}\d{3})$/i.test(val);
+    }
+
 
  
   // --- ARRIVAL DATE (ESD) ---
