@@ -6017,25 +6017,27 @@ try {
         return;
     }
 
-    // Clear the error when the value becomes valid.
-    if (errDiv) {
-        errDiv.style.display = "none";
-    }
-
-    // Preserve existing mobile validation behaviour.
-    if (fId === 'mobile') {
-        checkAllValidations();
-    }
-
-} catch (err) {
 
 
+  // Clear the error when the value becomes valid.
+if (errDiv) {
+    errDiv.style.display = "none";
+}
+
+// Search Profile: re-evaluate the master update button.
+if (fId === 'srcm_id') {
+    checkAllValidations();
+}
+
+// Preserve existing mobile validation behaviour.
+if (fId === 'mobile') {
+    checkAllValidations();
+}
 
 
 
   
-
-
+} catch (err) {
   
 
     alert("❌ " + err);
