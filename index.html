@@ -4783,15 +4783,9 @@ function shouldFieldBeVisible(
 
 
 
-
-
-
 // --------------------------------------------------
 // AFTER_PREVIOUS_COMPLETED
-// Also supports the combined answer-based rule.
-//
-// Find the nearest preceding VISIBLE field.
-// Hidden conditional fields are automatically skipped.
+// Check only the immediately preceding field.
 // --------------------------------------------------
 
 if (
@@ -4801,51 +4795,32 @@ if (
         "AFTER_PREVIOUS_COMPLETED_AND_ANSWER_MATCHES"
 ) {
 
-    let previousVisibleRule = null;
-
-    // Search backwards through the configured fields.
-    for (
-        let i = currentIndex - 1;
-        i >= 0;
-        i--
-    ) {
-
-        const candidateRule = sectionRules[i];
-
-        const candidateVisible =
-            shouldFieldBeVisible(
-                candidateRule,
-                sectionRules,
-                i
-            );
-
-        if (candidateVisible) {
-            previousVisibleRule = candidateRule;
-            break;
-        }
-    }
-
-    // No preceding visible field found.
-    if (!previousVisibleRule) {
+    if (currentIndex <= 0) {
         return false;
     }
 
-    // Check completion of the nearest visible field.
-    const previousValue = getFieldValue(
-        previousVisibleRule.field_id
-    ).toString().trim();
+    const previousRule =
+        sectionRules[currentIndex - 1];
+
+    if (!previousRule) {
+        return false;
+    }
+
+    const previousValue =
+        getFieldValue(previousRule.field_id)
+            .toString()
+            .trim();
 
     if (previousValue === "") {
         return false;
     }
 
-    // Preserve existing validation behaviour.
-    if (previousVisibleRule.field_validation) {
+    if (previousRule.field_validation) {
 
         const isPreviousValid = validateField(
-            previousVisibleRule.field_id,
+            previousRule.field_id,
             previousValue,
-            previousVisibleRule.field_validation
+            previousRule.field_validation
         );
 
         if (!isPreviousValid) {
@@ -4857,9 +4832,14 @@ if (
 }
 
 
+  
 
 
 
+
+
+
+  
 
   
     // --------------------------------------------------
