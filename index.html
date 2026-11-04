@@ -4674,28 +4674,35 @@ function shouldFieldBeVisible(
     currentIndex
 ) {
 
-    // --------------------------------------------------
-    // EMAIL VERIFICATION GATE
-    // Country must remain hidden until email_e is verified.
-    // --------------------------------------------------
 
-    if (currentIndex > 0) {
 
-        const previousRule =
-            sectionRules[currentIndex - 1];
 
-        if (
-            previousRule &&
-            previousRule.field_id === "email_e" &&
-            (
-                typeof verificationStates === "undefined" ||
-                verificationStates.email_e !== true
-            )
-        ) {
-            return false;
-        }
-    }
 
+// --------------------------------------------------
+// EMAIL VERIFICATION GATE
+// All fields after email_e remain hidden
+// until email verification is successful.
+// --------------------------------------------------
+
+const emailIndex = sectionRules.findIndex(
+    r => r.field_id === "email_e"
+);
+
+if (
+    emailIndex !== -1 &&
+    currentIndex > emailIndex &&
+    (
+        typeof verificationStates === "undefined" ||
+        verificationStates.email_e !== true
+    )
+) {
+    return false;
+}
+
+
+
+
+  
     // --------------------------------------------------
     // ANSWER-BASED VISIBILITY GATE
     // Example:
