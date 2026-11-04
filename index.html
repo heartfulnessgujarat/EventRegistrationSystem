@@ -2919,30 +2919,77 @@ console.log("MERS EMAIL ELEMENT DIAGNOSTIC:", {
 });
 
 
+
+// =====================================================
+// MERS: RESOLVE PARTICIPANT CLASSIFICATION
+// =====================================================
+
+const practitionerAnswer = String(
+    mersTempData?.is_practitioner ||
+    originalData?.is_practitioner ||
+    ""
+).trim().toLowerCase();
+
+if (!["yes", "no"].includes(practitionerAnswer)) {
+    throw new Error(
+        "Participant classification is missing. Please revisit Section 0."
+    );
+}
+
+const participantType =
+    practitionerAnswer === "yes"
+        ? "Internal"
+        : "External";
+
+
+// =====================================================
+// MERS: RESOLVE SRCM / WELCOME ID
+// Search Profile: srcm_id
+// New Profile: srcm_id_e
+// =====================================================
+
+const srcmId =
+    getFreshVal('srcm_id') ||
+    getFreshVal('srcm_id_e');
+
+
+// =====================================================
+// FINAL SECTION 1 DATA
+// =====================================================
+
+const updatedSection1 = {
+    full_name: getFreshVal('full_name'),
+    full_name_e: getFreshVal('full_name_e'),
+    email: getFreshVal('email'),
+    mobile: getFreshVal('mobile'),
+    organization: getFreshVal('organization'),
+    designation: getFreshVal('designation'),
+    pincode: getFreshVal('pincode'),
+    full_address: getFreshVal('full_address'),
+    centre: getFreshVal('centre'),
+    city: getFreshVal('city'),
+    zone: getFreshVal('zone'),
+    district: getFreshVal('district'),
+    state: getFreshVal('state'),
+    region: getFreshVal('region'),
+    country: getFreshVal('country'),
+
+    // New master database fields
+    srcm_id: srcmId,
+    participant_type: participantType
+};
+
+console.log("MERS MASTER PROFILE DATA:", {
+    srcm_id: updatedSection1.srcm_id,
+    participant_type: updatedSection1.participant_type,
+    practitionerAnswer
+});
+
+
         
-          const updatedSection1 = {
-              full_name: getFreshVal('full_name'),
-            full_name_e: getFreshVal('full_name_e'),
-  
-            
-            email: getFreshVal('email'),
-  mobile: getFreshVal('mobile'),
-  
-            
-              organization: getFreshVal('organization'),
-              designation: getFreshVal('designation'),
-              pincode: getFreshVal('pincode'),
-              full_address: getFreshVal('full_address'),
-              centre: getFreshVal('centre'),
-              city: getFreshVal('city'),
-              zone: getFreshVal('zone'),
-              district: getFreshVal('district'),
-              state: getFreshVal('state'),
-              region: getFreshVal('region'),
-              country: getFreshVal('country')
-          };
 
 
+        
         
   
   // =====================================================
