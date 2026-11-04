@@ -2484,8 +2484,42 @@ checkAllValidations();
       fieldRules.forEach(r => {
         const input = getFieldElement(r.field_id);
         const errDiv = document.getElementById(`err-${r.field_id}`);
+
+
+        
         if (input) {
+
+
+    // =====================================================
+    // SKIP HIDDEN FIELDS
+    // Hidden conditional fields must not block validation.
+    // =====================================================
+
+    const isActuallyVisible =
+        input.getClientRects().length > 0 &&
+        getComputedStyle(input).visibility !== "hidden";
+
+    if (!isActuallyVisible) {
+
+        if (errDiv) {
+            errDiv.style.display = "none";
+        }
+
+        return; // Skip this field in the forEach callback.
+    }
+
+
+
+
+
+
+
+
+          
           let isValid = validateField(r.field_id, input.value, r.field_validation);
+
+
+          
         //  let isChanged = input.value !== (originalData[r.field_id] || "");
   
   let compareValue = input.value;
