@@ -3094,7 +3094,10 @@ if (
         
           const overlay = document.getElementById('processing-overlay');
           if (overlay) overlay.style.display = 'block';
-  
+
+
+
+        
           // --- STEP 2: UPDATE MASTER DATABASE (EVENT-TYPE AWARE) ---
           const masterRef = db.ref('masters/Master_Internal_DB');
           const eventType = (typeof eventConfig !== 'undefined' && eventConfig.event_type) 
@@ -8939,6 +8942,22 @@ conditionFields.forEach(field => {
 
 });
 
+
+console.log("MERS SECTION 0 CAPTURE VERIFICATION:", {
+    is_practitioner: mersTempData?.is_practitioner,
+    attended_before: mersTempData?.attended_before,
+    original_is_practitioner: originalData?.is_practitioner,
+    original_attended_before: originalData?.attended_before
+});
+
+
+
+
+
+
+
+
+  
     // -----------------------------------------------
     // 3. Get destination section
     // -----------------------------------------------
