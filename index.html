@@ -6156,7 +6156,10 @@ if (fId === 'mobile') {
     checkAllValidations();
 }
 
-
+// Re-evaluate email verification panel after valid email entry.
+if (fId === 'email') {
+    checkAllValidations();
+}
 
   
 } catch (err) {
