@@ -5370,13 +5370,25 @@ async function populateLookupField(rule, input) {
             choices
         );
 
-        // --------------------------------------------
-        // POPULATE DROPDOWN
-        // --------------------------------------------
 
-        input.innerHTML = "";
 
-        [...new Set(choices)].forEach(choice => {
+
+      // --------------------------------------------
+// POPULATE DROPDOWN
+// --------------------------------------------
+
+// Preserve the placeholder while clearing old choices.
+input.innerHTML = "";
+
+const blank = document.createElement("option");
+
+blank.value = "";
+blank.text = "-- Select --";
+
+input.appendChild(blank);
+
+[...new Set(choices)].forEach(choice => {
+          
 
             const opt = document.createElement("option");
 
