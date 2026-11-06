@@ -1205,13 +1205,23 @@ div.style.textAlign = "left";
                 : 'block';
 
 
-      
-        const needsEditLink =
+    const needsEditLink =
+    currentSectionId === "SEARCH_PROFILE"
+        ? (
+            r.edit_behavior === "Editable_Verify" &&
+            ['mobile', 'email'].includes(r.field_id)
+        )
+        : (
             [
                 'Editable',
                 'Editable_Verify',
                 'Editable_Lookup'
-            ].includes(r.edit_behavior);
+            ].includes(r.edit_behavior)
+        );
+
+
+
+      
 
         // =====================================================
         // FIELD HTML
