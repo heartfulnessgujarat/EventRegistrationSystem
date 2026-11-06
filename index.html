@@ -5247,8 +5247,15 @@ async function populateLookupField(rule, input) {
 // MERS V2 : Clear and Reload Dependent Lookup Fields
 //----------------------------------------------------
 
-async function clearAndReloadDependentFields(parentFieldId) {
+ // async function clearAndReloadDependentFields(parentFieldId) {
 
+  async function clearAndReloadDependentFields(
+    parentFieldId,
+    preserveOriginalData = false
+) {
+
+
+  
     const dependentRules = fieldRules.filter(rule =>
         String(rule.dependency_field || "").trim() ===
         parentFieldId
@@ -5275,17 +5282,27 @@ async function clearAndReloadDependentFields(parentFieldId) {
 
         }
 
-        // Clear temporary and previously saved values.
-        mersTempData[childFieldId] = "";
 
-        if (originalData) {
-            originalData[childFieldId] = "";
-        }
 
-        // Clear lower-level descendants first.
-        await clearAndReloadDependentFields(
-            childFieldId
-        );
+   // Clear temporary value.
+mersTempData[childFieldId] = "";
+
+// Clear original value only when preservation is not requested.
+if (!preserveOriginalData && originalData) {
+    originalData[childFieldId] = "";
+}
+
+
+
+      
+// Clear lower-level descendants first.
+await clearAndReloadDependentFields(
+    childFieldId,
+    preserveOriginalData
+);
+
+
+      
 
         // Reload this child's choices using its parent.
         if (
