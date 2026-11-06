@@ -1516,11 +1516,23 @@ else if (
       
       input.onchange = async function () {
 
-    await handleFieldChange(
-        this,
-        r
-    );
+    // Save and validate only when a value is selected.
+    if (this.value !== "") {
 
+        await handleFieldChange(
+            this,
+            r
+        );
+
+    } else {
+
+        // Save the empty value in temporary data.
+        mersTempData[r.field_id] = "";
+
+    }
+
+    // Always refresh dependent fields,
+    // including when the parent selection is cleared.
     await handleDependentLookupChange(
         r,
         this,
@@ -1530,8 +1542,7 @@ else if (
 };
 
 
-
-
+      
       
 
 
