@@ -1435,7 +1435,6 @@ if (
 }
 
       
-
 // =====================================================
 // ALL OTHER SEARCH_PROFILE FIELDS
 // =====================================================
@@ -1449,15 +1448,10 @@ else if (
         r.field_id
     );
 
-    const input =
-        document.createElement("input");
-
-    input.type = "text";
-    input.id = r.field_id;
-    input.autocomplete = "off";
+    let input;
 
     // -------------------------------------------------
-    // MERS V3 : RESTORE SAVED VALUE
+    // RESTORE SAVED VALUE
     // -------------------------------------------------
 
     const savedValue =
@@ -1470,34 +1464,121 @@ else if (
         savedValue
     );
 
+    // -------------------------------------------------
+    // LOOKUP FIELD → SELECT
+    // -------------------------------------------------
+
     if (
-        savedValue !== undefined &&
-        savedValue !== null
+        r.lookup_tab &&
+        r.lookup_column
     ) {
 
-        input.value =
-            String(savedValue);
+        input =
+            document.createElement("select");
+
+        input.className = "form-control";
+        input.id = r.field_id;
+
+        // Preserve saved value for lookup population.
+        input.dataset.savedValue =
+            savedValue !== undefined &&
+            savedValue !== null
+                ? String(savedValue)
+                : "";
+
+        // Placeholder
+        const blank =
+            document.createElement("option");
+
+        blank.value = "";
+        blank.text = "-- Select --";
+
+        input.appendChild(blank);
+
+        // Populate lookup choices.
+        await populateLookupField(
+            r,
+            input
+        );
+
+        // Retain existing SEARCH_PROFILE locking.
+        input.disabled = true;
+
+        // Handle parent/child lookup changes.
+        input.onchange = async function () {
+
+            await handleFieldChange(
+                this,
+                r
+            );
+
+            await clearAndReloadDependentFields(
+                r.field_id,
+                true
+            );
+
+            refreshSectionVisibility(
+                "SEARCH_PROFILE"
+            );
+
+            updateButtonState();
+
+        };
 
     }
 
-    // These fields are not manually entered
-    // during the initial participant-search stage.
-    input.disabled = true;
+    // -------------------------------------------------
+    // NORMAL TEXT FIELD
+    // -------------------------------------------------
 
-    input.oninput = function () {
+    else {
 
-        handleFieldChange(
-            this,
-            r
-        );
+        input =
+            document.createElement("input");
 
-    };
+        input.type = "text";
+        input.id = r.field_id;
+        input.autocomplete = "off";
+
+        if (
+            savedValue !== undefined &&
+            savedValue !== null
+        ) {
+
+            input.value =
+                String(savedValue);
+
+        }
+
+        // Retain existing SEARCH_PROFILE locking.
+        input.disabled = true;
+
+        input.oninput = function () {
+
+            handleFieldChange(
+                this,
+                r
+            );
+
+        };
+
+    }
 
     holder.appendChild(input);
 
 }
-          
 
+
+
+
+
+
+
+
+
+
+
+  
         // =====================================================
         // NORMAL METADATA-DRIVEN FIELD
         // Used by Section1 / other non-profile sections
