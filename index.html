@@ -1510,27 +1510,29 @@ else if (
 
       
         // Handle parent/child lookup changes.
-input.onchange = async function () {
+
+
+
+      
+      input.onchange = async function () {
 
     await handleFieldChange(
         this,
         r
     );
 
-    await clearAndReloadDependentFields(
-        r.field_id,
+    await handleDependentLookupChange(
+        r,
+        this,
         true
     );
-
-    refreshSectionVisibility(
-        "SEARCH_PROFILE"
-    );
-
-    updateButtonState();
 
 };
 
 
+
+
+      
 
 
 
