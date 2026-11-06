@@ -1495,36 +1495,48 @@ else if (
 
         input.appendChild(blank);
 
+
+      
         // Populate lookup choices.
-        await populateLookupField(
-            r,
-            input
-        );
+      // Lookup population will be handled
+// sequentially after all fields are created.
+      
 
         // Retain existing SEARCH_PROFILE locking.
         input.disabled = true;
 
+
+
+
+      
         // Handle parent/child lookup changes.
-        input.onchange = async function () {
+input.onchange = async function () {
 
-            await handleFieldChange(
-                this,
-                r
-            );
+    await handleFieldChange(
+        this,
+        r
+    );
 
-            await clearAndReloadDependentFields(
-                r.field_id,
-                true
-            );
+    await clearAndReloadDependentFields(
+        r.field_id,
+        true
+    );
 
-            refreshSectionVisibility(
-                "SEARCH_PROFILE"
-            );
+    refreshSectionVisibility(
+        "SEARCH_PROFILE"
+    );
 
-            updateButtonState();
+    updateButtonState();
 
-        };
+};
 
+
+
+
+
+
+
+      
     }
 
     // -------------------------------------------------
