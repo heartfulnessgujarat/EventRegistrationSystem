@@ -5496,12 +5496,18 @@ await clearAndReloadDependentFields(
 // MERS V2 : Handle Parent Lookup Selection Change
 //----------------------------------------------------
 
-async function handleDependentLookupChange(rule, input) {
+
+async function handleDependentLookupChange(
+    rule,
+    input,
+    preserveOriginalData = false
+) {
 
     mersTempData[rule.field_id] = input.value;
 
     await clearAndReloadDependentFields(
-        rule.field_id
+        rule.field_id,
+        preserveOriginalData
     );
 
     refreshSectionVisibility(rule.section_id);
@@ -5515,8 +5521,6 @@ async function handleDependentLookupChange(rule, input) {
     );
 
 }
-
-
 
 
   
