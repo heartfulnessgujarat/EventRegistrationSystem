@@ -1957,28 +1957,54 @@ function selectParticipant(p) {
     checkAllValidations();
   }
   
-  
-    
   function enableEditMode() {
-      document.getElementById('btns-start').style.display = 'none';
-      document.getElementById('btn-master-update').style.display = 'block';
-      
-      fieldRules.forEach(r => {
-          const editLink = document.getElementById(`edit-link-${r.field_id}`);
-          const helpEl = document.getElementById(`help-${r.field_id}`);
-          const canBeEdited = ['Editable', 'Editable_Verify', 'Editable_Lookup'].includes(r.edit_behavior);
-          
-          // Only show the edit link if it's editable AND NOT the full_name field
-          if (editLink && canBeEdited && r.field_id !== 'full_name') {
-              editLink.style.display = 'inline';
-          }
-          
-          if (helpEl && helpEl.innerText.trim() !== "") {
-              helpEl.style.display = 'block';
-          }
-      });
-  }
 
+    // 1. Preserve existing button visibility logic
+    document.getElementById('btns-start').style.display = 'none';
+    document.getElementById('btn-master-update').style.display = 'block';
+
+    // 2. Process all field rules
+    fieldRules.forEach(r => {
+
+        const editLink = document.getElementById(`edit-link-${r.field_id}`);
+        const helpEl = document.getElementById(`help-${r.field_id}`);
+
+        // 3. Full Name must always remain locked
+        if (r.field_id === 'full_name') return;
+
+        const editBehavior = String(r.edit_behavior || '').trim();
+
+        // 4. Directly editable fields
+        const canEditDirectly = [
+            'Editable_Text',
+            'Editable_Dropdown',
+            'Editable_Lookup',
+            'Editable (temporary alias)'
+        ].includes(editBehavior);
+
+        if (canEditDirectly) {
+            const input = getFieldElement(r.field_id);
+
+            if (input) {
+                input.disabled = false;
+            }
+        }
+
+        // 5. Mobile and Email retain their individual Edit links
+        if (
+            editLink &&
+            editBehavior === 'Editable_Verify' &&
+            ['mobile', 'email'].includes(r.field_id)
+        ) {
+            editLink.style.display = 'inline';
+        }
+
+        // 6. Preserve existing help-text display logic
+        if (helpEl && helpEl.innerText.trim() !== "") {
+            helpEl.style.display = 'block';
+        }
+    });
+}
 
   
   function unlockField(id) {
