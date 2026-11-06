@@ -1752,9 +1752,86 @@ input.appendChild(blank);
     );
 }
 
+     
       
     });
 
+
+// =====================================================
+// MERS: SEQUENTIAL SEARCH_PROFILE LOOKUP INITIALIZATION
+// Country → State → District
+// =====================================================
+
+if (currentSectionId === "SEARCH_PROFILE") {
+
+    (async function () {
+
+        console.log(
+            "MERS: Starting sequential location lookup initialization"
+        );
+
+        try {
+
+            const locationRules = fieldRules.filter(rule =>
+                rule.section_id === "SEARCH_PROFILE" &&
+                rule.lookup_tab &&
+                rule.lookup_column
+            );
+
+            // Process in Field_Rules order.
+            // Country must precede State, and State must precede District.
+
+            for (const rule of locationRules) {
+
+                const input =
+                    document.getElementById(rule.field_id);
+
+                if (!input || input.tagName !== "SELECT") {
+                    continue;
+                }
+
+                console.log(
+                    "MERS: Loading lookup:",
+                    rule.field_id
+                );
+
+                await populateLookupField(
+                    rule,
+                    input
+                );
+
+                console.log(
+                    "MERS: Lookup loaded:",
+                    rule.field_id,
+                    "Selected value:",
+                    input.value
+                );
+
+            }
+
+            updateButtonState();
+
+            console.log(
+                "MERS: Sequential location lookup initialization completed"
+            );
+
+        } catch (err) {
+
+            console.error(
+                "MERS: Location lookup initialization error:",
+                err
+            );
+
+        }
+
+    })();
+
+}
+
+
+
+
+    
 // =====================================================
 // MERS: SEARCH_PROFILE CONDITIONAL VISIBILITY
 // =====================================================
