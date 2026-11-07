@@ -2021,12 +2021,29 @@ function selectParticipant(p) {
     
     if (el) {
       // Logic to fetch value from participant object p
-      const masterValue = p[r.field_id] || p[r.field_id.replace('_',' ')] || "";
- //     el.value = masterValue;
 
 
-      el.value = masterValue;
-  
+      
+    const masterValue =
+    p[r.field_id] ||
+    p[r.field_id.replace('_', ' ')] ||
+    "";
+
+if (el.tagName === "SELECT") {
+
+    // Preserve the participant's saved value.
+    // The lookup options may not yet be populated.
+    el.dataset.savedValue = String(masterValue);
+
+} else {
+
+    el.value = masterValue;
+
+}
+
+
+
+      
   // ============================================
   // MASK ONLY LOCKED DISPLAY
   // ============================================
@@ -2088,18 +2105,84 @@ function selectParticipant(p) {
     });
 
 
-      // ============================================
-    // MERS: REAPPLY CONDITIONAL VISIBILITY
-    // AFTER EXISTING PROFILE IS POPULATED
-    // ============================================
+// ============================================
+// MERS: RESTORE SEARCH_PROFILE LOOKUPS
+// Country → State → District
+// ============================================
 
-    if (typeof refreshSectionVisibility === 'function') {
-        console.log(
-            "MERS: Reapplying SEARCH_PROFILE visibility after profile selection"
+(async function () {
+
+    console.log(
+        "MERS: Reinitializing participant location lookups"
+    );
+
+    try {
+
+        const locationRules = fieldRules.filter(rule =>
+            rule.section_id === "SEARCH_PROFILE" &&
+            rule.lookup_tab &&
+            rule.lookup_column
         );
 
-        refreshSectionVisibility("SEARCH_PROFILE");
+        for (const rule of locationRules) {
+
+            const input = getFieldElement(rule.field_id);
+
+            if (!input || input.tagName !== "SELECT") {
+                continue;
+            }
+
+            console.log(
+                "MERS: Restoring lookup:",
+                rule.field_id,
+                "Saved value:",
+                input.dataset.savedValue
+            );
+
+            await populateLookupField(rule, input);
+
+            console.log(
+                "MERS: Restored lookup:",
+                rule.field_id,
+                "Selected value:",
+                input.value
+            );
+
+        }
+
+        console.log(
+            "MERS: Participant location lookups restored"
+        );
+
+    } catch (err) {
+
+        console.error(
+            "MERS: Participant lookup restoration failed:",
+            err
+        );
+
     }
+
+})();
+
+
+// ============================================
+// MERS: REAPPLY CONDITIONAL VISIBILITY
+// AFTER EXISTING PROFILE IS POPULATED
+// ============================================
+
+if (typeof refreshSectionVisibility === 'function') {
+
+    console.log(
+        "MERS: Reapplying SEARCH_PROFILE visibility after profile selection"
+    );
+
+    refreshSectionVisibility("SEARCH_PROFILE");
+
+}
+
+  
+
   
     // UI: Reset search results and show navigation buttons
     const resName = document.getElementById('res-full_name');
