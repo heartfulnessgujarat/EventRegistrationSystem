@@ -1653,6 +1653,48 @@ else if (
 
     }
 
+
+
+    // ============================================
+    // RESTORE LOCKED MOBILE / EMAIL METADATA
+    // AFTER BACK NAVIGATION
+    // ============================================
+
+    if (['mobile', 'email'].includes(r.field_id)) {
+
+        const originalProfileValue =
+            (
+                typeof originalData !== 'undefined' &&
+                originalData[r.field_id] !== undefined &&
+                originalData[r.field_id] !== null &&
+                String(originalData[r.field_id]).trim() !== ''
+            )
+                ? String(originalData[r.field_id]).trim()
+                : String(savedValue || '').trim();
+
+        input.dataset.originalValue = originalProfileValue;
+
+        if (r.field_id === 'mobile') {
+            input.value = maskMobile(originalProfileValue);
+        } else {
+            input.value = maskEmail(originalProfileValue);
+        }
+
+        input.dataset.maskedValue = input.value;
+
+        // Existing Mobile and Email remain locked.
+        input.disabled = true;
+    }
+
+    holder.appendChild(input);
+
+
+
+
+
+
+
+  
     holder.appendChild(input);
 
 }
