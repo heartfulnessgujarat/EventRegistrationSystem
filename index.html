@@ -1410,7 +1410,10 @@ if (
     input.type = "text";
     input.id = r.field_id;
     input.autocomplete = "off";
-    input.disabled = false;
+ //   input.disabled = false;
+
+
+  
 
     // -------------------------------------------------
     // MERS V3 : RESTORE SAVED FULL NAME
@@ -1418,6 +1421,9 @@ if (
 
     const savedValue =
         getFieldValue(r.field_id);
+
+  input.disabled =
+    String(savedValue || '').trim() !== '';
 
     console.log(
         "SEARCH_PROFILE RESTORE:",
