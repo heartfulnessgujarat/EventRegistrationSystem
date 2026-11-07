@@ -4922,32 +4922,56 @@ function shouldFieldBeVisible(
 
 
 
-
-
 // --------------------------------------------------
 // EMAIL VERIFICATION GATE
-// All fields after email_e remain hidden
-// until email verification is successful.
+// Existing unchanged email does not require
+// fresh verification.
+// New or modified email requires verification.
 // --------------------------------------------------
 
 const emailIndex = sectionRules.findIndex(
-  //  r => r.field_id === "email_e"
-  r => r.field_id === "email"
+    r => r.field_id === "email"
 );
+
+const emailInput = getFieldElement("email");
+
+const hasExistingEmail =
+    emailInput &&
+    emailInput.dataset.originalValue !== undefined;
+
+let emailNeedsVerification = true;
+
+if (hasExistingEmail) {
+
+    const originalEmail =
+        String(emailInput.dataset.originalValue || "").trim();
+
+    const currentEmail =
+        String(emailInput.value || "").trim();
+
+    emailNeedsVerification =
+        !emailInput.disabled &&
+        currentEmail !== originalEmail;
+}
 
 if (
     emailIndex !== -1 &&
     currentIndex > emailIndex &&
+    emailNeedsVerification &&
     (
         typeof verificationStates === "undefined" ||
-    //    verificationStates.email_e !== true
-      verificationStates.email !== true
+        verificationStates.email !== true
     )
 ) {
     return false;
 }
 
 
+  
+
+
+
+  
 
 
   
