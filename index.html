@@ -1004,6 +1004,8 @@ rules.forEach(rule => {
     fieldContainer.appendChild(spacer2);
 
 
+
+  
     // -------------------------------------------------
     // SELECT
     // -------------------------------------------------
@@ -1013,6 +1015,27 @@ rules.forEach(rule => {
 
     select.id =
         `pc_${rule.field_id}`;
+
+// -------------------------------------------------
+// RESTORE PREVIOUSLY SAVED SECTION 0 ANSWER
+// -------------------------------------------------
+
+const savedAnswer =
+    mersTempData?.[rule.field_id] ||
+    originalData?.[rule.field_id] ||
+    "";
+
+select.dataset.savedValue = savedAnswer;
+
+console.log(
+    "MERS SECTION 0: Saved answer prepared:",
+    rule.field_id,
+    savedAnswer
+);
+
+
+
+  
 
     select.style.width =
         "100%";
