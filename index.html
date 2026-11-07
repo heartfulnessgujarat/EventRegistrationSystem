@@ -1423,6 +1423,9 @@ if (
         savedValue
     );
 
+
+
+  
     if (
         savedValue !== undefined &&
         savedValue !== null
@@ -1433,6 +1436,35 @@ if (
 
     }
 
+
+
+      // ============================================
+    // RESTORE LOCKED MOBILE / EMAIL METADATA
+    // ============================================
+
+    if (['mobile', 'email'].includes(r.field_id)) {
+
+        const currentSavedValue =
+            String(savedValue || '');
+
+        input.dataset.originalValue =
+            currentSavedValue;
+
+        if (r.field_id === 'mobile') {
+
+            input.value = maskMobile(currentSavedValue);
+
+        } else if (r.field_id === 'email') {
+
+            input.value = maskEmail(currentSavedValue);
+
+        }
+
+        input.dataset.maskedValue = input.value;
+    }
+
+
+  
     input.oninput = function () {
 
         console.log(
