@@ -2002,6 +2002,15 @@ function selectParticipant(p) {
 //  fieldRules.forEach(r => {
 
 
+  console.log("PARTICIPANT LOCATION DATA:", {
+    state_lowercase: p.state,
+    state_capitalized: p.State,
+    district_lowercase: p.district,
+    district_capitalized: p.District,
+    country: p.country,
+    allKeys: Object.keys(p)
+});
+
   fieldRules
     .filter(r => r.section_id === "SEARCH_PROFILE")
     .forEach(r => {
