@@ -1880,12 +1880,39 @@ if (currentSectionId === "SEARCH_PROFILE") {
 
             }
 
+
+
+          
+    
+     //       updateButtonState();
+
+   //         console.log(
+   //            "MERS: Sequential location lookup initialization completed"
+    //        );
+
+            // =====================================================
+            // REFRESH SEARCH_PROFILE VISIBILITY AFTER LOOKUP RESTORE
+            // =====================================================
+
+            if (currentSectionId === "SEARCH_PROFILE") {
+
+                console.log(
+                    "MERS: Refreshing SEARCH_PROFILE visibility after lookup restoration"
+                );
+
+                refreshSectionVisibility("SEARCH_PROFILE");
+            }
+
             updateButtonState();
 
             console.log(
                 "MERS: Sequential location lookup initialization completed"
             );
 
+
+
+
+          
         } catch (err) {
 
             console.error(
@@ -2294,6 +2321,7 @@ if (typeof refreshSectionVisibility === 'function') {
     // 4. Final Validation
     checkAllValidations();
   }
+
   
   function enableEditMode() {
 
