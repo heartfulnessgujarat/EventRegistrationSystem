@@ -2502,9 +2502,9 @@ if (panel) {
   
 async function verifyCodeInput(type, code) {
 
-    const isEmailType =
-     //   type === 'email' || type === 'email_e';
-   type === 'email' || type === 'email';
+  //  const isEmailType = type === 'email' || type === 'email_e';
+      const isEmailType = type === 'email' || type === 'email';
+ 
 
     const isMobileType =
         type === 'mobile';
@@ -3202,9 +3202,10 @@ const participantType =
 // =====================================================
 
 const srcmId =
-    getFreshVal('srcm_id') ||
-//    getFreshVal('srcm_id_e');
-      getFreshVal('srcm_id');
+  //  getFreshVal('srcm_id') || getFreshVal('srcm_id_e');
+
+  getFreshVal('srcm_id') || getFreshVal('srcm_id');
+      
 
 
 // =====================================================
@@ -3327,10 +3328,9 @@ const hasFullName =
         String(updatedSection1.full_name || "").trim()
     );
 
-const hasFullNameE =
-    Boolean(
-     //   String(updatedSection1.full_name_e || "").trim()
-      String(updatedSection1.full_name || "").trim()
+// const hasFullNameE = Boolean(String(updatedSection1.full_name_e || "").trim()
+        const hasFullNameE = Boolean(String(updatedSection1.full_name || "").trim()
+      
     );
 
 if (
@@ -4437,11 +4437,9 @@ return registrationId;
     // IDENTIFY THE CORRESPONDING VERIFICATION CONTROLS
     // =====================================================
 
-    const suffix =
-      //  fieldId === 'email_e'
-      //      ? 'email_e'
-      fieldId === 'email'
-            ? 'email'
+ //   const suffix =  fieldId === 'email_e'  ? 'email_e'
+     const suffix =  fieldId === 'email'  ? 'email'
+         
             : 'email';
 
     const vBtn =
