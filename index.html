@@ -9527,14 +9527,19 @@ console.log("MERS SECTION 0 CAPTURE VERIFICATION:", {
 
 
 
-  if (
-    ["Section1", "Section3"].includes(nextSectionId)
+if (
+    ["Section1", "Section3", "SEARCH_PROFILE"].includes(nextSectionId)
 ) {
 
     window.mersProfileOrigin = "Section0";
 
-    // MERS: Start navigation history from Participant Classification.
+    // Start navigation history from Participant Classification.
     mersSectionHistory = ["Section0"];
+
+    // Record SEARCH_PROFILE when it is the configured destination.
+    if (nextSectionId === "SEARCH_PROFILE") {
+        mersSectionHistory.push("SEARCH_PROFILE");
+    }
 
     console.log(
         "MERS: Profile origin recorded:",
@@ -9549,7 +9554,11 @@ console.log("MERS SECTION 0 CAPTURE VERIFICATION:", {
 }
 
 
+  
 
+
+
+  
 
 
   
