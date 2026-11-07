@@ -1999,7 +1999,12 @@ function selectParticipant(p) {
   }
   // --------------------------------------------------
 
-  fieldRules.forEach(r => {
+//  fieldRules.forEach(r => {
+
+
+  fieldRules
+    .filter(r => r.section_id === "SEARCH_PROFILE")
+    .forEach(r => {
 
     const el = getFieldElement(r.field_id);
     const cont = document.getElementById(`cont-${r.field_id}`);
