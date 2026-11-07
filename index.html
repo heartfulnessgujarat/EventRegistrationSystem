@@ -2314,9 +2314,12 @@ if (type === 'email') {
     // Existing Search Profile email
     targetEmail = getFieldElement('email').value.trim();
 
-} else if (type === 'email_e') {
+// } else if (type === 'email_e') {
+
+  } else if (type === 'email') {
     // New Profile email
-    targetEmail = getFieldElement('email_e').value.trim();
+  //  targetEmail = getFieldElement('email_e').value.trim();
+  targetEmail = getFieldElement('email').value.trim();
 
 } else {
     // Preserve the existing fallback
@@ -2342,7 +2345,9 @@ if (type === 'email') {
     
 // if (type === 'email') {
 
-  if (type === 'email' || type === 'email_e') {
+//  if (type === 'email' || type === 'email_e') {
+
+    if (type === 'email' || type === 'email') {
 
   const participantName =
     mersTempData.full_name ||
@@ -2498,7 +2503,8 @@ if (panel) {
 async function verifyCodeInput(type, code) {
 
     const isEmailType =
-        type === 'email' || type === 'email_e';
+     //   type === 'email' || type === 'email_e';
+   type === 'email' || type === 'email';
 
     const isMobileType =
         type === 'mobile';
@@ -3197,7 +3203,8 @@ const participantType =
 
 const srcmId =
     getFreshVal('srcm_id') ||
-    getFreshVal('srcm_id_e');
+//    getFreshVal('srcm_id_e');
+      getFreshVal('srcm_id');
 
 
 // =====================================================
@@ -3206,7 +3213,7 @@ const srcmId =
 
 const updatedSection1 = {
     full_name: getFreshVal('full_name'),
-    full_name_e: getFreshVal('full_name_e'),
+ //   full_name_e: getFreshVal('full_name_e'),
     email: getFreshVal('email'),
     mobile: getFreshVal('mobile'),
     organization: getFreshVal('organization'),
@@ -3322,7 +3329,8 @@ const hasFullName =
 
 const hasFullNameE =
     Boolean(
-        String(updatedSection1.full_name_e || "").trim()
+     //   String(updatedSection1.full_name_e || "").trim()
+      String(updatedSection1.full_name || "").trim()
     );
 
 if (
@@ -3403,32 +3411,39 @@ const isInternalProfile = attendedBefore === "yes";
 
 formData.final_name = isInternalProfile
     ? String(formData.full_name || "").trim()
-    : String(formData.full_name_e || "").trim();
+//    : String(formData.full_name_e || "").trim();
+        : String(formData.full_name || "").trim();
 
 formData.final_mobile = isInternalProfile
     ? String(formData.mobile || "").trim()
-    : String(formData.mobile_e || "").trim();
+//    : String(formData.mobile_e || "").trim();
+        : String(formData.mobile || "").trim();
 
 formData.final_email = isInternalProfile
     ? String(formData.email || "").trim()
-    : String(formData.email_e || "").trim();
+  //  : String(formData.email_e || "").trim();
+        : String(formData.email || "").trim();
 
 formData.final_country = isInternalProfile
     ? String(formData.country || "").trim()
-    : String(formData.country_e || "").trim();
+//    : String(formData.country_e || "").trim();
+        : String(formData.country || "").trim();
 
 formData.final_state = isInternalProfile
     ? String(formData.state || "").trim()
-    : String(formData.state_e || "").trim();
+//    : String(formData.state_e || "").trim();
+        : String(formData.state || "").trim();
 
 formData.final_district = isInternalProfile
     ? String(formData.district || "").trim()
-    : String(formData.district_e || "").trim();
+//    : String(formData.district_e || "").trim();
+        : String(formData.district || "").trim();
 
 
         formData.final_centre = isInternalProfile
     ? String(formData.centre || "").trim()
-    : String(formData.centre_e || "").trim();
+//    : String(formData.centre_e || "").trim();
+        : String(formData.centre || "").trim();
 
 formData.final_zone = isInternalProfile
     ? String(formData.zone || "").trim()
@@ -3439,7 +3454,8 @@ formData.final_zone = isInternalProfile
 
 formData.final_pincode = isInternalProfile
     ? String(formData.pincode || "").trim()
-    : String(formData.pincode_e || "").trim();
+ //   : String(formData.pincode_e || "").trim();
+        : String(formData.pincode || "").trim();
 
 console.log("MERS COMMON FIELD DIAGNOSTIC:", {
     attended_before: formData.attended_before,
@@ -3471,13 +3487,13 @@ console.log("MERS COMMON FIELD DIAGNOSTIC:", {
         console.log("EMAIL DATA FLOW DIAGNOSTIC:", {
     mode: mode,
     updatedSection1_email: updatedSection1.email,
-    updatedSection1_email_e: updatedSection1.email_e,
+//    updatedSection1_email_e: updatedSection1.email_e,
     mersTempData_email: mersTempData?.email,
-    mersTempData_email_e: mersTempData?.email_e,
+//    mersTempData_email_e: mersTempData?.email_e,
     originalData_email: originalData?.email,
-    originalData_email_e: originalData?.email_e,
+ //   originalData_email_e: originalData?.email_e,
     final_formData_email: formData.email,
-    final_formData_email_e: formData.email_e
+  //  final_formData_email_e: formData.email_e
 });
 
 
@@ -4422,8 +4438,10 @@ return registrationId;
     // =====================================================
 
     const suffix =
-        fieldId === 'email_e'
-            ? 'email_e'
+      //  fieldId === 'email_e'
+      //      ? 'email_e'
+      fieldId === 'email'
+            ? 'email'
             : 'email';
 
     const vBtn =
@@ -4910,7 +4928,8 @@ function shouldFieldBeVisible(
 // --------------------------------------------------
 
 const emailIndex = sectionRules.findIndex(
-    r => r.field_id === "email_e"
+  //  r => r.field_id === "email_e"
+  r => r.field_id === "email"
 );
 
 if (
@@ -4918,7 +4937,8 @@ if (
     currentIndex > emailIndex &&
     (
         typeof verificationStates === "undefined" ||
-        verificationStates.email_e !== true
+    //    verificationStates.email_e !== true
+      verificationStates.email !== true
     )
 ) {
     return false;
@@ -5875,23 +5895,28 @@ input.onchange = async function() {
 console.log(
     "MERS EMAIL CONTROL CHECK:",
     "fieldId =", fieldId,
-    "matches email_e =", fieldId === 'email_e'
+ //   "matches email_e =", fieldId === 'email_e'
+  "matches email =", fieldId === 'email'
 );
 
               
 
-if (fieldId === 'email_e') {
+// if (fieldId === 'email_e') {
+   if (fieldId === 'email') {
 
     // Message area for email format and verification status
     const emailMsg = document.createElement('div');
-    emailMsg.id = 'vmsg-email_e';
+ //   emailMsg.id = 'vmsg-email_e';
+      emailMsg.id = 'vmsg-email';
     emailMsg.style.cssText =
         'font-size:13px;margin-top:5px;font-weight:bold;display:none;';
     fieldWrapper.appendChild(emailMsg);
 
     // Verification panel
     const emailPanel = document.createElement('div');
-    emailPanel.id = 'panel-email_e';
+ //   emailPanel.id = 'panel-email_e';
+
+     emailPanel.id = 'panel-email';
     emailPanel.className = 'verify-panel';
     emailPanel.style.cssText = 'margin-top:10px;';
 
@@ -5899,13 +5924,15 @@ if (fieldId === 'email_e') {
     const formatBtn = document.createElement('button');
     formatBtn.type = 'button';
     formatBtn.className = 'verify-btn';
-    formatBtn.id = 'vcheck-email_e';
+  //  formatBtn.id = 'vcheck-email_e';
+     formatBtn.id = 'vcheck-email';
     formatBtn.innerText = 'Check Email Format';
     formatBtn.style.cssText =
         'background:#455a64;color:white;margin-bottom:10px;';
 
     formatBtn.onclick = function () {
-        manualFormatCheck('email_e');
+     //   manualFormatCheck('email_e');
+      manualFormatCheck('email');
     };
 
  //   emailPanel.appendChild(formatBtn);
@@ -5918,11 +5945,15 @@ if (fieldId === 'email_e') {
     const sendBtn = document.createElement('button');
     sendBtn.type = 'button';
     sendBtn.className = 'verify-btn';
-    sendBtn.id = 'vbtn-email_e';
+  //  sendBtn.id = 'vbtn-email_e';
+
+       sendBtn.id = 'vbtn-email';
     sendBtn.style.display = 'none';
 
     sendBtn.onclick = function () {
-        sendCode('email_e');
+ //       sendCode('email_e');
+      sendCode('email');
+
     };
 
   //  emailPanel.appendChild(sendBtn);
@@ -5931,12 +5962,16 @@ if (fieldId === 'email_e') {
 
     // Verification code entry area
     const codeBox = document.createElement('div');
-    codeBox.id = 'box-email_e';
+  //  codeBox.id = 'box-email_e';
+     codeBox.id = 'box-email';
     codeBox.style.display = 'none';
 
     const codeInput = document.createElement('input');
     codeInput.type = 'text';
-    codeInput.id = 'code-email_e';
+  //  codeInput.id = 'code-email_e';
+
+    codeInput.id = 'code-email';
+     
     codeInput.className = 'form-control';
     codeInput.placeholder = 'Enter 6-digit verification code';
     codeInput.maxLength = 6;
@@ -5945,14 +5980,16 @@ if (fieldId === 'email_e') {
 
     codeInput.oninput = function () {
         this.value = this.value.replace(/\D/g, '').slice(0, 6);
-        verifyCodeInput('email_e', this.value);
+    //    verifyCodeInput('email_e', this.value);
+      verifyCodeInput('email', this.value);
     };
 
     codeBox.appendChild(codeInput);
 
     // Resend-code timer area
     const resendContainer = document.createElement('div');
-    resendContainer.id = 'resend-container-email_e';
+ //   resendContainer.id = 'resend-container-email_e';
+     resendContainer.id = 'resend-container-email';
     resendContainer.style.marginTop = '8px';
 
     codeBox.appendChild(resendContainer);
