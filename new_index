@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MERS — New Registration Engine (Test)</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+<style>
+:root{--navy:#1a237e;--blue:#3949ab;--muted:#64748b;--line:#dbe1ea;--bg:#f3f5f9;--green:#2e7d32;--red:#c62828}
+*{box-sizing:border-box} body{margin:0;padding:22px;background:var(--bg);font-family:Segoe UI,Arial,sans-serif;color:#1f2937}
+.card{max-width:620px;margin:0 auto;background:#fff;border-radius:16px;box-shadow:0 12px 32px rgba(15,23,42,.10);overflow:hidden}
+.banner img{width:100%;display:block;max-height:220px;object-fit:cover}
+.content{padding:24px} h1{font-size:23px;color:var(--navy);text-align:center;margin:4px 0 8px}
+.subtitle{text-align:center;color:var(--muted);font-size:13px;margin:0 0 20px}
+.pill{display:inline-block;background:#fff3cd;color:#805b00;padding:6px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.04em}
+.test-note{background:#fff8e1;border:1px solid #f1d27a;border-radius:10px;padding:10px 12px;font-size:12px;color:#664d03;margin:14px 0 18px}
+.progress{height:6px;background:#e8ecf3;border-radius:10px;overflow:hidden;margin:18px 0 8px}.progress>div{height:100%;background:var(--blue);width:0;transition:width .2s}
+.progress-label{font-size:11px;color:var(--muted);text-align:right}
+.section-title{font-size:18px;color:var(--navy);margin:20px 0 16px}
+.field{margin:0 0 16px;position:relative}.field label{display:block;font-size:13px;font-weight:700;color:#263477;margin-bottom:6px}
+.required{color:var(--red)} .field input,.field select,.field textarea{width:100%;padding:11px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:15px;background:#fff;color:#111827}
+.field input:disabled,.field select:disabled{background:#f1f5f9;color:#64748b}
+.help{font-size:11px;color:#64748b;margin-top:5px}.error{display:none;color:var(--red);font-size:11px;margin-top:5px}
+.status{font-size:12px;margin-top:5px}.ok{color:var(--green)}.bad{color:var(--red)}
+.verify{border:1px solid #f0d27a;background:#fffbea;padding:11px;border-radius:9px;margin-top:8px}
+.verify button{margin:0 0 8px;background:#f4c542;color:#382b00}.verify input{margin-top:6px}
+.actions{display:flex;gap:10px;margin-top:22px}.btn{border:0;border-radius:8px;padding:13px 15px;font-size:14px;font-weight:700;cursor:pointer;background:var(--navy);color:#fff;flex:1}
+.btn.secondary{background:#64748b}.btn:disabled{opacity:.45;cursor:not-allowed}
+.notice{padding:12px;border-radius:9px;background:#eef2ff;color:#283593;font-size:13px;margin:12px 0}
+.suggestions{display:none;position:absolute;z-index:5;top:100%;left:0;right:0;background:white;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 18px #0001;max-height:190px;overflow:auto}
+.suggestion{padding:10px 12px;border-bottom:1px solid #eef2f7;cursor:pointer;font-size:13px}.suggestion:hover{background:#eef2ff}
+.hidden{display:none!important}.success{background:#edf7ed;border:1px solid #b7dfb9;color:#1b5e20;padding:14px;border-radius:10px}
+.footer{font-size:10px;color:#94a3b8;text-align:center;margin-top:18px}
+#loading{padding:50px 20px;text-align:center;color:var(--navy)}
+@media(max-width:560px){body{padding:10px}.content{padding:18px}.actions{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="card">
+  <div id="banner" class="banner hidden"></div>
+  <div id="loading"><h2>Loading registration form…</h2><p>Please wait.</p></div>
+  <main id="app" class="content hidden">
+    <div style="text-align:center"><span class="pill">NEW ENGINE · TEST BUILD</span></div>
+    <h1 id="eventTitle">Event Registration</h1>
+    <p id="eventSubtitle" class="subtitle"></p>
+    <div class="test-note"><b>TEST VERSION:</b> This build does not alter production registrations, participant master records, accommodation counters or live team projections. Test submissions are stored separately under <code>testRegistrations</code>.</div>
+    <div class="progress"><div id="progressBar"></div></div>
+    <div id="progressLabel" class="progress-label"></div>
+    <div id="formArea"></div>
+    <div class="actions">
+      <button id="backBtn" class="btn secondary hidden" type="button">BACK</button>
+      <button id="nextBtn" class="btn" type="button">CONTINUE</button>
+    </div>
+    <div id="globalMessage" class="notice hidden"></div>
+    <div class="footer">MERS · Independent test build · Existing index.html is not modified</div>
+  </main>
+</div>
+<script>
+"use strict";
+
+/* =========================================================
+   MERS NEW ENGINE — TEST BUILD
+   Read paths mirror the existing system.
+   Writes are isolated to testRegistrations/{eventId}.
+   ========================================================= */
+
+const FIREBASE_CONFIG = {
+  databaseURL: "https://ferrari-reg-2026-default-rtdb.asia-southeast1.firebasedatabase.app"
+};
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzDlkvfWJGTJC36MkEEfRyTCDdMjj0s1z-GcSS3deMdfrDlyN96Qml6OuSO6cfFPQcyEQ/exec";
+const TEST_MODE = true;
+
+firebase.initializeApp(FIREBASE_CONFIG);
+const db = firebase.database();
+
+const params = new URLSearchParams(location.search);
+const eventId = (params.get("id") || "EVT001").toUpperCase();
+const mode = (params.get("mode") || "new").toLowerCase();
+const regId = params.get("regId") || "";
+
+let eventConfig = {};
+let fieldRules = [];
+let sections = [];
+let activeSectionIndex = 0;
+let values = {};
+let originalValues = {};
+let verification = { email: false };
+let verificationAttempts = 0;
+let resendTimer = null;
+let masterRecords = [];
+let lookupCache = {};
+
+const $ = id => document.getElementById(id);
+const clean = v => String(v ?? "").trim();
+const normalize = v => clean(v).toUpperCase();
+const isYes = v => ["YES","Y","TRUE","1"].includes(normalize(v));
+const safeKey = v => clean(v).replace(/[.#$[\]]/g, "_");
+
+function showMessage(message, kind="info") {
+  const el = $("globalMessage");
+  el.textContent = message;
+  el.className = "notice";
+  if (kind === "error") { el.style.background="#ffebee"; el.style.color="#b71c1c"; }
+  else if (kind === "success") { el.style.background="#edf7ed"; el.style.color="#1b5e20"; }
+  else { el.style.background="#eef2ff"; el.style.color="#283593"; }
+  el.classList.remove("hidden");
+}
+function hideMessage(){ $("globalMessage").classList.add("hidden"); }
+function fieldValue(id) {
+  const el = document.getElementById("field_" + id);
+  return el ? clean(el.value) : clean(values[id]);
+}
+function setValue(id, value) {
+  values[id] = value ?? "";
+  const el = document.getElementById("field_" + id);
+  if (el) el.value = values[id];
+}
+function sectionRules(sectionId) {
+  return fieldRules.filter(r => clean(r.section_id) === sectionId)
+    .sort((a,b) => Number(a.field_sequence || 0) - Number(b.field_sequence || 0));
+}
+function orderedSections() {
+  const map = new Map();
+  fieldRules.forEach(r => {
+    const id = clean(r.section_id);
+    if (!id) return;
+    if (!map.has(id)) map.set(id, {
+      id, name: clean(r.section_name) || id,
+      sequence: Number(r.section_sequence || sectionSequenceFallback(id))
+    });
+  });
+  return [...map.values()].sort((a,b) => a.sequence-b.sequence || a.id.localeCompare(b.id));
+}
+function sectionSequenceFallback(id) {
+  const m = id.match(/(\d+)/); return m ? Number(m[1]) : 999;
+}
+function getSection(){ return sections[activeSectionIndex]; }
+function isVisible(rule, rules, index) {
+  const current = fieldValue(rule.field_id);
+  if (current) return true;
+  const initial = normalize(rule.initial_state);
+  const visibility = normalize(rule.visibility_rule || "ALWAYS");
+  if (visibility === "ALWAYS") return initial !== "HIDDEN";
+  if (visibility === "AFTER_PREVIOUS_COMPLETED") {
+    for (let i=index-1; i>=0; i--) {
+      const prev = rules[i];
+      if (!isVisible(prev, rules, i)) continue;
+      const prevVal = fieldValue(prev.field_id);
+      if (!prevVal) return false;
+      if (!validateField(prev, prevVal, false)) return false;
+      return true;
+    }
+    return initial !== "HIDDEN";
+  }
+  if (visibility === "AFTER_PREVIOUS_COMPLETED_AND_ANSWER_MATCHES") {
+    const dep = clean(rule.dependency_field);
+    const expected = clean(rule.dependency_value);
+    if (dep && expected && clean(fieldValue(dep)).toLowerCase() !== expected.toLowerCase()) return false;
+    if (!dep || !expected) console.warn("Incomplete answer-based visibility metadata; applying sequential visibility fallback:", rule.field_id);
+    for (let i=index-1; i>=0; i--) {
+      const prev = rules[i];
+      if (!isVisible(prev, rules, i)) continue;
+      const prevVal = fieldValue(prev.field_id);
+      if (!prevVal) return false;
+      if (!validateField(prev, prevVal, false)) return false;
+      return true;
+    }
+    return true;
+  }
+  return initial !== "HIDDEN";
+}
+function isRequired(rule) {
+  const m = normalize(rule.mandatory_rule);
+  if (m === "ALWAYS" || m === "YES" || m === "TRUE") return true;
+  if (m === "IF_PRACTITIONER") return isYes(fieldValue("is_practitioner"));
+  if (m === "IF_NOT_PRACTITIONER") return normalize(fieldValue("is_practitioner")) === "NO";
+  return false;
+}
+function validateField(rule, value, showError=true) {
+  const v = clean(value);
+  const type = normalize(rule.field_validation);
+  let valid = true;
+  let message = clean(rule.error_msg) || "Please enter a valid value.";
+  if (!v) valid = !isRequired(rule);
+  else if (type === "MOB") {
+    valid = /^[6-9]\d{9}$/.test(v);
+    message = "Enter a valid 10-digit Indian mobile number beginning with 6–9.";
+  } else if (type === "EMAIL") {
+    valid = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
+    message = "Enter a valid email address.";
+  } else if (type === "PINCODE") {
+    valid = /^\d{6}$/.test(v);
+  } else if (type === "ALPHABETIC") {
+    valid = /^[A-Za-z][A-Za-z .'-]*$/.test(v);
+  } else if (type === "DATE" || type === "ESD" || type === "EED") {
+    valid = !Number.isNaN(Date.parse(v));
+  } else if (type === "TIME") {
+    valid = /^([01]\d|2[0-3]):[0-5]\d$/.test(v);
+  }
+  if (showError) {
+    const err = $("error_" + rule.field_id);
+    if (err) { err.textContent = valid ? "" : message; err.style.display = valid ? "none" : "block"; }
+  }
+  return valid;
+}
+function getLookupRecords(tab) {
+  if (lookupCache[tab]) return Promise.resolve(lookupCache[tab]);
+  return db.ref("masters/" + tab).once("value").then(snap => {
+    const raw = snap.val() || {};
+    const list = Array.isArray(raw) ? raw : Object.values(raw);
+    lookupCache[tab] = list;
+    return list;
+  });
+}
+async function lookupChoices(rule) {
+  const records = await getLookupRecords(clean(rule.lookup_tab));
+  const col = clean(rule.lookup_column);
+  let choices = records.map(x => clean(x?.[col] ?? x?.[col.toLowerCase()] ?? "")).filter(Boolean);
+  const parent = clean(rule.dependency_field);
+  if (parent && clean(rule.dependency_value) === "SELECTED_VALUE") {
+    const parentValue = fieldValue(parent);
+    choices = records.filter(x => clean(x?.[parent] ?? x?.[parent[0]?.toUpperCase()+parent.slice(1)]) === parentValue)
+      .map(x => clean(x?.[col] ?? ""));
+  }
+  return [...new Set(choices)];
+}
+async function makeField(rule, rules, index) {
+  const wrap = document.createElement("div");
+  wrap.className = "field";
+  wrap.id = "wrap_" + rule.field_id;
+  const label = document.createElement("label");
+  label.htmlFor = "field_" + rule.field_id;
+  label.textContent = clean(rule.display_label) || rule.field_id;
+  if (isRequired(rule)) {
+    const star = document.createElement("span"); star.className="required"; star.textContent=" *"; label.appendChild(star);
+  }
+  wrap.appendChild(label);
+
+  let input;
+  if (clean(rule.lookup_tab) && clean(rule.lookup_column)) {
+    input = document.createElement("select");
+    const blank = document.createElement("option"); blank.value=""; blank.textContent="-- Select --"; input.appendChild(blank);
+    const choices = await lookupChoices(rule);
+    choices.forEach(choice => { const o=document.createElement("option"); o.value=choice; o.textContent=choice; input.appendChild(o); });
+  } else {
+    input = document.createElement("input");
+    const fid = normalize(rule.field_id);
+    input.type = fid.includes("DATE") ? "date" : (fid.includes("TIME") ? "time" : "text");
+    if (rule.field_id === "mobile") input.inputMode="numeric";
+  }
+  input.id = "field_" + rule.field_id;
+  input.autocomplete = "off";
+  input.value = clean(values[rule.field_id]);
+  input.addEventListener("input", async () => {
+    values[rule.field_id] = input.value;
+    if (rule.field_id === "mobile") validateMobileLive(input);
+    if (rule.field_id === "email") {
+      verification.email = Boolean(originalValues.email) &&
+        clean(input.value).toLowerCase() === clean(originalValues.email).toLowerCase();
+      const status = $("email_status");
+      if (status && !verification.email) {
+        status.textContent = "This email address needs verification.";
+        status.className = "status";
+      }
+    }
+    validateField(rule, input.value, true);
+    await refreshCurrentVisibility();
+    updateContinueState();
+  });
+  input.addEventListener("change", async () => {
+    values[rule.field_id] = input.value;
+    await reloadDependentLookups(rule.field_id);
+    await refreshCurrentVisibility();
+    updateContinueState();
+  });
+  wrap.appendChild(input);
+
+  if (clean(rule.help_text)) {
+    const help=document.createElement("div"); help.className="help"; help.textContent=rule.help_text; wrap.appendChild(help);
+  }
+  const error=document.createElement("div"); error.id="error_"+rule.field_id; error.className="error"; wrap.appendChild(error);
+
+  if (rule.field_id === "mobile") {
+    const status=document.createElement("div"); status.id="mobile_status"; status.className="status"; wrap.appendChild(status);
+    validateMobileLive(input);
+  }
+  if (rule.field_id === "email") {
+    const verify=document.createElement("div"); verify.className="verify";
+    const send=document.createElement("button"); send.type="button"; send.className="btn"; send.style.width="100%"; send.textContent="SEND VERIFICATION CODE";
+    send.addEventListener("click", () => sendEmailCode(input.value));
+    verify.appendChild(send);
+    const codeRow=document.createElement("div"); codeRow.id="email_code_row"; codeRow.className="hidden";
+    const code=document.createElement("input"); code.id="email_code"; code.placeholder="Enter 6-digit verification code"; code.inputMode="numeric"; code.maxLength=6;
+    const confirm=document.createElement("button"); confirm.type="button"; confirm.className="btn"; confirm.style.width="100%"; confirm.style.marginTop="8px"; confirm.textContent="VERIFY EMAIL";
+    confirm.addEventListener("click", () => verifyEmailCode(input.value, code.value));
+    codeRow.append(code,confirm); verify.appendChild(codeRow);
+    const msg=document.createElement("div"); msg.id="email_status"; msg.className="status"; verify.appendChild(msg);
+    wrap.appendChild(verify);
+  }
+  if (rule.field_id === "full_name") {
+    const suggestions=document.createElement("div"); suggestions.id="name_suggestions"; suggestions.className="suggestions"; wrap.appendChild(suggestions);
+    input.addEventListener("input", () => searchExistingNames(input.value));
+  }
+  return wrap;
+}
+
+async function reloadDependentLookups(parentFieldId, visited = new Set()) {
+  if (visited.has(parentFieldId)) return;
+  visited.add(parentFieldId);
+  const children = fieldRules.filter(r => clean(r.dependency_field) === parentFieldId);
+  for (const child of children) {
+    values[child.field_id] = "";
+    const input = $("field_" + child.field_id);
+    if (input && input.tagName === "SELECT") {
+      input.innerHTML = "";
+      const blank = document.createElement("option"); blank.value = ""; blank.textContent = "-- Select --"; input.appendChild(blank);
+      try {
+        const choices = await lookupChoices(child);
+        choices.forEach(choice => { const opt = document.createElement("option"); opt.value = choice; opt.textContent = choice; input.appendChild(opt); });
+      } catch (e) { console.error("Dependent lookup reload failed:", child.field_id, e); }
+    }
+    await reloadDependentLookups(child.field_id, visited);
+  }
+}
+
+function validateMobileLive(input) {
+  const status=$("mobile_status"); if (!status) return;
+  const v=clean(input.value);
+  if (!v) { status.textContent=""; status.className="status"; return; }
+  const ok=/^[6-9]\d{9}$/.test(v);
+  status.textContent=ok ? "✓ Mobile number format is valid" : "Enter exactly 10 digits; first digit must be 6–9.";
+  status.className="status " + (ok ? "ok" : "bad");
+}
+async function searchExistingNames(query) {
+  const box=$("name_suggestions");
+  if (!box || clean(query).length < 3) { if(box) box.style.display="none"; return; }
+  try {
+    if (!masterRecords.length) {
+      const snap=await db.ref("masters/Master_Internal_DB").once("value");
+      const raw=snap.val() || {}; masterRecords=Array.isArray(raw)?raw:Object.values(raw);
+    }
+    const q=clean(query).toLowerCase();
+    const found=masterRecords.filter(p=>clean(p.full_name || p["Full Name"]).toLowerCase().includes(q)).slice(0,8);
+    box.innerHTML="";
+    found.forEach(p=>{
+      const item=document.createElement("div"); item.className="suggestion"; item.textContent=clean(p.full_name || p["Full Name"]);
+      item.addEventListener("click",()=>selectExistingProfile(p));
+      box.appendChild(item);
+    });
+    box.style.display=found.length?"block":"none";
+  } catch(e) { console.warn("Existing profile search unavailable",e); }
+}
+async function selectExistingProfile(person) {
+  Object.keys(person || {}).forEach(k => { values[k]=person[k]; originalValues[k]=person[k]; });
+  verification.email = true; // existing master email is treated as previously verified; changed email requires fresh verification
+  const box=$("name_suggestions"); if(box) box.style.display="none";
+  await renderCurrentSection();
+  showMessage("Existing profile loaded. Review the details and edit where permitted.", "success");
+}
+async function sendEmailCode(email) {
+  const rule=fieldRules.find(r=>r.field_id==="email");
+  if (!rule || !validateField(rule,email,false)) { showMessage("Enter a valid email address first.","error"); return; }
+  const name=fieldValue("full_name");
+  const btn=document.querySelector("#wrap_email .verify button");
+  if(btn){btn.disabled=true;btn.textContent="SENDING…";}
+  try {
+    const url=SCRIPT_URL+"?action=sendVerificationCode&email="+encodeURIComponent(email)+
+      "&eventId="+encodeURIComponent(eventId)+"&fullName="+encodeURIComponent(name);
+    // Existing Apps Script endpoint intentionally uses no-cors; delivery is confirmed by checking Firebase for the code record.
+    fetch(url,{mode:"no-cors"}).catch(err=>console.warn("Verification request network warning",err));
+    await new Promise(resolve=>setTimeout(resolve,1800));
+    const key=safeKey(email);
+    const snap=await db.ref("verificationCodes/"+key).once("value");
+    if (!snap.exists() || !snap.val()?.code) throw new Error("No verification record appeared. Check the Apps Script deployment and try again.");
+    $("email_code_row")?.classList.remove("hidden");
+    $("email_status").textContent="Code request sent. Check your inbox (and spam folder).";
+    $("email_status").className="status";
+    verification.email=false;
+    showMessage("Email verification code requested.", "success");
+  } catch(e) {
+    showMessage(e.message || "Could not request the verification code.","error");
+  } finally {
+    if(btn){btn.disabled=false;btn.textContent="SEND VERIFICATION CODE";}
+  }
+}
+async function verifyEmailCode(email, code) {
+  if (!/^\d{6}$/.test(clean(code))) { $("email_status").textContent="Enter the 6-digit code."; $("email_status").className="status bad"; return; }
+  try {
+    const snap=await db.ref("verificationCodes/"+safeKey(email)).once("value");
+    const data=snap.val();
+    const valid=data && String(data.code)===clean(code) &&
+      Number.isFinite(Number(data.timestamp)) && Date.now()>=Number(data.timestamp) &&
+      Date.now()-Number(data.timestamp)<300000;
+    if (!valid) {
+      verificationAttempts++;
+      $("email_status").textContent=verificationAttempts>=3 ? "Too many attempts. Request a new code." : "Invalid or expired code. Please try again.";
+      $("email_status").className="status bad";
+      return;
+    }
+    verification.email=true;
+    const input=$("field_email"); if(input) input.disabled=true;
+    $("email_status").textContent="Email verified ✓"; $("email_status").className="status ok";
+    $("email_code_row")?.classList.add("hidden");
+    updateContinueState();
+    showMessage("Email address verified successfully.","success");
+  } catch(e) { showMessage("Verification check failed: "+e.message,"error"); }
+}
+function sectionReady() {
+  const sec=getSection(); if(!sec) return false;
+  const rules=sectionRules(sec.id);
+  for(let i=0;i<rules.length;i++){
+    const r=rules[i]; const visible=isVisible(r,rules,i);
+    if(!visible) continue;
+    const val=fieldValue(r.field_id);
+    if(isRequired(r) && !val) return false;
+    if(val && !validateField(r,val,false)) return false;
+    if(r.field_id==="mobile" && val && !/^[6-9]\d{9}$/.test(val)) return false;
+    if(r.field_id==="email" && val && !verification.email) return false;
+  }
+  return true;
+}
+function updateContinueState(){ $("nextBtn").disabled=!sectionReady(); }
+async function refreshCurrentVisibility() {
+  const sec=getSection(); if(!sec) return;
+  const rules=sectionRules(sec.id);
+  for(let i=0;i<rules.length;i++){
+    const r=rules[i], wrap=$("wrap_"+r.field_id);
+    if(wrap) wrap.style.display=isVisible(r,rules,i)?"block":"none";
+  }
+}
+async function renderCurrentSection() {
+  const sec=getSection(); if(!sec) return;
+  const area=$("formArea"); area.innerHTML="";
+  const heading=document.createElement("h2"); heading.className="section-title"; heading.textContent=sec.name; area.appendChild(heading);
+  const rules=sectionRules(sec.id);
+  for(let i=0;i<rules.length;i++){
+    const r=rules[i];
+    if (r.field_id==="email" && originalValues.email && clean(values.email)===clean(originalValues.email)) verification.email=true;
+    const wrap=await makeField(r,rules,i);
+    wrap.style.display=isVisible(r,rules,i)?"block":"none";
+    area.appendChild(wrap);
+  }
+  $("backBtn").classList.toggle("hidden",activeSectionIndex===0);
+  $("nextBtn").textContent=activeSectionIndex===sections.length-1?"SAVE TEST SUBMISSION":"CONTINUE";
+  $("progressBar").style.width=((activeSectionIndex+1)/sections.length*100)+"%";
+  $("progressLabel").textContent=`Section ${activeSectionIndex+1} of ${sections.length}`;
+  updateContinueState();
+}
+async function goNext() {
+  hideMessage();
+  if(!sectionReady()){showMessage("Please complete the required fields and verify your email before continuing.","error");return;}
+  if(activeSectionIndex<sections.length-1){
+    activeSectionIndex++;
+    await renderCurrentSection();
+    window.scrollTo({top:0,behavior:"smooth"});
+  } else {
+    await saveTestSubmission();
+  }
+}
+async function goBack() {
+  if(activeSectionIndex>0){activeSectionIndex--;await renderCurrentSection();window.scrollTo({top:0,behavior:"smooth"});}
+}
+async function saveTestSubmission() {
+  if(!TEST_MODE) throw new Error("Safety guard: test mode is disabled.");
+  if(!sectionReady()){showMessage("Please complete all required fields.","error");return;}
+  const payload={...values,event_id:eventId,mode,created_at:new Date().toISOString(),build:"NEW_INDEX_TEST"};
+  try{
+    const ref=db.ref("testRegistrations/"+eventId).push();
+    await ref.set(payload);
+    $("formArea").innerHTML='<div class="success"><h3>Test submission saved</h3><p>Your test registration has been stored separately. No production counters or master records were changed.</p><p><b>Test record ID:</b> '+ref.key+'</p></div>';
+    $("backBtn").classList.add("hidden");$("nextBtn").classList.add("hidden");
+    $("progressBar").style.width="100%";$("progressLabel").textContent="Test complete";
+  }catch(e){showMessage("Could not save test submission: "+e.message,"error");}
+}
+async function init() {
+  try {
+    if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    const [eventSnap,rulesSnap,bannerSnap,thankSnap]=await Promise.all([
+      db.ref("config/eventConfig/"+eventId).once("value"),
+      db.ref("config/fieldRules").once("value"),
+      db.ref("htmlStorage/"+eventId+"/banner").once("value"),
+      db.ref("htmlStorage/"+eventId+"/thank").once("value")
+    ]);
+    eventConfig=eventSnap.val()||{};
+    if(!eventSnap.exists()) throw new Error("Event configuration not found for "+eventId);
+    const rawRules=rulesSnap.val()||{};
+    fieldRules=Object.values(rawRules).filter(r=>clean(r.event_id).toUpperCase()===eventId);
+    if(!fieldRules.length) throw new Error("No Field_Rules found for "+eventId);
+    fieldRules=fieldRules.map(r=>({...r,section_sequence:Number(r.section_sequence||sectionSequenceFallback(r.section_id)),help_text:r.help_text??r.field_help_text??""}));
+    sections=orderedSections();
+    if(!sections.length) throw new Error("No sections found in Field_Rules.");
+    $("eventTitle").textContent=eventConfig.title||"Event Registration";
+    $("eventSubtitle").textContent=eventConfig.subtitle||"";
+    if(bannerSnap.val()){ $("banner").innerHTML=bannerSnap.val(); $("banner").classList.remove("hidden"); }
+    $("loading").classList.add("hidden");$("app").classList.remove("hidden");
+    if(mode==="edit" && regId) showMessage("Edit mode is not connected in this first test build. Please test the new-registration flow first.","info");
+    await renderCurrentSection();
+  }catch(e){
+    $("loading").innerHTML="<h2>Unable to load test registration</h2><p>"+String(e.message||e)+"</p><p>Open browser console for diagnostics.</p>";
+    console.error("NEW_INDEX init error",e);
+  }
+}
+$("nextBtn").addEventListener("click",goNext);
+$("backBtn").addEventListener("click",goBack);
+init();
+</script>
+</body>
+</html>
