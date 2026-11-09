@@ -43,7 +43,7 @@
   <div id="banner" class="banner hidden"></div>
   <div id="loading"><h2>Loading registration form…</h2><p>Please wait.</p></div>
   <main id="app" class="content hidden">
-    <div style="text-align:center"><span class="pill">NEW ENGINE · V3 TEST BUILD</span></div>
+    <div style="text-align:center"><span class="pill">NEW ENGINE · V4 TEST BUILD</span></div>
     <h1 id="eventTitle">Event Registration</h1>
     <p id="eventSubtitle" class="subtitle"></p>
     <div class="test-note"><b>TEST VERSION:</b> This independent frontend writes registration records to the ORIGINAL MERS path: registrations/{eventId}/{registration_id}. It updates the existing registration sequence, active_seats and accommodation counters. Use only while the event is UNDER_TEST. Other production integrations (master profile, live team projection and attendance sync) are not yet ported.</div>
@@ -255,6 +255,46 @@ async function lookupChoices(rule) {
   }
   return [...new Set(choices)];
 }
+
+async function handleProfileGatewayChange(fieldId, value) {
+  if (fieldId === "attended_before") {
+    const answer = normalize(value);
+    profileFlow = {
+      stage: answer === "YES" ? "WAIT_PRACTITIONER" : "WAIT_PRACTITIONER_NEW",
+      selectedProfile: null,
+      existingProfile: false,
+      editMode: false,
+      searchQuery: "",
+      noMatch: false
+    };
+    values.is_practitioner = "";
+    values.profile_search = "";
+    console.log("[MERS PROFILE] attended_before selected:", answer,
+      "| next expected: is_practitioner");
+    await renderCurrentSection();
+    return true;
+  }
+
+  if (fieldId === "is_practitioner") {
+    const practitioner = normalize(value);
+    const attended = normalize(fieldValue("attended_before"));
+    if (attended === "YES") {
+      profileFlow.stage = "SEARCH";
+      console.log("[MERS PROFILE] Opening existing-profile search.",
+        { attended_before: attended, is_practitioner: practitioner });
+    } else if (attended === "NO") {
+      profileFlow.stage = "NEW_DIRECT";
+      console.log("[MERS PROFILE] Opening new-profile fields.",
+        { attended_before: attended, is_practitioner: practitioner });
+    }
+    values.participant_type = isYes(value) ? "Internal" : "External";
+    console.log("[MERS PROFILE] participant_type resolved:", values.participant_type);
+    await renderCurrentSection();
+    return true;
+  }
+  return false;
+}
+
 async function makeField(rule, rules, index) {
   const wrap = document.createElement("div");
   wrap.className = "field";
@@ -294,13 +334,6 @@ async function makeField(rule, rules, index) {
   }
   input.addEventListener("input", async () => {
     values[rule.field_id] = input.value;
-    if(rule.field_id==="attended_before") {
-      profileFlow.stage=normalize(input.value)==="YES"?"WAIT_PRACTITIONER":"NEW_DIRECT";
-      profileFlow.selectedProfile=null;profileFlow.searchQuery="";profileFlow.noMatch=false;
-    }
-    if(rule.field_id==="is_practitioner" && normalize(fieldValue("attended_before"))==="YES" && profileFlow.stage==="WAIT_PRACTITIONER") {
-      profileFlow.stage="SEARCH";
-    }
     if (rule.field_id === "mobile") validateMobileLive(input);
     if (rule.field_id === "email") {
       verification.email = Boolean(originalValues.email) &&
@@ -311,12 +344,23 @@ async function makeField(rule, rules, index) {
         status.className = "status";
       }
     }
-    validateField(rule, input.value, true);
+    const fieldValid = validateField(rule, input.value, true);
+    console.log("[MERS VALIDATION]", rule.field_id,
+      { value: input.value, valid: fieldValid, mandatory_rule: rule.mandatory_rule,
+        field_validation: rule.field_validation });
     await refreshCurrentVisibility();
     updateContinueState();
   });
   input.addEventListener("change", async () => {
     values[rule.field_id] = input.value;
+    console.log("[MERS FIELD] change:", rule.field_id, "=", input.value);
+
+    if (rule.field_id === "attended_before" || rule.field_id === "is_practitioner") {
+      await handleProfileGatewayChange(rule.field_id, input.value);
+      updateContinueState();
+      return;
+    }
+
     await reloadDependentLookups(rule.field_id);
     if (rule.field_id === "gender" && getSection()?.id === "Section2") {
       values.stay_option = "";
@@ -413,6 +457,8 @@ function renderProfileMatchActions() {
     profileFlow.stage="EXISTING_PROCEED";profileFlow.editMode=false;
     values.participant_type=isYes(values.is_practitioner)?"Internal":"External";
     verification.email=true;
+    console.log("[MERS PROFILE] Existing profile accepted; moving to next section.",
+      { participant_type: values.participant_type, profile: profileFlow.selectedProfile });
     await goToNextSectionFromProfile();
   });
   const edit=document.createElement("button");edit.type="button";edit.className="btn secondary";
@@ -445,12 +491,14 @@ async function searchExistingProfiles(query) {
       const name=clean(p.full_name||p.Full_Name||p["Full Name"]);
       return name.toLowerCase().includes(lower);
     }).slice(0,12);
+    console.log("[MERS PROFILE SEARCH] matches:", found.length);
     box.innerHTML="";
     found.forEach(person=>{
       const item=document.createElement("div");item.className="suggestion";
       item.textContent=clean(person.full_name||person.Full_Name||person["Full Name"]);
       item.addEventListener("click",async()=>{
         profileFlow.selectedProfile=person;
+        console.log("[MERS PROFILE SEARCH] profile selected:", person);
         Object.keys(person||{}).forEach(k=>{values[k]=person[k];originalValues[k]=person[k];});
         // Normalize known profile keys into the Field_Rules field IDs.
         fieldRules.filter(r=>r.section_id==="Section1").forEach(r=>{
@@ -583,6 +631,7 @@ async function verifyEmailCode(email, code) {
       return;
     }
     verification.email=true;
+    console.log("[MERS EMAIL] Verification successful for:", email);
     $("email_status").textContent="Email verified ✓"; $("email_status").className="status ok";
     $("email_code_row")?.classList.add("hidden");
     updateContinueState();
@@ -739,16 +788,30 @@ async function updateStayOptions() {
   }
 }
 
+function profileGatewayComplete() {
+  return Boolean(fieldValue("attended_before") && fieldValue("is_practitioner"));
+}
+function shouldShowSectionContinue() {
+  const sec = getSection();
+  if (!sec) return false;
+  if (sec.id !== "Section1") return true;
+  if (!profileGatewayComplete()) return false;
+  if (profileFlow.stage === "SEARCH" ||
+      profileFlow.stage === "WAIT_PRACTITIONER" ||
+      profileFlow.stage === "WAIT_PRACTITIONER_NEW" ||
+      profileFlow.stage === "EXISTING_PROCEED") return false;
+  return ["NEW_DIRECT", "NEW_AFTER_SEARCH", "EDIT_EXISTING"].includes(profileFlow.stage);
+}
 function sectionReady() {
   const sec=getSection(); if(!sec) return false;
   if(sec.id==="Section1") {
-    if(!fieldValue("attended_before") || !fieldValue("is_practitioner")) return false;
-    if(normalize(fieldValue("attended_before"))==="YES") {
-      if(profileFlow.stage==="SEARCH") return false;
-      if(profileFlow.stage==="EXISTING_PROCEED") return true;
-    }
+    if(!profileGatewayComplete()) return false;
+    if(profileFlow.stage==="SEARCH" || profileFlow.stage==="EXISTING_PROCEED") return false;
   }
   const rules=sectionRules(sec.id);
+  console.log("[MERS RENDER] section:", sec.id,
+    "| profile stage:", profileFlow.stage,
+    "| rules:", rules.map(r => r.field_id));
   for(let i=0;i<rules.length;i++){
     const r=rules[i]; if(normalize(r.field_type)==="PROFILE_SEARCH") continue;
     const visible=isVisible(r,rules,i);
@@ -761,7 +824,17 @@ function sectionReady() {
   }
   return true;
 }
-function updateContinueState(){ $("nextBtn").disabled=!sectionReady(); }
+function updateContinueState(){
+  const visible = shouldShowSectionContinue();
+  $("nextBtn").classList.toggle("hidden", !visible);
+  $("nextBtn").disabled = !visible || !sectionReady();
+  console.log("[MERS BUTTON]", {
+    section: getSection()?.id,
+    profile_stage: profileFlow.stage,
+    visible,
+    enabled: visible && sectionReady()
+  });
+}
 async function refreshCurrentVisibility() {
   const sec=getSection(); if(!sec) return;
   const rules=sectionRules(sec.id);
@@ -909,7 +982,7 @@ async function saveTestSubmission() {
       registration_status: "REGISTERED ON " + now.toLocaleString(),
       stay_allocation_code: "",
       original_stay_allocation_code: "",
-      build: "NEW_INDEX_V3_TEST"
+      build: "NEW_INDEX_V4_TEST"
     };
 
     // Original MERS active registration counter node.
@@ -988,6 +1061,8 @@ async function saveTestSubmission() {
   }
 }
 async function init() {
+  console.clear();
+  console.log("%c MERS V4 DIAGNOSTICS STARTED ", "background:#1a237e;color:#fff;padding:4px 8px;font-weight:bold");
   try {
     if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
     const [eventSnap,rulesSnap,bannerSnap,thankSnap]=await Promise.all([
@@ -997,12 +1072,15 @@ async function init() {
       db.ref("htmlStorage/"+eventId+"/thank").once("value")
     ]);
     eventConfig=eventSnap.val()||{};
+    console.log("[MERS INIT] Event configuration loaded:", eventConfig);
     if(!eventSnap.exists()) throw new Error("Event configuration not found for "+eventId);
     const rawRules=rulesSnap.val()||{};
     fieldRules=Object.values(rawRules).filter(r=>clean(r.event_id).toUpperCase()===eventId);
+    console.log("[MERS INIT] Field_Rules loaded:", fieldRules.length, fieldRules);
     if(!fieldRules.length) throw new Error("No Field_Rules found for "+eventId);
     fieldRules=fieldRules.map(r=>({...r}));
     sections=orderedSections();
+    console.log("[MERS INIT] Sections in sheet row order:", sections);
     if(sections.some(s=>s.id==="Section1")) profileFlow.stage="START";
     if(!sections.length) throw new Error("No sections found in Field_Rules.");
     $("eventTitle").textContent=eventConfig.title||"Event Registration";
@@ -1012,6 +1090,7 @@ async function init() {
     if(mode==="edit" && regId) showMessage("Edit mode is not connected in this V3 test build. Please test the new-registration flow first.","info");
     await renderCurrentSection();
   }catch(e){
+    console.error("[MERS INIT ERROR]", e);
     $("loading").innerHTML="<h2>Unable to load test registration</h2><p>"+String(e.message||e)+"</p><p>Open browser console for diagnostics.</p>";
     console.error("NEW_INDEX init error",e);
   }
