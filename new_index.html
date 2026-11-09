@@ -31,6 +31,7 @@
 .suggestions{display:none;position:absolute;z-index:5;top:100%;left:0;right:0;background:white;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 18px #0001;max-height:190px;overflow:auto}
 .suggestion{padding:10px 12px;border-bottom:1px solid #eef2f7;cursor:pointer;font-size:13px}.suggestion:hover{background:#eef2ff}
 .hidden{display:none!important}.success{background:#edf7ed;border:1px solid #b7dfb9;color:#1b5e20;padding:14px;border-radius:10px}
+.capacity-box{margin:0 0 16px;padding:12px;border:1px solid #b7dfb9;border-radius:9px;background:#f1f8e9;font-size:13px}.capacity-row{display:flex;justify-content:space-between;gap:12px;padding:5px 0}.capacity-row+ .capacity-row{border-top:1px solid #d7e8d3}.capacity-value{font-weight:700;text-align:right}.capacity-available{color:#2e7d32}.capacity-waitlist{color:#c62828}
 .footer{font-size:10px;color:#94a3b8;text-align:center;margin-top:18px}
 #loading{padding:50px 20px;text-align:center;color:var(--navy)}
 @media(max-width:560px){body{padding:10px}.content{padding:18px}.actions{flex-direction:column}}
@@ -90,6 +91,7 @@ let verificationAttempts = 0;
 let resendTimer = null;
 let masterRecords = [];
 let lookupCache = {};
+let stayAvailabilityRequest = 0;
 
 const $ = id => document.getElementById(id);
 const clean = v => String(v ?? "").trim();
@@ -271,6 +273,12 @@ async function makeField(rule, rules, index) {
   input.addEventListener("change", async () => {
     values[rule.field_id] = input.value;
     await reloadDependentLookups(rule.field_id);
+    if (rule.field_id === "gender" && getSection()?.id === "Section2") {
+      values.stay_option = "";
+      const staySelect = $("field_stay_option");
+      if (staySelect) staySelect.value = "";
+      await updateStayOptions();
+    }
     await refreshCurrentVisibility();
     updateContinueState();
   });
@@ -406,6 +414,156 @@ async function verifyEmailCode(email, code) {
     showMessage("Email address verified successfully.","success");
   } catch(e) { showMessage("Verification check failed: "+e.message,"error"); }
 }
+/* =========================================================
+   SECTION 2 — LIVE GENDER-AWARE ACCOMMODATION AVAILABILITY
+   Read-only in this revision: no counters are created or changed.
+   Uses the existing config/eventConfig and counters nodes.
+   ========================================================= */
+async function getStayAvailability(eventId, gender) {
+  if (!eventConfig || !Object.keys(eventConfig).length) {
+    throw new Error("Event configuration is not loaded.");
+  }
+
+  const normalizedGender = clean(gender).toLowerCase();
+  if (normalizedGender !== "male" && normalizedGender !== "female") {
+    throw new Error("Please select Male or Female.");
+  }
+
+  const roomCapacity = Number(eventConfig.room_capacity) || 0;
+  const personsPerRoom = Number(eventConfig.persons_per_room) || 2;
+  const maleDormCapacity = Number(eventConfig.male_dorm_capacity) || 0;
+  const femaleDormCapacity = Number(eventConfig.female_dorm_capacity) || 0;
+  const maleDormPersons = Number(eventConfig.male_dorm_persons_per_dorm) || 0;
+  const femaleDormPersons = Number(eventConfig.female_dorm_persons_per_dorm) || 0;
+
+  if (personsPerRoom <= 0) throw new Error("Invalid persons_per_room in Event_Config.");
+
+  const paths = {
+    maleRoom: `counters/confirmed_counters/room_male/${eventId}`,
+    femaleRoom: `counters/confirmed_counters/room_female/${eventId}`,
+    maleDorm: `counters/confirmed_counters/dorm_male/${eventId}`,
+    femaleDorm: `counters/confirmed_counters/dorm_female/${eventId}`,
+    roomWaitlist: `counters/waitlist_counters/room_${normalizedGender}/${eventId}`,
+    dormWaitlist: `counters/waitlist_counters/dorm_${normalizedGender}/${eventId}`
+  };
+
+  const keys = Object.keys(paths);
+  const snapshots = await Promise.all(keys.map(key => db.ref(paths[key]).once("value")));
+  const counts = {};
+  keys.forEach((key, index) => {
+    const n = Number(snapshots[index].val());
+    counts[key] = Number.isFinite(n) && n > 0 ? n : 0;
+  });
+
+  const maleRoom = counts.maleRoom;
+  const femaleRoom = counts.femaleRoom;
+  const maleDorm = counts.maleDorm;
+  const femaleDorm = counts.femaleDorm;
+
+  const dormSeats = normalizedGender === "male"
+    ? Math.max(0, (maleDormCapacity * maleDormPersons) - maleDorm)
+    : Math.max(0, (femaleDormCapacity * femaleDormPersons) - femaleDorm);
+
+  // A room occupied by the opposite gender cannot be shared.
+  let roomSeats;
+  if (normalizedGender === "male") {
+    const femaleRoomsOccupied = Math.ceil(femaleRoom / personsPerRoom);
+    const roomsAvailableForMale = Math.max(0, roomCapacity - femaleRoomsOccupied);
+    roomSeats = Math.max(0, (roomsAvailableForMale * personsPerRoom) - maleRoom);
+  } else {
+    const maleRoomsOccupied = Math.ceil(maleRoom / personsPerRoom);
+    const roomsAvailableForFemale = Math.max(0, roomCapacity - maleRoomsOccupied);
+    roomSeats = Math.max(0, (roomsAvailableForFemale * personsPerRoom) - femaleRoom);
+  }
+
+  return {
+    roomSeats,
+    dormSeats,
+    roomWaitlist: counts.roomWaitlist,
+    dormWaitlist: counts.dormWaitlist,
+    confirmed: { maleRoom, femaleRoom, maleDorm, femaleDorm }
+  };
+}
+
+function ensureCapacityContainer() {
+  let box = $("capacity-container");
+  if (!box) {
+    box = document.createElement("div");
+    box.id = "capacity-container";
+    box.className = "capacity-box hidden";
+    const genderWrap = $("wrap_gender");
+    if (genderWrap?.parentNode) genderWrap.parentNode.insertBefore(box, genderWrap.nextSibling);
+  }
+  return box;
+}
+
+function renderCapacityValue(seats, waitlistCount) {
+  if (seats > 0) {
+    return `<span class="capacity-value capacity-available">${seats} Seats</span>`;
+  }
+  return `<span class="capacity-value capacity-waitlist">WL#${Number(waitlistCount || 0) + 1}</span>`;
+}
+
+async function updateStayOptions() {
+  if (getSection()?.id !== "Section2") return;
+
+  const genderEl = $("field_gender");
+  const stayEl = $("field_stay_option");
+  const box = ensureCapacityContainer();
+  if (!genderEl || !stayEl || !box) return;
+
+  const gender = clean(genderEl.value);
+  if (!gender) {
+    box.classList.add("hidden");
+    stayEl.innerHTML = '<option value="">-- Select --</option>';
+    values.stay_option = "";
+    return;
+  }
+
+  const requestId = ++stayAvailabilityRequest;
+  box.classList.remove("hidden");
+  box.innerHTML = '<div>Checking live accommodation availability…</div>';
+
+  try {
+    const status = await getStayAvailability(eventId, gender);
+    if (requestId !== stayAvailabilityRequest) return;
+
+    box.innerHTML = `
+      <div class="capacity-row"><span>Current Available Seats for Room:</span>${renderCapacityValue(status.roomSeats, status.roomWaitlist)}</div>
+      <div class="capacity-row"><span>Current Available Seats for Dorm:</span>${renderCapacityValue(status.dormSeats, status.dormWaitlist)}</div>
+    `;
+
+    const previous = clean(stayEl.value || values.stay_option);
+    const options = [
+      { value: "", label: "-- Select --" },
+      { value: status.roomSeats > 0 ? "Room" : "Room (Waiting List)", label: status.roomSeats > 0 ? "Room" : "Room (Waiting List)" },
+      { value: status.dormSeats > 0 ? "Dormitory" : "Dormitory (Waiting List)", label: status.dormSeats > 0 ? "Dormitory" : "Dormitory (Waiting List)" },
+      { value: "I will arrange my own stay outside the venue", label: "I will arrange my own stay outside the venue" }
+    ];
+
+    stayEl.innerHTML = "";
+    options.forEach(item => {
+      const option = document.createElement("option");
+      option.value = item.value;
+      option.textContent = item.label;
+      stayEl.appendChild(option);
+    });
+
+    const preserved = options.find(item => item.value === previous);
+    stayEl.value = preserved ? previous : "";
+    values.stay_option = stayEl.value;
+    console.info("MERS Section 2 availability refreshed", {
+      eventId, gender, roomSeats: status.roomSeats, dormSeats: status.dormSeats,
+      roomWaitlistNext: status.roomWaitlist + 1,
+      dormWaitlistNext: status.dormWaitlist + 1
+    });
+  } catch (error) {
+    if (requestId !== stayAvailabilityRequest) return;
+    box.innerHTML = `<div class="bad">Unable to load accommodation availability: ${clean(error.message)}</div>`;
+    console.error("MERS Section 2 availability error", error);
+  }
+}
+
 function sectionReady() {
   const sec=getSection(); if(!sec) return false;
   const rules=sectionRules(sec.id);
@@ -440,6 +598,15 @@ async function renderCurrentSection() {
     const wrap=await makeField(r,rules,i);
     wrap.style.display=isVisible(r,rules,i)?"block":"none";
     area.appendChild(wrap);
+    if (sec.id === "Section2" && r.field_id === "gender") {
+      const capacityBox = document.createElement("div");
+      capacityBox.id = "capacity-container";
+      capacityBox.className = "capacity-box hidden";
+      area.appendChild(capacityBox);
+    }
+  }
+  if (sec.id === "Section2" && fieldValue("gender")) {
+    await updateStayOptions();
   }
   $("backBtn").classList.toggle("hidden",activeSectionIndex===0);
   $("nextBtn").textContent=activeSectionIndex===sections.length-1?"SAVE TEST SUBMISSION":"CONTINUE";
