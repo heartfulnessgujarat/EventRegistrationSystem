@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MERS — New Registration Engine (Test)</title>
+<title>MERS — New Registration Engine V3 (Test)</title>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 <style>
@@ -30,6 +30,7 @@
 .notice{padding:12px;border-radius:9px;background:#eef2ff;color:#283593;font-size:13px;margin:12px 0}
 .suggestions{display:none;position:absolute;z-index:5;top:100%;left:0;right:0;background:white;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 18px #0001;max-height:190px;overflow:auto}
 .suggestion{padding:10px 12px;border-bottom:1px solid #eef2f7;cursor:pointer;font-size:13px}.suggestion:hover{background:#eef2ff}
+.profile-actions{display:flex;flex-direction:column;gap:10px;margin-top:12px}.profile-actions button{width:100%}.edit-link{border:0;background:transparent;color:#3949ab;text-decoration:underline;cursor:pointer;font-size:12px;padding:4px 0}.profile-choice{padding:12px;border:1px solid var(--line);border-radius:9px;margin-top:10px;background:#f8fafc}
 .hidden{display:none!important}.success{background:#edf7ed;border:1px solid #b7dfb9;color:#1b5e20;padding:14px;border-radius:10px}
 .capacity-box{margin:0 0 16px;padding:12px;border:1px solid #b7dfb9;border-radius:9px;background:#f1f8e9;font-size:13px}.capacity-row{display:flex;justify-content:space-between;gap:12px;padding:5px 0}.capacity-row+ .capacity-row{border-top:1px solid #d7e8d3}.capacity-value{font-weight:700;text-align:right}.capacity-available{color:#2e7d32}.capacity-waitlist{color:#c62828}
 .footer{font-size:10px;color:#94a3b8;text-align:center;margin-top:18px}
@@ -42,7 +43,7 @@
   <div id="banner" class="banner hidden"></div>
   <div id="loading"><h2>Loading registration form…</h2><p>Please wait.</p></div>
   <main id="app" class="content hidden">
-    <div style="text-align:center"><span class="pill">NEW ENGINE · TEST BUILD</span></div>
+    <div style="text-align:center"><span class="pill">NEW ENGINE · V3 TEST BUILD</span></div>
     <h1 id="eventTitle">Event Registration</h1>
     <p id="eventSubtitle" class="subtitle"></p>
     <div class="test-note"><b>TEST VERSION:</b> This independent frontend writes registration records to the ORIGINAL MERS path: registrations/{eventId}/{registration_id}. It updates the existing registration sequence, active_seats and accommodation counters. Use only while the event is UNDER_TEST. Other production integrations (master profile, live team projection and attendance sync) are not yet ported.</div>
@@ -92,6 +93,16 @@ let resendTimer = null;
 let masterRecords = [];
 let lookupCache = {};
 let stayAvailabilityRequest = 0;
+let profileFlow = {
+  stage: "START",
+  selectedProfile: null,
+  existingProfile: false,
+  editMode: false,
+  searchQuery: "",
+  noMatch: false
+};
+let profileSearchRequest = 0;
+let emailCodeExpiryTimer = null;
 
 const $ = id => document.getElementById(id);
 const clean = v => String(v ?? "").trim();
@@ -119,26 +130,39 @@ function setValue(id, value) {
   if (el) el.value = values[id];
 }
 function sectionRules(sectionId) {
-  return fieldRules.filter(r => clean(r.section_id) === sectionId)
-    .sort((a,b) => Number(a.field_sequence || 0) - Number(b.field_sequence || 0));
+  // Field_Rules row order is authoritative. Do not depend on removed sequence columns.
+  return fieldRules.filter(r => clean(r.section_id) === sectionId);
 }
 function orderedSections() {
   const map = new Map();
   fieldRules.forEach(r => {
     const id = clean(r.section_id);
     if (!id) return;
-    if (!map.has(id)) map.set(id, {
-      id, name: clean(r.section_name) || id,
-      sequence: Number(r.section_sequence || sectionSequenceFallback(id))
-    });
+    if (!map.has(id)) map.set(id, { id, name: clean(r.section_name) || id });
   });
-  return [...map.values()].sort((a,b) => a.sequence-b.sequence || a.id.localeCompare(b.id));
-}
-function sectionSequenceFallback(id) {
-  const m = id.match(/(\d+)/); return m ? Number(m[1]) : 999;
+  return [...map.values()];
 }
 function getSection(){ return sections[activeSectionIndex]; }
 function isVisible(rule, rules, index) {
+  if (clean(rule.section_id) === "Section1") {
+    const id = clean(rule.field_id);
+    const attended = normalize(fieldValue("attended_before"));
+    if (id === "attended_before") return true;
+    if (id === "is_practitioner") return Boolean(attended);
+    if (!attended || !fieldValue("is_practitioner")) return false;
+
+    if (attended === "YES") {
+      if (id === "profile_search") return profileFlow.stage === "SEARCH";
+      if (profileFlow.stage === "SEARCH" || profileFlow.stage === "WAIT_PRACTITIONER") return false;
+      if (profileFlow.stage === "EXISTING_PROCEED") return false;
+      if (profileFlow.stage === "EDIT_EXISTING") return true;
+      // NEW_AFTER_SEARCH follows the same row-order sequential visibility as a new profile.
+    } else if (attended === "NO") {
+      if (id === "profile_search") return false;
+      // NEW_DIRECT follows the same row-order sequential visibility as a new profile.
+    }
+  }
+
   const current = fieldValue(rule.field_id);
   if (current) return true;
   const initial = normalize(rule.initial_state);
@@ -149,8 +173,7 @@ function isVisible(rule, rules, index) {
       const prev = rules[i];
       if (!isVisible(prev, rules, i)) continue;
       const prevVal = fieldValue(prev.field_id);
-      if (!prevVal) return false;
-      if (!validateField(prev, prevVal, false)) return false;
+      if (!prevVal || !validateField(prev, prevVal, false)) return false;
       return true;
     }
     return initial !== "HIDDEN";
@@ -164,8 +187,7 @@ function isVisible(rule, rules, index) {
       const prev = rules[i];
       if (!isVisible(prev, rules, i)) continue;
       const prevVal = fieldValue(prev.field_id);
-      if (!prevVal) return false;
-      if (!validateField(prev, prevVal, false)) return false;
+      if (!prevVal || !validateField(prev, prevVal, false)) return false;
       return true;
     }
     return true;
@@ -191,10 +213,16 @@ function validateField(rule, value, showError=true) {
   } else if (type === "EMAIL") {
     valid = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
     message = "Enter a valid email address.";
-  } else if (type === "PINCODE") {
-    valid = /^\d{6}$/.test(v);
+  } else if (type === "PIN" || type === "PINCODE") {
+    const country = normalize(fieldValue("country"));
+    valid = country !== "INDIA" || /^\d{6}$/.test(v);
+    message = "For India, enter a 6-digit PIN code.";
+  } else if (type === "SRCM_WELCOME_ID" || type === "SRCM_W") {
+    valid = /^(?:B\d{8}|[A-Z]{6}\d{3})$/i.test(v);
+    message = "Enter a valid SRCM ID (B followed by 8 digits) or Welcome ID (6 letters followed by 3 digits).";
   } else if (type === "ALPHABETIC") {
-    valid = /^[A-Za-z][A-Za-z .'-]*$/.test(v);
+    // Metadata label retained; centre/city names may contain embedded digits.
+    valid = /^[A-Za-z][A-Za-z0-9 .'-]*$/.test(v);
   } else if (type === "DATE" || type === "ESD" || type === "EED") {
     valid = !Number.isNaN(Date.parse(v));
   } else if (type === "TIME") {
@@ -231,6 +259,11 @@ async function makeField(rule, rules, index) {
   const wrap = document.createElement("div");
   wrap.className = "field";
   wrap.id = "wrap_" + rule.field_id;
+
+  if (normalize(rule.field_type) === "PROFILE_SEARCH") {
+    return makeProfileSearchField(rule, wrap);
+  }
+
   const label = document.createElement("label");
   label.htmlFor = "field_" + rule.field_id;
   label.textContent = clean(rule.display_label) || rule.field_id;
@@ -240,7 +273,7 @@ async function makeField(rule, rules, index) {
   wrap.appendChild(label);
 
   let input;
-  if (clean(rule.lookup_tab) && clean(rule.lookup_column)) {
+  if (normalize(rule.field_type) === "LOOKUP") {
     input = document.createElement("select");
     const blank = document.createElement("option"); blank.value=""; blank.textContent="-- Select --"; input.appendChild(blank);
     const choices = await lookupChoices(rule);
@@ -248,14 +281,26 @@ async function makeField(rule, rules, index) {
   } else {
     input = document.createElement("input");
     const fid = normalize(rule.field_id);
-    input.type = fid.includes("DATE") ? "date" : (fid.includes("TIME") ? "time" : "text");
-    if (rule.field_id === "mobile") input.inputMode="numeric";
+    input.type = normalize(rule.field_type) === "DATE" ? "date" : (normalize(rule.field_type) === "TIME" ? "time" : "text");
+    if (rule.field_id === "mobile" || rule.field_id === "pincode") input.inputMode="numeric";
   }
   input.id = "field_" + rule.field_id;
   input.autocomplete = "off";
   input.value = clean(values[rule.field_id]);
+
+  const isExistingEdit = clean(rule.section_id) === "Section1" && profileFlow.editMode;
+  if (isExistingEdit && ["mobile","email"].includes(rule.field_id)) {
+    input.disabled = true;
+  }
   input.addEventListener("input", async () => {
     values[rule.field_id] = input.value;
+    if(rule.field_id==="attended_before") {
+      profileFlow.stage=normalize(input.value)==="YES"?"WAIT_PRACTITIONER":"NEW_DIRECT";
+      profileFlow.selectedProfile=null;profileFlow.searchQuery="";profileFlow.noMatch=false;
+    }
+    if(rule.field_id==="is_practitioner" && normalize(fieldValue("attended_before"))==="YES" && profileFlow.stage==="WAIT_PRACTITIONER") {
+      profileFlow.stage="SEARCH";
+    }
     if (rule.field_id === "mobile") validateMobileLive(input);
     if (rule.field_id === "email") {
       verification.email = Boolean(originalValues.email) &&
@@ -284,17 +329,38 @@ async function makeField(rule, rules, index) {
   });
   wrap.appendChild(input);
 
-  if (clean(rule.help_text)) {
-    const help=document.createElement("div"); help.className="help"; help.textContent=rule.help_text; wrap.appendChild(help);
+  let helpText = normalize(fieldValue("attended_before")) === "YES"
+    ? clean(rule.help_text_yes) : clean(rule.help_text_no);
+  if (rule.field_id === "full_name" &&
+      ["NEW_AFTER_SEARCH", "NEW_DIRECT"].includes(profileFlow.stage)) {
+    helpText = "Please enter your full name.";
+  }
+  if (helpText) {
+    const help=document.createElement("div"); help.className="help"; help.textContent=helpText; wrap.appendChild(help);
   }
   const error=document.createElement("div"); error.id="error_"+rule.field_id; error.className="error"; wrap.appendChild(error);
+
+  if (isExistingEdit && ["mobile","email"].includes(rule.field_id)) {
+    const edit=document.createElement("button"); edit.type="button"; edit.className="edit-link";
+    edit.textContent="Edit";
+    edit.addEventListener("click", () => {
+      input.disabled=false;
+      edit.classList.add("hidden");
+      if (rule.field_id === "email") {
+        const panel=$("email_verify_panel"); if(panel) panel.classList.remove("hidden");
+      }
+      input.focus();
+    });
+    wrap.appendChild(edit);
+  }
 
   if (rule.field_id === "mobile") {
     const status=document.createElement("div"); status.id="mobile_status"; status.className="status"; wrap.appendChild(status);
     validateMobileLive(input);
   }
   if (rule.field_id === "email") {
-    const verify=document.createElement("div"); verify.className="verify";
+    const verify=document.createElement("div"); verify.id="email_verify_panel"; verify.className="verify";
+    if (isExistingEdit) verify.classList.add("hidden");
     const send=document.createElement("button"); send.type="button"; send.className="btn"; send.style.width="100%"; send.textContent="SEND VERIFICATION CODE";
     send.addEventListener("click", () => sendEmailCode(input.value));
     verify.appendChild(send);
@@ -306,11 +372,121 @@ async function makeField(rule, rules, index) {
     const msg=document.createElement("div"); msg.id="email_status"; msg.className="status"; verify.appendChild(msg);
     wrap.appendChild(verify);
   }
-  if (rule.field_id === "full_name") {
-    const suggestions=document.createElement("div"); suggestions.id="name_suggestions"; suggestions.className="suggestions"; wrap.appendChild(suggestions);
-    input.addEventListener("input", () => searchExistingNames(input.value));
-  }
   return wrap;
+}
+
+async function makeProfileSearchField(rule, wrap) {
+  const label=document.createElement("label");
+  label.textContent=clean(rule.display_label) || "Search Your Existing Profile";
+  wrap.appendChild(label);
+  const help=clean(rule.help_text_yes);
+  if(help){const h=document.createElement("div");h.className="help";h.textContent=help;wrap.appendChild(h);}
+  const input=document.createElement("input");
+  input.type="text"; input.id="field_profile_search"; input.autocomplete="off";
+  input.placeholder="Enter first three letters of your name/surname";
+  input.value=profileFlow.searchQuery;
+  input.addEventListener("input",()=> {
+    profileFlow.searchQuery=input.value;
+    searchExistingProfiles(input.value);
+  });
+  wrap.appendChild(input);
+  const results=document.createElement("div");results.id="profile_search_results";results.className="suggestions";wrap.appendChild(results);
+  const actions=document.createElement("div");actions.id="profile_match_actions";actions.className="profile-actions hidden";wrap.appendChild(actions);
+  const noMatch=document.createElement("div");noMatch.id="profile_no_match";noMatch.className="profile-choice hidden";
+  noMatch.innerHTML="<p>Your name was not found in our database. Would you like to continue as a new participant?</p>";
+  const yes=document.createElement("button");yes.type="button";yes.className="btn";yes.textContent="YES";
+  yes.addEventListener("click",async()=>{profileFlow.stage="NEW_AFTER_SEARCH";profileFlow.noMatch=false;await renderCurrentSection();});
+  const no=document.createElement("button");no.type="button";no.className="btn secondary";no.textContent="NO";
+  no.addEventListener("click",async()=>{resetProfileSearch();await renderCurrentSection();});
+  noMatch.append(yes,no);wrap.appendChild(noMatch);
+  if(profileFlow.selectedProfile) renderProfileMatchActions();
+  if(profileFlow.noMatch) noMatch.classList.remove("hidden");
+  return wrap;
+}
+
+function renderProfileMatchActions() {
+  const box=$("profile_match_actions"); if(!box) return;
+  box.innerHTML="";
+  const ok=document.createElement("button");ok.type="button";ok.className="btn";
+  ok.textContent="My details are correct. Proceed";
+  ok.addEventListener("click",async()=>{
+    profileFlow.stage="EXISTING_PROCEED";profileFlow.editMode=false;
+    values.participant_type=isYes(values.is_practitioner)?"Internal":"External";
+    verification.email=true;
+    await goToNextSectionFromProfile();
+  });
+  const edit=document.createElement("button");edit.type="button";edit.className="btn secondary";
+  edit.textContent="I want to edit my details";
+  edit.addEventListener("click",async()=>{
+    profileFlow.stage="EDIT_EXISTING";profileFlow.editMode=true;
+    values.participant_type=isYes(values.is_practitioner)?"Internal":"External";
+    await renderCurrentSection();
+  });
+  box.append(ok,edit);box.classList.remove("hidden");
+}
+
+async function searchExistingProfiles(query) {
+  const box=$("profile_search_results"), noMatch=$("profile_no_match");
+  if(!box) return;
+  const q=clean(query);
+  profileFlow.noMatch=false;
+  if(noMatch) noMatch.classList.add("hidden");
+  if(q.length<3){box.style.display="none";box.innerHTML="";return;}
+  const request=++profileSearchRequest;
+  try {
+    if(!masterRecords.length){
+      const snap=await db.ref("masters/Master_Internal_DB").once("value");
+      const raw=snap.val()||{};
+      masterRecords=Array.isArray(raw)?raw:Object.values(raw);
+    }
+    if(request!==profileSearchRequest)return;
+    const lower=q.toLowerCase();
+    const found=masterRecords.filter(p=>{
+      const name=clean(p.full_name||p.Full_Name||p["Full Name"]);
+      return name.toLowerCase().includes(lower);
+    }).slice(0,12);
+    box.innerHTML="";
+    found.forEach(person=>{
+      const item=document.createElement("div");item.className="suggestion";
+      item.textContent=clean(person.full_name||person.Full_Name||person["Full Name"]);
+      item.addEventListener("click",async()=>{
+        profileFlow.selectedProfile=person;
+        Object.keys(person||{}).forEach(k=>{values[k]=person[k];originalValues[k]=person[k];});
+        // Normalize known profile keys into the Field_Rules field IDs.
+        fieldRules.filter(r=>r.section_id==="Section1").forEach(r=>{
+          const id=r.field_id;
+          if(person[id]!==undefined){values[id]=person[id];originalValues[id]=person[id];}
+        });
+        profileFlow.searchQuery=clean(person.full_name||person.Full_Name||person["Full Name"]);
+        profileFlow.noMatch=false;
+        verification.email=true;
+        box.style.display="none";
+        const input=$("field_profile_search");if(input)input.value=profileFlow.searchQuery;
+        renderProfileMatchActions();
+      });
+      box.appendChild(item);
+    });
+    box.style.display=found.length?"block":"none";
+    if(!found.length){
+      profileFlow.noMatch=true;
+      if(noMatch)noMatch.classList.remove("hidden");
+    }
+  } catch(e){console.error("Profile search failed",e);showMessage("Unable to search the participant database. Please try again.","error");}
+}
+
+function resetProfileSearch() {
+  profileFlow={stage:"SEARCH",selectedProfile:null,existingProfile:false,editMode:false,searchQuery:"",noMatch:false};
+  profileSearchRequest++;
+  fieldRules.filter(r=>r.section_id==="Section1").forEach(r=>{values[r.field_id]="";delete originalValues[r.field_id];});
+  ["participant_type"].forEach(k=>delete values[k]);
+  verification.email=false;
+}
+
+async function goToNextSectionFromProfile() {
+  activeSectionIndex=sections.findIndex(s=>s.id!=="Section1");
+  if(activeSectionIndex<0)activeSectionIndex=sections.length-1;
+  await renderCurrentSection();
+  window.scrollTo({top:0,behavior:"smooth"});
 }
 
 async function reloadDependentLookups(parentFieldId, visited = new Set()) {
@@ -407,7 +583,6 @@ async function verifyEmailCode(email, code) {
       return;
     }
     verification.email=true;
-    const input=$("field_email"); if(input) input.disabled=true;
     $("email_status").textContent="Email verified ✓"; $("email_status").className="status ok";
     $("email_code_row")?.classList.add("hidden");
     updateContinueState();
@@ -566,9 +741,17 @@ async function updateStayOptions() {
 
 function sectionReady() {
   const sec=getSection(); if(!sec) return false;
+  if(sec.id==="Section1") {
+    if(!fieldValue("attended_before") || !fieldValue("is_practitioner")) return false;
+    if(normalize(fieldValue("attended_before"))==="YES") {
+      if(profileFlow.stage==="SEARCH") return false;
+      if(profileFlow.stage==="EXISTING_PROCEED") return true;
+    }
+  }
   const rules=sectionRules(sec.id);
   for(let i=0;i<rules.length;i++){
-    const r=rules[i]; const visible=isVisible(r,rules,i);
+    const r=rules[i]; if(normalize(r.field_type)==="PROFILE_SEARCH") continue;
+    const visible=isVisible(r,rules,i);
     if(!visible) continue;
     const val=fieldValue(r.field_id);
     if(isRequired(r) && !val) return false;
@@ -594,7 +777,7 @@ async function renderCurrentSection() {
   const rules=sectionRules(sec.id);
   for(let i=0;i<rules.length;i++){
     const r=rules[i];
-    if (r.field_id==="email" && originalValues.email && clean(values.email)===clean(originalValues.email)) verification.email=true;
+    if(normalize(r.field_type)==="PROFILE_SEARCH" && profileFlow.stage!=="SEARCH") continue;
     const wrap=await makeField(r,rules,i);
     wrap.style.display=isVisible(r,rules,i)?"block":"none";
     area.appendChild(wrap);
@@ -605,9 +788,11 @@ async function renderCurrentSection() {
       area.appendChild(capacityBox);
     }
   }
-  if (sec.id === "Section2" && fieldValue("gender")) {
-    await updateStayOptions();
+  if(sec.id==="Section1" && normalize(fieldValue("attended_before"))==="YES" && profileFlow.stage==="SEARCH") {
+    const searchWrap=$("wrap_profile_search");
+    if(searchWrap)searchWrap.style.display="block";
   }
+  if (sec.id === "Section2" && fieldValue("gender")) await updateStayOptions();
   $("backBtn").classList.toggle("hidden",activeSectionIndex===0);
   $("nextBtn").textContent=activeSectionIndex===sections.length-1?"SUBMIT REGISTRATION":"CONTINUE";
   $("progressBar").style.width=((activeSectionIndex+1)/sections.length*100)+"%";
@@ -616,7 +801,16 @@ async function renderCurrentSection() {
 }
 async function goNext() {
   hideMessage();
+  if(getSection()?.id==="Section1" && normalize(fieldValue("attended_before"))==="YES" && profileFlow.stage==="EXISTING_PROCEED") {
+    await goToNextSectionFromProfile(); return;
+  }
   if(!sectionReady()){showMessage("Please complete the required fields and verify your email before continuing.","error");return;}
+  if(getSection()?.id==="Section1") {
+    values.participant_type=isYes(fieldValue("is_practitioner"))?"Internal":"External";
+    if(normalize(fieldValue("attended_before"))==="YES" && profileFlow.stage==="SEARCH") {
+      showMessage("Please search for your existing profile and select a matching result, or choose YES if your name is not found.","error");return;
+    }
+  }
   if(activeSectionIndex<sections.length-1){
     activeSectionIndex++;
     await renderCurrentSection();
@@ -715,7 +909,7 @@ async function saveTestSubmission() {
       registration_status: "REGISTERED ON " + now.toLocaleString(),
       stay_allocation_code: "",
       original_stay_allocation_code: "",
-      build: "NEW_INDEX_TEST"
+      build: "NEW_INDEX_V3_TEST"
     };
 
     // Original MERS active registration counter node.
@@ -807,14 +1001,15 @@ async function init() {
     const rawRules=rulesSnap.val()||{};
     fieldRules=Object.values(rawRules).filter(r=>clean(r.event_id).toUpperCase()===eventId);
     if(!fieldRules.length) throw new Error("No Field_Rules found for "+eventId);
-    fieldRules=fieldRules.map(r=>({...r,section_sequence:Number(r.section_sequence||sectionSequenceFallback(r.section_id)),help_text:r.help_text??r.field_help_text??""}));
+    fieldRules=fieldRules.map(r=>({...r}));
     sections=orderedSections();
+    if(sections.some(s=>s.id==="Section1")) profileFlow.stage="START";
     if(!sections.length) throw new Error("No sections found in Field_Rules.");
     $("eventTitle").textContent=eventConfig.title||"Event Registration";
     $("eventSubtitle").textContent=eventConfig.subtitle||"";
     if(bannerSnap.val()){ $("banner").innerHTML=bannerSnap.val(); $("banner").classList.remove("hidden"); }
     $("loading").classList.add("hidden");$("app").classList.remove("hidden");
-    if(mode==="edit" && regId) showMessage("Edit mode is not connected in this first test build. Please test the new-registration flow first.","info");
+    if(mode==="edit" && regId) showMessage("Edit mode is not connected in this V3 test build. Please test the new-registration flow first.","info");
     await renderCurrentSection();
   }catch(e){
     $("loading").innerHTML="<h2>Unable to load test registration</h2><p>"+String(e.message||e)+"</p><p>Open browser console for diagnostics.</p>";
