@@ -43,7 +43,7 @@
   <div id="banner" class="banner hidden"></div>
   <div id="loading"><h2>Loading registration form…</h2><p>Please wait.</p></div>
   <main id="app" class="content hidden">
-    <div style="text-align:center"><span class="pill">NEW ENGINE · V7 TEST BUILD</span></div>
+    <div style="text-align:center"><span class="pill">NEW ENGINE · V8 TEST BUILD</span></div>
     <h1 id="eventTitle">Event Registration</h1>
     <p id="eventSubtitle" class="subtitle"></p>
     <div class="test-note"><b>TEST VERSION:</b> This independent frontend writes registration records to the ORIGINAL MERS path: registrations/{eventId}/{registration_id}. It updates the existing registration sequence, active_seats and accommodation counters. Use only while the event is UNDER_TEST. Other production integrations (master profile, live team projection and attendance sync) are not yet ported.</div>
@@ -446,6 +446,7 @@ async function makeField(rule, rules, index) {
         }
         verification.email = false;
         emailFormatConfirmed = "";
+        console.log("[MERS EMAIL] Participant opened email edit; new address verification is now required.");
         if (emailDoneButton) emailDoneButton.disabled = !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(clean(input.value));
       }
       input.focus();
@@ -462,6 +463,9 @@ async function makeField(rule, rules, index) {
     const verify = document.createElement("div");
     verify.id = "email_verify_panel";
     verify.className = "verify";
+    // Existing profile data is already on record; do not show a past-verification badge.
+    // Reveal the verification panel only when the participant explicitly clicks EDIT.
+    if (isExistingEdit) verify.classList.add("hidden");
 
     emailControls = document.createElement("div");
     emailControls.className = "inline-field-row";
@@ -578,11 +582,16 @@ async function makeField(rule, rules, index) {
       refreshCurrentVisibility();
       updateContinueState();
     });
-    if (verification.email && originalValues.email &&
+    if (!isExistingEdit && verification.email && originalValues.email &&
         clean(input.value).toLowerCase() === clean(originalValues.email).toLowerCase()) {
       emailControls.classList.add("hidden");
       inlineStatus.textContent = "✓ Email address verified.";
       inlineStatus.className = "inline-status ok";
+    }
+    if (isExistingEdit) {
+      emailControls.classList.remove("hidden");
+      inlineStatus.textContent = "";
+      console.log("[MERS EMAIL] Existing stored email shown without a verification badge; verification UI waits for EDIT.");
     }
     wrap.appendChild(verify);
   }
@@ -1201,7 +1210,7 @@ async function saveTestSubmission() {
       registration_status: "REGISTERED ON " + now.toLocaleString(),
       stay_allocation_code: "",
       original_stay_allocation_code: "",
-      build: "NEW_INDEX_V7_TEST"
+      build: "NEW_INDEX_V8_TEST"
     };
 
     // Original MERS active registration counter node.
