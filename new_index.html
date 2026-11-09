@@ -45,7 +45,7 @@
     <div style="text-align:center"><span class="pill">NEW ENGINE · TEST BUILD</span></div>
     <h1 id="eventTitle">Event Registration</h1>
     <p id="eventSubtitle" class="subtitle"></p>
-    <div class="test-note"><b>TEST VERSION:</b> This build does not alter production registrations, participant master records, accommodation counters or live team projections. Test submissions are stored separately under <code>testRegistrations</code>.</div>
+    <div class="test-note"><b>TEST VERSION:</b> This independent frontend writes registration records to the ORIGINAL MERS path: registrations/{eventId}/{registration_id}. It updates the existing registration sequence, active_seats and accommodation counters. Use only while the event is UNDER_TEST. Other production integrations (master profile, live team projection and attendance sync) are not yet ported.</div>
     <div class="progress"><div id="progressBar"></div></div>
     <div id="progressLabel" class="progress-label"></div>
     <div id="formArea"></div>
@@ -63,7 +63,7 @@
 /* =========================================================
    MERS NEW ENGINE — TEST BUILD
    Read paths mirror the existing system.
-   Writes are isolated to testRegistrations/{eventId}.
+   Registration records use the original registrations/{eventId}/{registration_id} path. The original counters/{eventId}, active_seats/{eventId}, counters/confirmed_counters and counters/waitlist_counters paths are retained.
    ========================================================= */
 
 const FIREBASE_CONFIG = {
@@ -609,7 +609,7 @@ async function renderCurrentSection() {
     await updateStayOptions();
   }
   $("backBtn").classList.toggle("hidden",activeSectionIndex===0);
-  $("nextBtn").textContent=activeSectionIndex===sections.length-1?"SAVE TEST SUBMISSION":"CONTINUE";
+  $("nextBtn").textContent=activeSectionIndex===sections.length-1?"SUBMIT REGISTRATION":"CONTINUE";
   $("progressBar").style.width=((activeSectionIndex+1)/sections.length*100)+"%";
   $("progressLabel").textContent=`Section ${activeSectionIndex+1} of ${sections.length}`;
   updateContinueState();
@@ -629,16 +629,169 @@ async function goBack() {
   if(activeSectionIndex>0){activeSectionIndex--;await renderCurrentSection();window.scrollTo({top:0,behavior:"smooth"});}
 }
 async function saveTestSubmission() {
-  if(!TEST_MODE) throw new Error("Safety guard: test mode is disabled.");
-  if(!sectionReady()){showMessage("Please complete all required fields.","error");return;}
-  const payload={...values,event_id:eventId,mode,created_at:new Date().toISOString(),build:"NEW_INDEX_TEST"};
-  try{
-    const ref=db.ref("testRegistrations/"+eventId).push();
-    await ref.set(payload);
-    $("formArea").innerHTML='<div class="success"><h3>Test submission saved</h3><p>Your test registration has been stored separately. No production counters or master records were changed.</p><p><b>Test record ID:</b> '+ref.key+'</p></div>';
-    $("backBtn").classList.add("hidden");$("nextBtn").classList.add("hidden");
-    $("progressBar").style.width="100%";$("progressLabel").textContent="Test complete";
-  }catch(e){showMessage("Could not save test submission: "+e.message,"error");}
+  if (!TEST_MODE) throw new Error("Safety guard: test mode is disabled.");
+  if (!sectionReady()) {
+    showMessage("Please complete all required fields.", "error");
+    return;
+  }
+
+  const gender = clean(values.gender).toLowerCase();
+  const selectedStay = clean(values.stay_option);
+  const stayLower = selectedStay.toLowerCase();
+
+  if (!gender || !["male", "female"].includes(gender)) {
+    showMessage("Please select a valid gender before submitting.", "error");
+    return;
+  }
+
+  // Preserve the original MERS Firebase accommodation-counter node structure.
+  let accommodationCounterPath = "";
+  let allocationPrefix = "";
+
+  if (stayLower === "room" || stayLower === "room (waiting list)") {
+    const isWaitlist = stayLower.includes("waiting list");
+    accommodationCounterPath = isWaitlist
+      ? `counters/waitlist_counters/room_${gender}/${eventId}`
+      : `counters/confirmed_counters/room_${gender}/${eventId}`;
+    allocationPrefix = isWaitlist ? "ROOM-WAITLIST" : "ROOM-CONFIRM";
+  } else if (
+    stayLower === "dormitory" ||
+    stayLower === "dormitory (waiting list)" ||
+    stayLower === "dorm" ||
+    stayLower === "dorm (waiting list)"
+  ) {
+    const isWaitlist = stayLower.includes("waiting list");
+    accommodationCounterPath = isWaitlist
+      ? `counters/waitlist_counters/dorm_${gender}/${eventId}`
+      : `counters/confirmed_counters/dorm_${gender}/${eventId}`;
+    allocationPrefix = isWaitlist ? "DORM-WAITLIST" : "DORM-CONFIRM";
+  } else if (
+    stayLower === "i will arrange my own stay outside the venue" ||
+    stayLower === "outside stay"
+  ) {
+    allocationPrefix = "OUTSIDE-STAY";
+  } else {
+    showMessage("Please select a valid stay option.", "error");
+    return;
+  }
+
+  const now = new Date();
+  const monthNames = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+  const day = String(now.getUTCDate()).padStart(2, "0");
+  const month = monthNames[now.getUTCMonth()];
+  const year = now.getUTCFullYear();
+  const timePart =
+    String(now.getUTCHours()).padStart(2, "0") +
+    String(now.getUTCMinutes()).padStart(2, "0") +
+    String(now.getUTCSeconds()).padStart(2, "0") +
+    String(now.getUTCMilliseconds()).padStart(3, "0");
+
+  const registrationIdBase = `${eventId}-REG-${day}-${month}-${year}-${timePart}-000`;
+
+  let accommodationRef = null;
+  let activeSeatsRef = null;
+  let accommodationIncremented = false;
+  let activeSeatsIncremented = false;
+  let registrationRef = null;
+
+  try {
+    // Original MERS registration sequence: counters/{eventId}; never decrement it.
+    const sequenceRef = db.ref("counters/" + eventId);
+    const sequenceResult = await sequenceRef.transaction(current => (Number(current) || 0) + 1);
+    if (!sequenceResult.committed) {
+      throw new Error("Registration ID sequence could not be allocated.");
+    }
+
+    const serial = String(sequenceResult.snapshot.val()).padStart(3, "0");
+    const idParts = registrationIdBase.split("-");
+    idParts[idParts.length - 1] = serial;
+    const registrationId = idParts.join("-");
+
+    const payload = {
+      ...values,
+      registration_id: registrationId,
+      event_id: eventId,
+      timestamp: now.toLocaleString(),
+      registration_status: "REGISTERED ON " + now.toLocaleString(),
+      stay_allocation_code: "",
+      original_stay_allocation_code: "",
+      build: "NEW_INDEX_TEST"
+    };
+
+    // Original MERS active registration counter node.
+    activeSeatsRef = db.ref("active_seats/" + eventId);
+    const activeResult = await activeSeatsRef.transaction(current => (Number(current) || 0) + 1);
+    if (!activeResult.committed) {
+      throw new Error("Active registration counter could not be updated.");
+    }
+    activeSeatsIncremented = true;
+
+    // Increment the selected accommodation counter using the original path.
+    if (accommodationCounterPath) {
+      accommodationRef = db.ref(accommodationCounterPath);
+      const accommodationResult = await accommodationRef.transaction(
+        current => (Number(current) || 0) + 1
+      );
+      if (!accommodationResult.committed) {
+        throw new Error("Accommodation counter transaction was not committed.");
+      }
+      accommodationIncremented = true;
+      const allocationNumber = Number(accommodationResult.snapshot.val()) || 0;
+      payload.stay_allocation_code = `${allocationPrefix}#${allocationNumber}`;
+    } else {
+      payload.stay_allocation_code = "OUTSIDE-STAY";
+    }
+
+    payload.original_stay_allocation_code = payload.stay_allocation_code;
+
+    // CRITICAL: use the exact original MERS registration node and ID key.
+    registrationRef = db.ref(
+      "registrations/" + eventId + "/" + registrationId
+    );
+    await registrationRef.set(payload);
+
+    $("formArea").innerHTML =
+      '<div class="success"><h3>Registration saved</h3>' +
+      '<p>The registration has been written to the original MERS registrations node.</p>' +
+      '<p><b>Registration ID:</b> ' + clean(registrationId) + '</p>' +
+      '<p><b>Stay allocation:</b> ' + clean(payload.stay_allocation_code) + '</p>' +
+      '<p><b>Active registrations:</b> ' + Number(activeResult.snapshot.val()) + '</p>' +
+      (accommodationCounterPath
+        ? '<p><b>Accommodation counter:</b> ' + clean(accommodationCounterPath) + '</p>'
+        : '') +
+      '</div>';
+
+    $("backBtn").classList.add("hidden");
+    $("nextBtn").classList.add("hidden");
+    $("progressBar").style.width = "100%";
+    $("progressLabel").textContent = "Registration saved";
+  } catch (e) {
+    console.error("MERS registration save/counter update failed:", e);
+
+    // Roll back seat counters if the registration write failed.
+    // The unique registration sequence is intentionally never decremented.
+    if (registrationRef) {
+      try { await registrationRef.remove(); } catch (rollbackError) {
+        console.error("Registration rollback failed:", rollbackError);
+      }
+    }
+    if (accommodationIncremented && accommodationRef) {
+      try {
+        await accommodationRef.transaction(current => Math.max(0, (Number(current) || 0) - 1));
+      } catch (rollbackError) {
+        console.error("Accommodation counter rollback failed:", rollbackError);
+      }
+    }
+    if (activeSeatsIncremented && activeSeatsRef) {
+      try {
+        await activeSeatsRef.transaction(current => Math.max(0, (Number(current) || 0) - 1));
+      } catch (rollbackError) {
+        console.error("Active seats rollback failed:", rollbackError);
+      }
+    }
+
+    showMessage("Registration could not be completed: " + e.message, "error");
+  }
 }
 async function init() {
   try {
