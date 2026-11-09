@@ -43,7 +43,7 @@
   <div id="banner" class="banner hidden"></div>
   <div id="loading"><h2>Loading registration form…</h2><p>Please wait.</p></div>
   <main id="app" class="content hidden">
-    <div style="text-align:center"><span class="pill">NEW ENGINE · V4 TEST BUILD</span></div>
+    <div style="text-align:center"><span class="pill">NEW ENGINE · V5 TEST BUILD</span></div>
     <h1 id="eventTitle">Event Registration</h1>
     <p id="eventSubtitle" class="subtitle"></p>
     <div class="test-note"><b>TEST VERSION:</b> This independent frontend writes registration records to the ORIGINAL MERS path: registrations/{eventId}/{registration_id}. It updates the existing registration sequence, active_seats and accommodation counters. Use only while the event is UNDER_TEST. Other production integrations (master profile, live team projection and attendance sync) are not yet ported.</div>
@@ -153,13 +153,22 @@ function isVisible(rule, rules, index) {
 
     if (attended === "YES") {
       if (id === "profile_search") return profileFlow.stage === "SEARCH";
-      if (profileFlow.stage === "SEARCH" || profileFlow.stage === "WAIT_PRACTITIONER") return false;
-      if (profileFlow.stage === "EXISTING_PROCEED") return false;
-      if (profileFlow.stage === "EDIT_EXISTING") return true;
-      // NEW_AFTER_SEARCH follows the same row-order sequential visibility as a new profile.
+      if (profileFlow.stage === "SEARCH" ||
+          profileFlow.stage === "WAIT_PRACTITIONER" ||
+          profileFlow.stage === "EXISTING_PROCEED") return false;
+      if (profileFlow.stage === "REVIEW_EXISTING" ||
+          profileFlow.stage === "EDIT_EXISTING") return true;
+      if (id === "full_name" &&
+          ["NEW_AFTER_SEARCH", "NEW_DIRECT"].includes(profileFlow.stage)) {
+        console.log("[MERS VISIBILITY] full_name shown for new profile after prior attendance:", profileFlow.stage);
+        return true;
+      }
     } else if (attended === "NO") {
       if (id === "profile_search") return false;
-      // NEW_DIRECT follows the same row-order sequential visibility as a new profile.
+      if (id === "full_name" && profileFlow.stage === "NEW_DIRECT") {
+        console.log("[MERS VISIBILITY] full_name shown as first new-profile field.");
+        return true;
+      }
     }
   }
 
@@ -328,8 +337,16 @@ async function makeField(rule, rules, index) {
   input.autocomplete = "off";
   input.value = clean(values[rule.field_id]);
 
-  const isExistingEdit = clean(rule.section_id) === "Section1" && profileFlow.editMode;
-  if (isExistingEdit && ["mobile","email"].includes(rule.field_id)) {
+  const isProfileField = clean(rule.section_id) === "Section1" &&
+    !["attended_before", "is_practitioner", "profile_search"].includes(rule.field_id);
+  const isExistingReview = isProfileField && profileFlow.stage === "REVIEW_EXISTING";
+  const isExistingEdit = isProfileField && profileFlow.editMode;
+  if (isExistingReview || (isExistingEdit && ["mobile","email"].includes(rule.field_id))) {
+    input.disabled = true;
+  }
+  if (clean(rule.section_id) === "Section1" &&
+      ["attended_before", "is_practitioner"].includes(rule.field_id) &&
+      ["REVIEW_EXISTING", "EDIT_EXISTING"].includes(profileFlow.stage)) {
     input.disabled = true;
   }
   input.addEventListener("input", async () => {
@@ -398,11 +415,11 @@ async function makeField(rule, rules, index) {
     wrap.appendChild(edit);
   }
 
-  if (rule.field_id === "mobile") {
+  if (rule.field_id === "mobile" && !isExistingReview) {
     const status=document.createElement("div"); status.id="mobile_status"; status.className="status"; wrap.appendChild(status);
     validateMobileLive(input);
   }
-  if (rule.field_id === "email") {
+  if (rule.field_id === "email" && !isExistingReview) {
     const verify=document.createElement("div"); verify.id="email_verify_panel"; verify.className="verify";
     if (isExistingEdit) verify.classList.add("hidden");
     const send=document.createElement("button"); send.type="button"; send.className="btn"; send.style.width="100%"; send.textContent="SEND VERIFICATION CODE";
@@ -443,9 +460,41 @@ async function makeProfileSearchField(rule, wrap) {
   const no=document.createElement("button");no.type="button";no.className="btn secondary";no.textContent="NO";
   no.addEventListener("click",async()=>{resetProfileSearch();await renderCurrentSection();});
   noMatch.append(yes,no);wrap.appendChild(noMatch);
-  if(profileFlow.selectedProfile) renderProfileMatchActions();
   if(profileFlow.noMatch) noMatch.classList.remove("hidden");
   return wrap;
+}
+
+function renderProfileReviewActions() {
+  const area = $("formArea");
+  if (!area || $("profile_review_actions")) return;
+  const box = document.createElement("div");
+  box.id = "profile_review_actions";
+  box.className = "profile-actions";
+  const ok = document.createElement("button");
+  ok.type = "button";
+  ok.className = "btn";
+  ok.textContent = "My details are correct. Proceed";
+  ok.addEventListener("click", async () => {
+    profileFlow.stage = "EXISTING_PROCEED";
+    profileFlow.editMode = false;
+    values.participant_type = isYes(values.is_practitioner) ? "Internal" : "External";
+    verification.email = true;
+    console.log("[MERS PROFILE] Participant confirmed retrieved profile; proceeding to Section2.");
+    await goToNextSectionFromProfile();
+  });
+  const edit = document.createElement("button");
+  edit.type = "button";
+  edit.className = "btn secondary";
+  edit.textContent = "I want to edit my details";
+  edit.addEventListener("click", async () => {
+    profileFlow.stage = "EDIT_EXISTING";
+    profileFlow.editMode = true;
+    values.participant_type = isYes(values.is_practitioner) ? "Internal" : "External";
+    console.log("[MERS PROFILE] Participant selected edit; enabling profile fields.");
+    await renderCurrentSection();
+  });
+  box.append(ok, edit);
+  area.appendChild(box);
 }
 
 function renderProfileMatchActions() {
@@ -507,10 +556,13 @@ async function searchExistingProfiles(query) {
         });
         profileFlow.searchQuery=clean(person.full_name||person.Full_Name||person["Full Name"]);
         profileFlow.noMatch=false;
+        profileFlow.stage="REVIEW_EXISTING";
+        profileFlow.editMode=false;
         verification.email=true;
         box.style.display="none";
         const input=$("field_profile_search");if(input)input.value=profileFlow.searchQuery;
-        renderProfileMatchActions();
+        console.log("[MERS PROFILE] Showing retrieved profile for participant review.");
+        await renderCurrentSection();
       });
       box.appendChild(item);
     });
@@ -799,6 +851,7 @@ function shouldShowSectionContinue() {
   if (profileFlow.stage === "SEARCH" ||
       profileFlow.stage === "WAIT_PRACTITIONER" ||
       profileFlow.stage === "WAIT_PRACTITIONER_NEW" ||
+      profileFlow.stage === "REVIEW_EXISTING" ||
       profileFlow.stage === "EXISTING_PROCEED") return false;
   return ["NEW_DIRECT", "NEW_AFTER_SEARCH", "EDIT_EXISTING"].includes(profileFlow.stage);
 }
@@ -864,6 +917,10 @@ async function renderCurrentSection() {
   if(sec.id==="Section1" && normalize(fieldValue("attended_before"))==="YES" && profileFlow.stage==="SEARCH") {
     const searchWrap=$("wrap_profile_search");
     if(searchWrap)searchWrap.style.display="block";
+  }
+  if (sec.id === "Section1" && profileFlow.stage === "REVIEW_EXISTING") {
+    renderProfileReviewActions();
+    console.log("[MERS PROFILE] Existing profile review screen rendered.");
   }
   if (sec.id === "Section2" && fieldValue("gender")) await updateStayOptions();
   $("backBtn").classList.toggle("hidden",activeSectionIndex===0);
@@ -982,7 +1039,7 @@ async function saveTestSubmission() {
       registration_status: "REGISTERED ON " + now.toLocaleString(),
       stay_allocation_code: "",
       original_stay_allocation_code: "",
-      build: "NEW_INDEX_V4_TEST"
+      build: "NEW_INDEX_V5_TEST"
     };
 
     // Original MERS active registration counter node.
