@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-  
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MERS — New Registration Engine V3 (Test)</title>
+<title>MERS — New Registration Engine V9 (Test)</title>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 <style>
@@ -44,10 +43,10 @@
   <div id="banner" class="banner hidden"></div>
   <div id="loading"><h2>Loading registration form…</h2><p>Please wait.</p></div>
   <main id="app" class="content hidden">
-    <div style="text-align:center"><span class="pill">NEW ENGINE · V8 TEST BUILD</span></div>
+    <div style="text-align:center"><span class="pill">NEW ENGINE · V9 TEST BUILD</span></div>
     <h1 id="eventTitle">Event Registration</h1>
     <p id="eventSubtitle" class="subtitle"></p>
-    <div class="test-note"><b>TEST VERSION:</b> This independent frontend writes registration records to the ORIGINAL MERS path: registrations/{eventId}/{registration_id}. It updates the existing registration sequence, active_seats and accommodation counters. Use only while the event is UNDER_TEST. Other production integrations (master profile, live team projection and attendance sync) are not yet ported.</div>
+    <div class="test-note"><b>TEST VERSION V9:</b> Adds Field_Rules-driven travel date/time validation using Event_Config event boundaries and buffer-day settings. Existing profile, accommodation and registration test behaviour is retained. This independent frontend writes registration records to the ORIGINAL MERS path: registrations/{eventId}/{registration_id}. It updates the existing registration sequence, active_seats and accommodation counters. Use only while the event is UNDER_TEST. Other production integrations (master profile, live team projection and attendance sync) are not yet ported.</div>
     <div class="progress"><div id="progressBar"></div></div>
     <div id="progressLabel" class="progress-label"></div>
     <div id="formArea"></div>
@@ -228,12 +227,103 @@ function isRequired(rule) {
   if (m === "IF_NOT_PRACTITIONER") return normalize(fieldValue("is_practitioner")) === "NO";
   return false;
 }
+function parseLocalDate(value) {
+  const v = clean(value);
+  if (!v) return null;
+  let m = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) return new Date(Number(m[1]), Number(m[2])-1, Number(m[3]));
+  m = v.match(/^(\d{1,2})[-\s/]([A-Za-z]{3,9})[-\s/](\d{4})$/);
+  if (m) {
+    const months = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+    const month = months.findIndex(x => x === m[2].slice(0,3).toLowerCase());
+    if (month >= 0) return new Date(Number(m[3]), month, Number(m[1]));
+  }
+  const parsed = new Date(v);
+  return Number.isNaN(parsed.getTime()) ? null : new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+}
+function addCalendarDays(date, days) {
+  const result = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  result.setDate(result.getDate() + Number(days || 0));
+  return result;
+}
+function compareDateOnly(a, b) {
+  return a.getFullYear() !== b.getFullYear() ? a.getFullYear()-b.getFullYear() :
+    (a.getMonth() !== b.getMonth() ? a.getMonth()-b.getMonth() : a.getDate()-b.getDate());
+}
+function timeToMinutes(value) {
+  const m = clean(value).match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return null;
+  const hours = Number(m[1]), minutes = Number(m[2]);
+  return hours <= 23 && minutes <= 59 ? hours*60+minutes : null;
+}
+function travelRuleType(rule) {
+  const fid = normalize(rule.field_id);
+  const metadata = normalize(rule.field_validation).replace(/\s+/g, " ");
+  if (fid === "ARRIVAL_DATE" || metadata.includes("SHOULD BE <= ESD")) return "ARRIVAL_DATE";
+  if (fid === "ARRIVAL_TIME" || metadata.includes("SHOULD BE < EST")) return "ARRIVAL_TIME";
+  if (fid === "DEPART_DATE" || metadata.includes("SHOULD BE >= EED")) return "DEPART_DATE";
+  if (fid === "DEPART_TIME" || metadata.includes("SHOULD BE > EET")) return "DEPART_TIME";
+  return "";
+}
+function validateTravelField(rule, value) {
+  const kind = travelRuleType(rule);
+  if (!kind) return { valid: true, message: "" };
+  const v = clean(value);
+  if (!v) return { valid: !isRequired(rule), message: "This field is required." };
+  const startDate = parseLocalDate(eventConfig.event_start_date);
+  const endDate = parseLocalDate(eventConfig.event_end_date);
+  const startTime = clean(eventConfig.event_start_time);
+  const endTime = clean(eventConfig.event_end_time);
+  if ((kind === "ARRIVAL_DATE" || kind === "ARRIVAL_TIME") && (!startDate || !startTime))
+    return { valid: false, message: "Event start date/time is missing from Event_Config. Please contact the organiser." };
+  if ((kind === "DEPART_DATE" || kind === "DEPART_TIME") && (!endDate || !endTime))
+    return { valid: false, message: "Event end date/time is missing from Event_Config. Please contact the organiser." };
+
+  if (kind === "ARRIVAL_DATE") {
+    const chosen = parseLocalDate(v);
+    if (!chosen) return { valid: false, message: "Please enter a valid arrival date." };
+    const earliest = addCalendarDays(startDate, -Math.max(0, Number(eventConfig.arrival_buffer_days) || 0));
+    if (compareDateOnly(chosen, earliest) < 0 || compareDateOnly(chosen, startDate) > 0)
+      return { valid: false, message: `Arrival date must be between ${earliest.toLocaleDateString("en-GB")} and ${startDate.toLocaleDateString("en-GB")}.` };
+    const arrivalTime = clean(fieldValue("arrival_time"));
+    if (compareDateOnly(chosen, startDate) === 0 && arrivalTime && timeToMinutes(arrivalTime) >= timeToMinutes(startTime))
+      return { valid: false, message: `On the event start date, arrival time must be earlier than ${startTime}.` };
+  }
+  if (kind === "ARRIVAL_TIME") {
+    const arrivalDate = parseLocalDate(fieldValue("arrival_date"));
+    if (!arrivalDate) return { valid: false, message: "Please enter a valid arrival date first." };
+    if (compareDateOnly(arrivalDate, startDate) === 0 && timeToMinutes(v) >= timeToMinutes(startTime))
+      return { valid: false, message: `Arrival time on the event start date must be earlier than ${startTime}.` };
+  }
+  if (kind === "DEPART_DATE") {
+    const chosen = parseLocalDate(v);
+    if (!chosen) return { valid: false, message: "Please enter a valid departure date." };
+    const latest = addCalendarDays(endDate, Math.max(0, Number(eventConfig.departure_buffer_days) || 0));
+    if (compareDateOnly(chosen, endDate) < 0 || compareDateOnly(chosen, latest) > 0)
+      return { valid: false, message: `Departure date must be between ${endDate.toLocaleDateString("en-GB")} and ${latest.toLocaleDateString("en-GB")}.` };
+    const departureTime = clean(fieldValue("depart_time"));
+    if (compareDateOnly(chosen, endDate) === 0 && departureTime && timeToMinutes(departureTime) <= timeToMinutes(endTime))
+      return { valid: false, message: `On the event end date, departure time must be later than ${endTime}.` };
+  }
+  if (kind === "DEPART_TIME") {
+    const departureDate = parseLocalDate(fieldValue("depart_date"));
+    if (!departureDate) return { valid: false, message: "Please enter a valid departure date first." };
+    if (compareDateOnly(departureDate, endDate) === 0 && timeToMinutes(v) <= timeToMinutes(endTime))
+      return { valid: false, message: `Departure time on the event end date must be later than ${endTime}.` };
+  }
+  return { valid: true, message: "" };
+}
 function validateField(rule, value, showError=true) {
   const v = clean(value);
   const type = normalize(rule.field_validation);
   let valid = true;
   let message = clean(rule.error_msg) || "Please enter a valid value.";
-  if (!v) valid = !isRequired(rule);
+  const travel = travelRuleType(rule);
+  if (travel) {
+    const result = validateTravelField(rule, v);
+    valid = result.valid;
+    message = result.message || message;
+  } else if (!v) valid = !isRequired(rule);
   else if (type === "MOB") {
     valid = /^[6-9]\d{9}$/.test(v);
     message = "Enter a valid 10-digit Indian mobile number beginning with 6–9.";
@@ -248,7 +338,6 @@ function validateField(rule, value, showError=true) {
     valid = /^(?:B\d{8}|[A-Z]{6}\d{3})$/i.test(v);
     message = "Enter a valid SRCM ID (B followed by 8 digits) or Welcome ID (6 letters followed by 3 digits).";
   } else if (type === "ALPHABETIC") {
-    // Metadata label retained; centre/city names may contain embedded digits.
     valid = /^[A-Za-z][A-Za-z0-9 .'-]*$/.test(v);
   } else if (type === "DATE" || type === "ESD" || type === "EED") {
     valid = !Number.isNaN(Date.parse(v));
@@ -390,6 +479,12 @@ async function makeField(rule, rules, index) {
       }
     }
     const fieldValid = validateField(rule, input.value, true);
+    const pairedTravelField = ({arrival_date:"arrival_time",arrival_time:"arrival_date",depart_date:"depart_time",depart_time:"depart_date"})[rule.field_id];
+    if (pairedTravelField) {
+      const pairedRule = fieldRules.find(r => clean(r.field_id) === pairedTravelField);
+      const pairedInput = $("field_" + pairedTravelField);
+      if (pairedRule && pairedInput && clean(pairedInput.value)) validateField(pairedRule, pairedInput.value, true);
+    }
     console.log("[MERS VALIDATION]", rule.field_id,
       { value: input.value, valid: fieldValid, mandatory_rule: rule.mandatory_rule,
         field_validation: rule.field_validation });
@@ -590,7 +685,7 @@ async function makeField(rule, rules, index) {
       inlineStatus.className = "inline-status ok";
     }
     if (isExistingEdit) {
-      emailControls.classList.remove("hidden");
+      emailControls.classList.add("hidden");
       inlineStatus.textContent = "";
       console.log("[MERS EMAIL] Existing stored email shown without a verification badge; verification UI waits for EDIT.");
     }
@@ -1302,6 +1397,12 @@ async function init() {
     ]);
     eventConfig=eventSnap.val()||{};
     console.log("[MERS INIT] Event configuration loaded:", eventConfig);
+    console.log("[MERS TRAVEL CONFIG]", {
+      event_start_date: eventConfig.event_start_date, event_start_time: eventConfig.event_start_time,
+      event_end_date: eventConfig.event_end_date, event_end_time: eventConfig.event_end_time,
+      arrival_buffer_days: eventConfig.arrival_buffer_days,
+      departure_buffer_days: eventConfig.departure_buffer_days
+    });
     if(!eventSnap.exists()) throw new Error("Event configuration not found for "+eventId);
     const rawRules=rulesSnap.val()||{};
     fieldRules=Object.values(rawRules).filter(r=>clean(r.event_id).toUpperCase()===eventId);
