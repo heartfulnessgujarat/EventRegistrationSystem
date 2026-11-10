@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MERS — New Registration Engine V9 (Test)</title>
+<title>MERS — New Registration Engine V10 (Test)</title>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 <style>
@@ -43,10 +43,10 @@
   <div id="banner" class="banner hidden"></div>
   <div id="loading"><h2>Loading registration form…</h2><p>Please wait.</p></div>
   <main id="app" class="content hidden">
-    <div style="text-align:center"><span class="pill">NEW ENGINE · V9 TEST BUILD</span></div>
+    <div style="text-align:center"><span class="pill">NEW ENGINE · V10 TEST BUILD</span></div>
     <h1 id="eventTitle">Event Registration</h1>
     <p id="eventSubtitle" class="subtitle"></p>
-    <div class="test-note"><b>TEST VERSION V9:</b> Adds Field_Rules-driven travel date/time validation using Event_Config event boundaries and buffer-day settings. Existing profile, accommodation and registration test behaviour is retained. This independent frontend writes registration records to the ORIGINAL MERS path: registrations/{eventId}/{registration_id}. It updates the existing registration sequence, active_seats and accommodation counters. Use only while the event is UNDER_TEST. Other production integrations (master profile, live team projection and attendance sync) are not yet ported.</div>
+    <div class="test-note"><b>TEST VERSION V10:</b> Retains V9 profile, accommodation and travel validation. After Firebase confirms the registration save, the event-specific Thank You HTML is displayed immediately. Confirmation email and participant master-profile update are then started in the background. Firebase-to-Google-Sheets synchronisation remains deliberately separate and is NOT triggered by registration. Use only while the event is UNDER_TEST. Existing index.html is not modified.</div>
     <div class="progress"><div id="progressBar"></div></div>
     <div id="progressLabel" class="progress-label"></div>
     <div id="formArea"></div>
@@ -82,6 +82,8 @@ const mode = (params.get("mode") || "new").toLowerCase();
 const regId = params.get("regId") || "";
 
 let eventConfig = {};
+let thankYouHtml = "";
+let submissionInProgress = false;
 let fieldRules = [];
 let sections = [];
 let activeSectionIndex = 0;
@@ -1219,8 +1221,112 @@ async function goNext() {
 async function goBack() {
   if(activeSectionIndex>0){activeSectionIndex--;await renderCurrentSection();window.scrollTo({top:0,behavior:"smooth"});}
 }
+async function updateParticipantMasterInBackground(registrationPayload) {
+  try {
+    const masterRef = db.ref("masters/Master_Internal_DB");
+    const eventType = clean(eventConfig.event_type || "internal").toLowerCase();
+    const participantType = isYes(registrationPayload.is_practitioner) ? "Internal" : "External";
+
+    // Keep the original MERS master-profile field contract.
+    const updatedProfile = {
+      full_name: clean(registrationPayload.full_name),
+      email: clean(registrationPayload.email),
+      mobile: clean(registrationPayload.mobile),
+      organization: clean(registrationPayload.organization),
+      designation: clean(registrationPayload.designation),
+      pincode: clean(registrationPayload.pincode),
+      full_address: clean(registrationPayload.full_address),
+      centre: clean(registrationPayload.centre),
+      city: clean(registrationPayload.city),
+      zone: clean(registrationPayload.zone),
+      district: clean(registrationPayload.district),
+      state: clean(registrationPayload.state),
+      region: clean(registrationPayload.region),
+      country: clean(registrationPayload.country),
+      srcm_id: clean(registrationPayload.srcm_id),
+      participant_type: participantType
+    };
+
+    // Preserve the original profile-change remark behaviour for edited profiles.
+    const changedFields = Object.keys(updatedProfile).filter(key =>
+      clean(originalValues[key]) !== clean(updatedProfile[key])
+    );
+    if (profileFlow.selectedProfile && changedFields.length) {
+      const formatted = changedFields.map(key => key.replace(/_/g, " ")
+        .replace(/\b\w/g, c => c.toUpperCase())).join(", ");
+      const dateLabel = new Date().toLocaleDateString("en-GB", {
+        day: "2-digit", month: "short", year: "numeric"
+      }).replace(/ /g, "-").toUpperCase();
+      updatedProfile.profile_update_remark = formatted + " updated on " + dateLabel + " via " + eventId;
+    }
+
+    let targetRef = null;
+    if (eventType === "internal") {
+      const nameSearch = await masterRef.orderByChild("full_name")
+        .equalTo(updatedProfile.full_name).once("value");
+      if (nameSearch.exists()) {
+        const key = Object.keys(nameSearch.val())[0];
+        targetRef = masterRef.child(key);
+      }
+    }
+
+    // Original fallback for INTERNAL and primary matching rule for EXTERNAL.
+    if (!targetRef && updatedProfile.mobile) {
+      const mobileSearch = await masterRef.orderByChild("mobile")
+        .equalTo(updatedProfile.mobile).once("value");
+      if (mobileSearch.exists()) {
+        const key = Object.keys(mobileSearch.val())[0];
+        targetRef = masterRef.child(key);
+      }
+    }
+
+    if (targetRef) {
+      await targetRef.update(updatedProfile);
+      console.log("[MERS MASTER] Existing participant profile updated in background.");
+    } else {
+      await masterRef.push(updatedProfile);
+      console.log("[MERS MASTER] New participant profile created in background.");
+    }
+  } catch (error) {
+    // Registration is already saved and Thank You is already visible. Do not disturb the participant.
+    console.error("[MERS MASTER] Background master-profile update failed:", error);
+  }
+}
+
+function showThankYouScreen(registrationPayload) {
+  const html = clean(thankYouHtml) || "<h2>Registration Successful!</h2><p>Thank you for registering.</p>";
+  $("formArea").innerHTML = html;
+  $("backBtn").classList.add("hidden");
+  $("nextBtn").classList.add("hidden");
+  $("progressBar").style.width = "100%";
+  $("progressLabel").textContent = "Registration completed";
+  hideMessage();
+  window.scrollTo({ top: 0, behavior: "auto" });
+  console.log("[MERS SUCCESS] Event-specific Thank You content displayed.", {
+    registration_id: registrationPayload.registration_id
+  });
+}
+
+function startPostRegistrationTasks(registrationPayload) {
+  // Fire the original MERS confirmation-email endpoint without waiting for its response.
+  try {
+    if (SCRIPT_URL) {
+      const emailUrl = `${SCRIPT_URL}?action=sendEmail&regId=${encodeURIComponent(registrationPayload.registration_id)}&eventId=${encodeURIComponent(eventId)}`;
+      fetch(emailUrl, { mode: "no-cors", keepalive: true })
+        .catch(error => console.error("[MERS EMAIL] Background email request failed:", error));
+      console.log("[MERS EMAIL] Confirmation email request fired in background.");
+    }
+  } catch (error) {
+    console.error("[MERS EMAIL] Could not start background email request:", error);
+  }
+
+  // Start master-profile update only after the Thank You screen is on display.
+  void updateParticipantMasterInBackground(registrationPayload);
+}
+
 async function saveTestSubmission() {
   if (!TEST_MODE) throw new Error("Safety guard: test mode is disabled.");
+  if (submissionInProgress) return;
   if (!sectionReady()) {
     showMessage("Please complete all required fields.", "error");
     return;
@@ -1235,48 +1341,41 @@ async function saveTestSubmission() {
     return;
   }
 
-  // Preserve the original MERS Firebase accommodation-counter node structure.
   let accommodationCounterPath = "";
   let allocationPrefix = "";
-
   if (stayLower === "room" || stayLower === "room (waiting list)") {
     const isWaitlist = stayLower.includes("waiting list");
     accommodationCounterPath = isWaitlist
       ? `counters/waitlist_counters/room_${gender}/${eventId}`
       : `counters/confirmed_counters/room_${gender}/${eventId}`;
     allocationPrefix = isWaitlist ? "ROOM-WAITLIST" : "ROOM-CONFIRM";
-  } else if (
-    stayLower === "dormitory" ||
-    stayLower === "dormitory (waiting list)" ||
-    stayLower === "dorm" ||
-    stayLower === "dorm (waiting list)"
-  ) {
+  } else if (["dormitory", "dormitory (waiting list)", "dorm", "dorm (waiting list)"].includes(stayLower)) {
     const isWaitlist = stayLower.includes("waiting list");
     accommodationCounterPath = isWaitlist
       ? `counters/waitlist_counters/dorm_${gender}/${eventId}`
       : `counters/confirmed_counters/dorm_${gender}/${eventId}`;
     allocationPrefix = isWaitlist ? "DORM-WAITLIST" : "DORM-CONFIRM";
-  } else if (
-    stayLower === "i will arrange my own stay outside the venue" ||
-    stayLower === "outside stay"
-  ) {
+  } else if (["i will arrange my own stay outside the venue", "outside stay"].includes(stayLower)) {
     allocationPrefix = "OUTSIDE-STAY";
   } else {
     showMessage("Please select a valid stay option.", "error");
     return;
   }
 
+  submissionInProgress = true;
+  $("nextBtn").disabled = true;
+  $("nextBtn").textContent = "SUBMITTING…";
+  hideMessage();
+
   const now = new Date();
   const monthNames = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
   const day = String(now.getUTCDate()).padStart(2, "0");
   const month = monthNames[now.getUTCMonth()];
   const year = now.getUTCFullYear();
-  const timePart =
-    String(now.getUTCHours()).padStart(2, "0") +
+  const timePart = String(now.getUTCHours()).padStart(2, "0") +
     String(now.getUTCMinutes()).padStart(2, "0") +
     String(now.getUTCSeconds()).padStart(2, "0") +
     String(now.getUTCMilliseconds()).padStart(3, "0");
-
   const registrationIdBase = `${eventId}-REG-${day}-${month}-${year}-${timePart}-000`;
 
   let accommodationRef = null;
@@ -1286,12 +1385,9 @@ async function saveTestSubmission() {
   let registrationRef = null;
 
   try {
-    // Original MERS registration sequence: counters/{eventId}; never decrement it.
     const sequenceRef = db.ref("counters/" + eventId);
     const sequenceResult = await sequenceRef.transaction(current => (Number(current) || 0) + 1);
-    if (!sequenceResult.committed) {
-      throw new Error("Registration ID sequence could not be allocated.");
-    }
+    if (!sequenceResult.committed) throw new Error("Registration ID sequence could not be allocated.");
 
     const serial = String(sequenceResult.snapshot.val()).padStart(3, "0");
     const idParts = registrationIdBase.split("-");
@@ -1300,93 +1396,65 @@ async function saveTestSubmission() {
 
     const payload = {
       ...values,
+      participant_type: isYes(values.is_practitioner) ? "Internal" : "External",
       registration_id: registrationId,
       event_id: eventId,
       timestamp: now.toLocaleString(),
       registration_status: "REGISTERED ON " + now.toLocaleString(),
       stay_allocation_code: "",
       original_stay_allocation_code: "",
-      build: "NEW_INDEX_V8_TEST"
+      build: "NEW_INDEX_V10_TEST"
     };
 
-    // Original MERS active registration counter node.
     activeSeatsRef = db.ref("active_seats/" + eventId);
     const activeResult = await activeSeatsRef.transaction(current => (Number(current) || 0) + 1);
-    if (!activeResult.committed) {
-      throw new Error("Active registration counter could not be updated.");
-    }
+    if (!activeResult.committed) throw new Error("Active registration counter could not be updated.");
     activeSeatsIncremented = true;
 
-    // Increment the selected accommodation counter using the original path.
     if (accommodationCounterPath) {
       accommodationRef = db.ref(accommodationCounterPath);
-      const accommodationResult = await accommodationRef.transaction(
-        current => (Number(current) || 0) + 1
-      );
-      if (!accommodationResult.committed) {
-        throw new Error("Accommodation counter transaction was not committed.");
-      }
+      const accommodationResult = await accommodationRef.transaction(current => (Number(current) || 0) + 1);
+      if (!accommodationResult.committed) throw new Error("Accommodation counter transaction was not committed.");
       accommodationIncremented = true;
-      const allocationNumber = Number(accommodationResult.snapshot.val()) || 0;
-      payload.stay_allocation_code = `${allocationPrefix}#${allocationNumber}`;
+      payload.stay_allocation_code = `${allocationPrefix}#${Number(accommodationResult.snapshot.val()) || 0}`;
     } else {
       payload.stay_allocation_code = "OUTSIDE-STAY";
     }
-
     payload.original_stay_allocation_code = payload.stay_allocation_code;
 
-    // CRITICAL: use the exact original MERS registration node and ID key.
-    registrationRef = db.ref(
-      "registrations/" + eventId + "/" + registrationId
-    );
+    registrationRef = db.ref("registrations/" + eventId + "/" + registrationId);
     await registrationRef.set(payload);
 
-    $("formArea").innerHTML =
-      '<div class="success"><h3>Registration saved</h3>' +
-      '<p>The registration has been written to the original MERS registrations node.</p>' +
-      '<p><b>Registration ID:</b> ' + clean(registrationId) + '</p>' +
-      '<p><b>Stay allocation:</b> ' + clean(payload.stay_allocation_code) + '</p>' +
-      '<p><b>Active registrations:</b> ' + Number(activeResult.snapshot.val()) + '</p>' +
-      (accommodationCounterPath
-        ? '<p><b>Accommodation counter:</b> ' + clean(accommodationCounterPath) + '</p>'
-        : '') +
-      '</div>';
+    // FIRST: show the event-specific Thank You HTML immediately after the registration write succeeds.
+    showThankYouScreen(payload);
 
-    $("backBtn").classList.add("hidden");
-    $("nextBtn").classList.add("hidden");
-    $("progressBar").style.width = "100%";
-    $("progressLabel").textContent = "Registration saved";
+    // THEN: start email and master-profile operations without awaiting either one.
+    startPostRegistrationTasks(payload);
+
   } catch (e) {
     console.error("MERS registration save/counter update failed:", e);
-
-    // Roll back seat counters if the registration write failed.
-    // The unique registration sequence is intentionally never decremented.
     if (registrationRef) {
       try { await registrationRef.remove(); } catch (rollbackError) {
         console.error("Registration rollback failed:", rollbackError);
       }
     }
     if (accommodationIncremented && accommodationRef) {
-      try {
-        await accommodationRef.transaction(current => Math.max(0, (Number(current) || 0) - 1));
-      } catch (rollbackError) {
-        console.error("Accommodation counter rollback failed:", rollbackError);
-      }
+      try { await accommodationRef.transaction(current => Math.max(0, (Number(current) || 0) - 1)); }
+      catch (rollbackError) { console.error("Accommodation counter rollback failed:", rollbackError); }
     }
     if (activeSeatsIncremented && activeSeatsRef) {
-      try {
-        await activeSeatsRef.transaction(current => Math.max(0, (Number(current) || 0) - 1));
-      } catch (rollbackError) {
-        console.error("Active seats rollback failed:", rollbackError);
-      }
+      try { await activeSeatsRef.transaction(current => Math.max(0, (Number(current) || 0) - 1)); }
+      catch (rollbackError) { console.error("Active seats rollback failed:", rollbackError); }
     }
-
+    submissionInProgress = false;
+    $("nextBtn").disabled = false;
+    $("nextBtn").textContent = "SUBMIT REGISTRATION";
     showMessage("Registration could not be completed: " + e.message, "error");
   }
 }
 async function init() {
   console.clear();
-  console.log("%c MERS V4 DIAGNOSTICS STARTED ", "background:#1a237e;color:#fff;padding:4px 8px;font-weight:bold");
+  console.log("%c MERS V10 DIAGNOSTICS STARTED ", "background:#1a237e;color:#fff;padding:4px 8px;font-weight:bold");
   try {
     if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
     const [eventSnap,rulesSnap,bannerSnap,thankSnap]=await Promise.all([
@@ -1396,6 +1464,8 @@ async function init() {
       db.ref("htmlStorage/"+eventId+"/thank").once("value")
     ]);
     eventConfig=eventSnap.val()||{};
+    thankYouHtml = thankSnap.val() || "<h2>Registration Successful!</h2><p>Thank you for registering.</p>";
+    console.log("[MERS THANK YOU] Event-specific Thank You HTML loaded:", Boolean(thankSnap.val()));
     console.log("[MERS INIT] Event configuration loaded:", eventConfig);
     console.log("[MERS TRAVEL CONFIG]", {
       event_start_date: eventConfig.event_start_date, event_start_time: eventConfig.event_start_time,
