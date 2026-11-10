@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MERS — New Registration Engine V11 (Test)</title>
+<title>MERS — New Registration Engine V13 (Test)</title>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 <style>
@@ -44,10 +44,10 @@
   <div id="banner" class="banner hidden"></div>
   <div id="loading"><h2>Loading registration form…</h2><p>Please wait.</p></div>
   <main id="app" class="content hidden">
-    <div style="text-align:center"><span class="pill">NEW ENGINE · V12 TEST BUILD</span></div>
+    <div style="text-align:center"><span class="pill">NEW ENGINE · V13 TEST BUILD</span></div>
     <h1 id="eventTitle">Event Registration</h1>
     <p id="eventSubtitle" class="subtitle"></p>
-    <div class="test-note"><b>TEST VERSION V12:</b> Retains V10 profile, accommodation and travel validation. Adds registration edit flow using Field_Rules row/section order, including the original accommodation-change warning and allocation counter handling. After Firebase confirms the registration save, the event-specific Thank You HTML is displayed immediately. Confirmation email and participant master-profile update are then started in the background. Firebase-to-Google-Sheets synchronisation remains deliberately separate and is NOT triggered by registration. Use only while the event is UNDER_TEST. Existing index.html is not modified.</div>
+    <div class="test-note"><b>TEST VERSION V13:</b> Retains V12 profile, accommodation, travel validation, registration edit, email and Thank You behaviour. New participant master profiles now receive sequential Firebase keys (u1, u2, u3...) using the atomic counter at counters/master_internal_db_sequence. Existing master records and random-key legacy records are not modified. Firebase-to-Google-Sheets synchronisation remains deliberately separate and is NOT triggered by registration. Use only while the event is UNDER_TEST. Existing index.html is not modified.</div>
     <div class="progress"><div id="progressBar"></div></div>
     <div id="progressLabel" class="progress-label"></div>
     <div id="formArea"></div>
@@ -1266,7 +1266,7 @@ async function saveEditedRegistration() {
       event_id: eventId,
       participant_type: isYes(values.is_practitioner) ? "Internal" : "External",
       last_updated: new Date().toLocaleString(),
-      build: "NEW_INDEX_V12_TEST"
+      build: "NEW_INDEX_V13_TEST"
     };
     if (!stayChanged) payload.stay_allocation_code = originalStayAllocationCode;
     await db.ref(`registrations/${eventId}/${regId}`).update(payload);
@@ -1488,8 +1488,39 @@ async function updateParticipantMasterInBackground(registrationPayload) {
       await targetRef.update(updatedProfile);
       console.log("[MERS MASTER] Existing participant profile updated in background.");
     } else {
-      await masterRef.push(updatedProfile);
-      console.log("[MERS MASTER] New participant profile created in background.");
+      // Allocate the next sequential profile key (u1, u2, u3...) atomically.
+      // The one-time master scan also recovers safely if the sequence counter
+      // has not yet been created or is behind the highest existing u-number.
+      const masterSnapshot = await masterRef.once("value");
+      let highestExistingProfileNumber = 0;
+      if (masterSnapshot.exists()) {
+        masterSnapshot.forEach(childSnapshot => {
+          const match = String(childSnapshot.key || "").match(/^u(\d+)$/);
+          if (match) highestExistingProfileNumber = Math.max(
+            highestExistingProfileNumber,
+            Number(match[1]) || 0
+          );
+        });
+      }
+
+      const profileSequenceRef = db.ref("counters/master_internal_db_sequence");
+      const profileSequenceResult = await profileSequenceRef.transaction(current =>
+        Math.max(Number(current) || 0, highestExistingProfileNumber) + 1
+      );
+      if (!profileSequenceResult.committed) {
+        throw new Error("Master profile sequence could not be allocated.");
+      }
+
+      const newProfileKey = "u" + Number(profileSequenceResult.snapshot.val());
+      const newProfileRef = masterRef.child(newProfileKey);
+      const existingKeySnapshot = await newProfileRef.once("value");
+      if (existingKeySnapshot.exists()) {
+        // Do not overwrite a profile if a key was added outside this allocator.
+        throw new Error("Allocated master profile key already exists: " + newProfileKey);
+      }
+
+      await newProfileRef.set(updatedProfile);
+      console.log("[MERS MASTER] New participant profile created with sequential key:", newProfileKey);
     }
   } catch (error) {
     // Registration is already saved and Thank You is already visible. Do not disturb the participant.
@@ -1607,7 +1638,7 @@ async function saveTestSubmission() {
       registration_status: "REGISTERED ON " + now.toLocaleString(),
       stay_allocation_code: "",
       original_stay_allocation_code: "",
-      build: "NEW_INDEX_V12_TEST"
+      build: "NEW_INDEX_V13_TEST"
     };
 
     activeSeatsRef = db.ref("active_seats/" + eventId);
@@ -1658,7 +1689,7 @@ async function saveTestSubmission() {
 }
 async function init() {
   console.clear();
-  console.log("%c MERS V11 DIAGNOSTICS STARTED ", "background:#1a237e;color:#fff;padding:4px 8px;font-weight:bold");
+  console.log("%c MERS V13 DIAGNOSTICS STARTED ", "background:#1a237e;color:#fff;padding:4px 8px;font-weight:bold");
   try {
     if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
     const [eventSnap,rulesSnap,bannerSnap,thankSnap]=await Promise.all([
