@@ -44,10 +44,10 @@
   <div id="banner" class="banner hidden"></div>
   <div id="loading"><h2>Loading registration form…</h2><p>Please wait.</p></div>
   <main id="app" class="content hidden">
-    <div style="text-align:center"><span class="pill">NEW ENGINE · V11 TEST BUILD</span></div>
+    <div style="text-align:center"><span class="pill">NEW ENGINE · V12 TEST BUILD</span></div>
     <h1 id="eventTitle">Event Registration</h1>
     <p id="eventSubtitle" class="subtitle"></p>
-    <div class="test-note"><b>TEST VERSION V11:</b> Retains V10 profile, accommodation and travel validation. Adds registration edit flow using Field_Rules row/section order, including the original accommodation-change warning and allocation counter handling. After Firebase confirms the registration save, the event-specific Thank You HTML is displayed immediately. Confirmation email and participant master-profile update are then started in the background. Firebase-to-Google-Sheets synchronisation remains deliberately separate and is NOT triggered by registration. Use only while the event is UNDER_TEST. Existing index.html is not modified.</div>
+    <div class="test-note"><b>TEST VERSION V12:</b> Retains V10 profile, accommodation and travel validation. Adds registration edit flow using Field_Rules row/section order, including the original accommodation-change warning and allocation counter handling. After Firebase confirms the registration save, the event-specific Thank You HTML is displayed immediately. Confirmation email and participant master-profile update are then started in the background. Firebase-to-Google-Sheets synchronisation remains deliberately separate and is NOT triggered by registration. Use only while the event is UNDER_TEST. Existing index.html is not modified.</div>
     <div class="progress"><div id="progressBar"></div></div>
     <div id="progressLabel" class="progress-label"></div>
     <div id="formArea"></div>
@@ -1266,13 +1266,14 @@ async function saveEditedRegistration() {
       event_id: eventId,
       participant_type: isYes(values.is_practitioner) ? "Internal" : "External",
       last_updated: new Date().toLocaleString(),
-      build: "NEW_INDEX_V11_TEST"
+      build: "NEW_INDEX_V12_TEST"
     };
     if (!stayChanged) payload.stay_allocation_code = originalStayAllocationCode;
     await db.ref(`registrations/${eventId}/${regId}`).update(payload);
     console.log("[MERS EDIT] Registration updated successfully.", {regId, stayChanged, oldCounterPath, newCounterPath});
+    // Display success immediately, then fire email and master-profile update in the background.
     showEditSuccessScreen(payload);
-    void updateParticipantMasterInBackground(payload);
+    startPostRegistrationTasks(payload);
   } catch (error) {
     console.error("[MERS EDIT] Update failed:", error);
     if (newIncremented && newCounterPath) {
@@ -1288,7 +1289,7 @@ async function saveEditedRegistration() {
   }
 }
 function showEditSuccessScreen(payload) {
-  $("formArea").innerHTML = `<div class="success"><h2>Registration Updated</h2><p>Your registration details have been updated successfully.</p><p><b>Registration ID:</b> ${clean(payload.registration_id)}</p></div>`;
+  $("formArea").innerHTML = `<div class="success"><h2>Registration Updated</h2><p>Your registration details have been updated successfully.</p><p>We have sent an email to you. Please check your email.</p><p><b>Registration ID:</b> ${clean(payload.registration_id)}</p></div>`;
   $("backBtn").classList.add("hidden");
   $("nextBtn").classList.add("hidden");
   $("progressBar").style.width = "100%";
@@ -1606,7 +1607,7 @@ async function saveTestSubmission() {
       registration_status: "REGISTERED ON " + now.toLocaleString(),
       stay_allocation_code: "",
       original_stay_allocation_code: "",
-      build: "NEW_INDEX_V11_TEST"
+      build: "NEW_INDEX_V12_TEST"
     };
 
     activeSeatsRef = db.ref("active_seats/" + eventId);
