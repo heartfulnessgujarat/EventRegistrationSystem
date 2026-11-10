@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MERS — New Registration Engine V14 (Test)</title>
+<title>MERS — New Registration Engine V15 (Test)</title>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 <style>
@@ -44,10 +44,10 @@
   <div id="banner" class="banner hidden"></div>
   <div id="loading"><h2>Loading registration form…</h2><p>Please wait.</p></div>
   <main id="app" class="content hidden">
-    <div style="text-align:center"><span class="pill">NEW ENGINE · V14 TEST BUILD</span></div>
+    <div style="text-align:center"><span class="pill">NEW ENGINE · V15 TEST BUILD</span></div>
     <h1 id="eventTitle">Event Registration</h1>
     <p id="eventSubtitle" class="subtitle"></p>
-    <div class="test-note"><b>TEST VERSION V14:</b> Retains V13 profile, accommodation, travel validation, registration edit, email, Thank You and sequential master-profile key behaviour. Adds immediate, independent duplicate checks for mobile and email during new-profile entry and existing-profile edits. A participant’s own existing Firebase profile is excluded from duplicate matches. Firebase-to-Google-Sheets synchronisation remains deliberately separate and is NOT triggered by registration. Use only while the event is UNDER_TEST. Existing index.html is not modified.</div>
+    <div class="test-note"><b>TEST VERSION V15:</b> Retains V14 functionality. Corrects profile-field sequencing so Email is shown only after Mobile format validation and duplicate checking pass. The Email DONE button remains disabled until email format validation and the immediate duplicate check both pass. Email verification is still required before proceeding. Firebase-to-Google-Sheets synchronisation remains separate and is NOT triggered by registration. Use only while the event is UNDER_TEST. Existing index.html is not modified.</div>
     <div class="progress"><div id="progressBar"></div></div>
     <div id="progressLabel" class="progress-label"></div>
     <div id="formArea"></div>
@@ -117,7 +117,7 @@ let profileFlow = {
 let profileSearchRequest = 0;
 let emailCodeExpiryTimer = null;
 let emailFormatConfirmed = "";
-let duplicateChecks = { mobile: { state: "idle", request: 0 }, email: { state: "idle", request: 0 } };
+let duplicateChecks = { mobile: { state: "idle", request: 0, checkedValue: "" }, email: { state: "idle", request: 0, checkedValue: "" } };
 let originalRegistration = null;
 let accommodationEditUnlocked = false;
 let originalStayOption = "";
@@ -166,6 +166,12 @@ function isVisible(rule, rules, index) {
   if (clean(rule.section_id) === "Section1") {
     const id = clean(rule.field_id);
     const attended = normalize(fieldValue("attended_before"));
+    if (id === "email" && ["NEW_DIRECT", "NEW_AFTER_SEARCH", "EDIT_EXISTING"].includes(profileFlow.stage)) {
+      const mobileValue = fieldValue("mobile");
+      if (!/^[6-9]\d{9}$/.test(clean(mobileValue)) || !isProfileDuplicatePassed("mobile", mobileValue)) {
+        return false;
+      }
+    }
     if (id === "attended_before") return true;
     if (id === "is_practitioner") return Boolean(attended);
     if (!attended || !fieldValue("is_practitioner")) return false;
@@ -434,6 +440,25 @@ function normalizedDuplicateValue(fieldId, value) {
   return fieldId === "mobile" ? raw.replace(/\D/g, "") : raw.toLowerCase();
 }
 
+function isProfileDuplicatePassed(fieldId, value) {
+  const field = fieldId === "mobile" ? "mobile" : "email";
+  const entered = normalizedDuplicateValue(field, value);
+  if (!entered) return false;
+  const original = normalizedDuplicateValue(field, originalValues[field]);
+  if (original && entered === original) return true;
+  const state = duplicateChecks[field];
+  return state.state === "unique" && state.checkedValue === entered;
+}
+
+function updateEmailDoneButton() {
+  const button = $("email_done_button");
+  const input = $("field_email");
+  if (!button || !input) return;
+  const value = clean(input.value);
+  const validFormat = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value);
+  button.disabled = !(validFormat && isProfileDuplicatePassed("email", value));
+}
+
 async function getMasterProfileRecords() {
   const snap = await db.ref("masters/Master_Internal_DB").once("value");
   const raw = snap.val() || {};
@@ -471,10 +496,12 @@ async function checkProfileDuplicate(fieldId, value, options = {}) {
   const requestId = state.request;
   if (!entered || !formatValid) {
     state.state = "idle";
+    state.checkedValue = "";
     if (status && options.showStatus !== false) {
       status.textContent = "";
       status.className = "inline-status";
     }
+    updateEmailDoneButton();
     updateContinueState();
     return { unique: false, skipped: true };
   }
@@ -483,15 +510,19 @@ async function checkProfileDuplicate(fieldId, value, options = {}) {
   const original = normalizedDuplicateValue(field, originalValues[field]);
   if (original && entered === original) {
     state.state = "unique";
+    state.checkedValue = entered;
     if (status && options.showStatus !== false) {
       status.textContent = field === "mobile" ? "✓ Mobile number is available." : "✓ Email address is available.";
       status.className = "inline-status ok";
     }
+    updateEmailDoneButton();
     updateContinueState();
     return { unique: true, ownValue: true };
   }
 
   state.state = "pending";
+  state.checkedValue = "";
+  updateEmailDoneButton();
   if (status && options.showStatus !== false) {
     status.textContent = "Checking whether this " + (field === "mobile" ? "mobile number" : "email address") + " is already registered…";
     status.className = "inline-status";
@@ -511,6 +542,7 @@ async function checkProfileDuplicate(fieldId, value, options = {}) {
     if (requestId !== state.request) return { unique: false, stale: true };
     if (duplicate) {
       state.state = "duplicate";
+      state.checkedValue = "";
       const message = field === "mobile"
         ? "This mobile number is already registered in our participant database. Please use your own unique mobile number."
         : "This email address is already registered in our participant database. Please use your own unique email address.";
@@ -519,26 +551,31 @@ async function checkProfileDuplicate(fieldId, value, options = {}) {
         status.className = "inline-status bad";
       }
       console.warn("[MERS DUPLICATE] Rejected duplicate " + field + ".", { value: entered, matchedProfileKey: duplicate.__mersFirebaseKey });
+      updateEmailDoneButton();
       updateContinueState();
       return { unique: false, duplicate: true, message };
     }
 
     state.state = "unique";
+    state.checkedValue = entered;
     if (status && options.showStatus !== false) {
       status.textContent = field === "mobile" ? "✓ Mobile number is not registered to another profile." : "✓ Email address is not registered to another profile.";
       status.className = "inline-status ok";
     }
     console.log("[MERS DUPLICATE] No duplicate found for " + field + ".", { value: entered, ownKey });
+    updateEmailDoneButton();
     updateContinueState();
     return { unique: true };
   } catch (error) {
     if (requestId !== state.request) return { unique: false, stale: true };
     state.state = "error";
+    state.checkedValue = "";
     if (status && options.showStatus !== false) {
       status.textContent = "Unable to check the participant database. Please try again.";
       status.className = "inline-status bad";
     }
     console.error("[MERS DUPLICATE] Check failed for " + field + ":", error);
+    updateEmailDoneButton();
     updateContinueState();
     return { unique: false, error: true };
   }
@@ -603,12 +640,20 @@ async function makeField(rule, rules, index) {
     values[rule.field_id] = input.value;
     if (rule.field_id === "mobile") {
       validateMobileLive(input);
-      if (/^[6-9]\d{9}$/.test(clean(input.value))) await checkProfileDuplicate("mobile", input.value);
-      else { duplicateChecks.mobile.request++; duplicateChecks.mobile.state = "idle"; }
+      if (/^[6-9]\d{9}$/.test(clean(input.value))) {
+        const duplicatePromise = checkProfileDuplicate("mobile", input.value);
+        await refreshCurrentVisibility();
+        await duplicatePromise;
+      } else {
+        duplicateChecks.mobile.request++;
+        duplicateChecks.mobile.state = "idle";
+        duplicateChecks.mobile.checkedValue = "";
+        await refreshCurrentVisibility();
+      }
     }
     if (rule.field_id === "email") {
       if (/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(clean(input.value))) await checkProfileDuplicate("email", input.value);
-      else { duplicateChecks.email.request++; duplicateChecks.email.state = "idle"; }
+      else { duplicateChecks.email.request++; duplicateChecks.email.state = "idle"; duplicateChecks.email.checkedValue = ""; }
       verification.email = Boolean(originalValues.email) &&
         clean(input.value).toLowerCase() === clean(originalValues.email).toLowerCase();
       const status = $("email_status");
@@ -689,7 +734,7 @@ async function makeField(rule, rules, index) {
         verification.email = false;
         emailFormatConfirmed = "";
         console.log("[MERS EMAIL] Participant opened email edit; new address verification is now required.");
-        if (emailDoneButton) emailDoneButton.disabled = !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(clean(input.value));
+        updateEmailDoneButton();
       }
       input.focus();
     });
@@ -716,9 +761,10 @@ async function makeField(rule, rules, index) {
     const done = document.createElement("button");
     emailDoneButton = done;
     done.type = "button";
+    done.id = "email_done_button";
     done.className = "btn inline-mini-btn";
     done.textContent = "DONE";
-    done.disabled = !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(clean(input.value));
+    done.disabled = true;
     done.addEventListener("click", async () => {
       const currentEmail = clean(input.value);
       const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(currentEmail);
@@ -811,7 +857,7 @@ async function makeField(rule, rules, index) {
     input.addEventListener("input", () => {
       const currentEmail = clean(input.value);
       const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(currentEmail);
-      done.disabled = !validEmail;
+      updateEmailDoneButton();
       if (emailFormatConfirmed && emailFormatConfirmed !== currentEmail.toLowerCase()) {
         emailFormatConfirmed = "";
         done.classList.remove("hidden");
@@ -1402,7 +1448,7 @@ async function saveEditedRegistration() {
       event_id: eventId,
       participant_type: isYes(values.is_practitioner) ? "Internal" : "External",
       last_updated: new Date().toLocaleString(),
-      build: "NEW_INDEX_V14_TEST"
+      build: "NEW_INDEX_V15_TEST"
     };
     if (!stayChanged) payload.stay_allocation_code = originalStayAllocationCode;
     await db.ref(`registrations/${eventId}/${regId}`).update(payload);
@@ -1468,11 +1514,11 @@ function sectionReady() {
     if(val && !validateField(r,val,false)) return false;
     if(r.field_id==="mobile" && val) {
       const mobileChanged = normalizedDuplicateValue("mobile", val) !== normalizedDuplicateValue("mobile", originalValues.mobile);
-      if (!/^[6-9]\d{9}$/.test(val) || (mobileChanged && duplicateChecks.mobile.state !== "unique")) return false;
+      if (!/^[6-9]\d{9}$/.test(val) || !isProfileDuplicatePassed("mobile", val)) return false;
     }
     if(r.field_id==="email" && val) {
       const emailChanged = normalizedDuplicateValue("email", val) !== normalizedDuplicateValue("email", originalValues.email);
-      if (!verification.email || (emailChanged && duplicateChecks.email.state !== "unique")) return false;
+      if (!verification.email || !isProfileDuplicatePassed("email", val)) return false;
     }
   }
   return true;
@@ -1499,6 +1545,7 @@ async function refreshCurrentVisibility() {
     const r=rules[i], wrap=$("wrap_"+r.field_id);
     if(wrap) wrap.style.display=isVisible(r,rules,i)?"block":"none";
   }
+  updateEmailDoneButton();
 }
 async function renderCurrentSection() {
   const sec=getSection(); if(!sec) return;
@@ -1780,7 +1827,7 @@ async function saveTestSubmission() {
       registration_status: "REGISTERED ON " + now.toLocaleString(),
       stay_allocation_code: "",
       original_stay_allocation_code: "",
-      build: "NEW_INDEX_V14_TEST"
+      build: "NEW_INDEX_V15_TEST"
     };
 
     activeSeatsRef = db.ref("active_seats/" + eventId);
@@ -1831,7 +1878,7 @@ async function saveTestSubmission() {
 }
 async function init() {
   console.clear();
-  console.log("%c MERS V14 DIAGNOSTICS STARTED ", "background:#1a237e;color:#fff;padding:4px 8px;font-weight:bold");
+  console.log("%c MERS V15 DIAGNOSTICS STARTED ", "background:#1a237e;color:#fff;padding:4px 8px;font-weight:bold");
   try {
     if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
     const [eventSnap,rulesSnap,bannerSnap,thankSnap]=await Promise.all([
