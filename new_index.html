@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MERS — New Registration Engine V16 (Test)</title>
+<title>MERS — New Registration Engine V18 (Test)</title>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 <style>
@@ -44,10 +44,10 @@
   <div id="banner" class="banner hidden"></div>
   <div id="loading"><h2>Loading registration form…</h2><p>Please wait.</p></div>
   <main id="app" class="content hidden">
-    <div style="text-align:center"><span class="pill">NEW ENGINE · V16 TEST BUILD</span></div>
+    <div style="text-align:center"><span class="pill">NEW ENGINE · V18 TEST BUILD</span></div>
     <h1 id="eventTitle">Event Registration</h1>
     <p id="eventSubtitle" class="subtitle"></p>
-    <div class="test-note"><b>TEST VERSION V16:</b> Retains the accepted V15 profile duplicate-protection and validation behaviour. Uses the single Master_Internal_DB profile structure; no legacy separate-external-database email/mobile fields are used. Both participant types use the standard email and mobile fields. Email verification remains required before proceeding. Firebase-to-Google-Sheets synchronisation remains separate and is NOT triggered by registration. Use only while the event is UNDER_TEST. Existing index.html is not modified.</div>
+    <div class="test-note"><b>TEST VERSION V18:</b> Includes configurable combined accommodation waitlist limits, dynamic own-stay limits, VIP/facilitator room reservations, and permanent registration closure controls. Retains the accepted profile duplicate-protection and validation behaviour. Uses the single Master_Internal_DB profile structure. Email verification remains required. Firebase-to-Google-Sheets synchronisation is separate. Use only while the event is UNDER_TEST. Existing index.html is not modified.</div>
     <div class="progress"><div id="progressBar"></div></div>
     <div id="progressLabel" class="progress-label"></div>
     <div id="formArea"></div>
@@ -75,7 +75,7 @@
 /* =========================================================
    MERS NEW ENGINE — TEST BUILD
    Read paths mirror the existing system.
-   Registration records use the original registrations/{eventId}/{registration_id} path. The original counters/{eventId}, active_seats/{eventId}, counters/confirmed_counters and counters/waitlist_counters paths are retained.
+   Registration records use the original registrations/{eventId}/{registration_id} path. The registration ID sequence at counters/{eventId} and active_seats/{eventId} are retained. Confirmed and waitlist accommodation counters are retained, with derived counters/available_seats values added.
    ========================================================= */
 
 const FIREBASE_CONFIG = {
@@ -1158,72 +1158,232 @@ async function verifyEmailCode(email, code) {
    Read-only in this revision: no counters are created or changed.
    Uses the existing config/eventConfig and counters nodes.
    ========================================================= */
-async function getStayAvailability(eventId, gender) {
+function validateV18CapacityConfig(cfg) {
+  const requiredKeys = [
+    "limit_total_wl", "VIP_Gate_Entry", "VIP_Numbers",
+    "Room_Reserved_for_VIP", "total_male_facilitators", "total_female_facilitators"
+  ];
+  const missing = requiredKeys.filter(key => !Object.prototype.hasOwnProperty.call(cfg, key));
+  if (missing.length) {
+    throw new Error("V18 Event_Config fields are missing: " + missing.join(", ") + ". Please update Event_Config and run Admin System → Step 1.5.");
+  }
+  const vipGate = clean(cfg.VIP_Gate_Entry).toUpperCase();
+  if (!["YES", "NO"].includes(vipGate)) {
+    throw new Error("VIP_Gate_Entry must be YES or NO in Event_Config.");
+  }
+  ["limit_total_wl", "VIP_Numbers", "Room_Reserved_for_VIP", "total_male_facilitators", "total_female_facilitators"].forEach(key => {
+    const raw = clean(cfg[key]);
+    if (raw !== "" && (!Number.isFinite(Number(raw)) || Number(raw) < 0)) {
+      throw new Error(key + " must be a non-negative number in Event_Config.");
+    }
+  });
+}
+
+function getRegularRoomCapacity(cfg) {
+  const totalRooms = Math.max(0, Number(cfg.room_capacity) || 0);
+  const personsPerRoom = Math.max(1, Number(cfg.persons_per_room) || 2);
+  const vipEnabled = isYes(cfg.VIP_Gate_Entry);
+  const vipRooms = vipEnabled ? Math.max(0, Number(cfg.Room_Reserved_for_VIP) || 0) : 0;
+  const maleFacilitators = Math.max(0, Number(cfg.total_male_facilitators) || 0);
+  const femaleFacilitators = Math.max(0, Number(cfg.total_female_facilitators) || 0);
+  const maleFacilitatorRooms = Math.ceil(maleFacilitators / personsPerRoom);
+  const femaleFacilitatorRooms = Math.ceil(femaleFacilitators / personsPerRoom);
+  return Math.max(0, totalRooms - vipRooms - maleFacilitatorRooms - femaleFacilitatorRooms);
+}
+
+function getCapacityPolicy(cfg) {
+  const personsPerRoom = Math.max(1, Number(cfg.persons_per_room) || 2);
+  const regularRooms = getRegularRoomCapacity(cfg);
+  const maleDormBeds = Math.max(0, Number(cfg.male_dorm_capacity) || 0) *
+    Math.max(0, Number(cfg.male_dorm_persons_per_dorm) || 0);
+  const femaleDormBeds = Math.max(0, Number(cfg.female_dorm_capacity) || 0) *
+    Math.max(0, Number(cfg.female_dorm_persons_per_dorm) || 0);
+  const vipHallQuota = isYes(cfg.VIP_Gate_Entry) ? Math.max(0, Number(cfg.VIP_Numbers) || 0) : 0;
+  const effectiveHallCapacity = Math.max(0, (Number(cfg.hall_capacity) || 0) - vipHallQuota);
+  const regularRoomBeds = regularRooms * personsPerRoom;
+  const regularStayCapacity = regularRoomBeds + maleDormBeds + femaleDormBeds;
+  const ownStayLimit = Math.max(0, effectiveHallCapacity - regularStayCapacity);
+  return {
+    personsPerRoom, regularRooms, maleDormBeds, femaleDormBeds,
+    effectiveHallCapacity, regularStayCapacity, ownStayLimit,
+    waitlistLimit: Math.max(0, Number(cfg.limit_total_wl) || 0)
+  };
+}
+
+async function getAccommodationCounters(targetEventId) {
+  const paths = [
+    `counters/confirmed_counters/room_male/${targetEventId}`,
+    `counters/confirmed_counters/room_female/${targetEventId}`,
+    `counters/confirmed_counters/dorm_male/${targetEventId}`,
+    `counters/confirmed_counters/dorm_female/${targetEventId}`,
+    `counters/waitlist_counters/room_male/${targetEventId}`,
+    `counters/waitlist_counters/room_female/${targetEventId}`,
+    `counters/waitlist_counters/dorm_male/${targetEventId}`,
+    `counters/waitlist_counters/dorm_female/${targetEventId}`,
+    `counters/confirmed_counters/outside_stay/${targetEventId}`
+  ];
+  const snaps = await Promise.all(paths.map(path => db.ref(path).once("value")));
+  const nums = snaps.map(s => Math.max(0, Number(s.val()) || 0));
+  return {
+    roomMale: nums[0], roomFemale: nums[1], dormMale: nums[2], dormFemale: nums[3],
+    roomWaitMale: nums[4], roomWaitFemale: nums[5], dormWaitMale: nums[6], dormWaitFemale: nums[7],
+    outsideStay: nums[8],
+    totalWaitlist: nums.slice(4, 8).reduce((a, b) => a + b, 0)
+  };
+}
+
+async function setRegistrationClosed(reason) {
+  const controlRef = db.ref(`registration_control/${eventId}`);
+  const snap = await controlRef.once("value");
+  const current = snap.val() || {};
+  if (current.registration_closed === true) return;
+  await controlRef.update({
+    registration_closed: true,
+    closure_reason: reason,
+    closed_at: new Date().toISOString()
+  });
+  console.warn("[MERS REGISTRATION] Registration permanently closed:", reason);
+}
+
+async function evaluateRegistrationClosure() {
+  const [configSnap, counters] = await Promise.all([
+    db.ref(`config/eventConfig/${eventId}`).once("value"),
+    getAccommodationCounters(eventId)
+  ]);
+  const cfg = configSnap.val() || eventConfig || {};
+  const policy = getCapacityPolicy(cfg);
+  if (counters.totalWaitlist >= policy.waitlistLimit) {
+    const controlRef = db.ref(`registration_control/${eventId}`);
+    const controlSnap = await controlRef.once("value");
+    const control = controlSnap.val() || {};
+    if (control.waitlist_choices_suspended !== true) {
+      await controlRef.update({ waitlist_choices_suspended: true, waitlist_suspended_at: new Date().toISOString() });
+      await db.ref(`counters/confirmed_cancellations_after_waitlist_suspended/${eventId}`).set(0);
+    }
+  }
+  const roomRoomsUsed = Math.ceil(counters.roomMale / policy.personsPerRoom) +
+    Math.ceil(counters.roomFemale / policy.personsPerRoom);
+  const allRegularRoomsFull = roomRoomsUsed >= policy.regularRooms;
+  const allDormsFull = counters.dormMale >= policy.maleDormBeds &&
+    counters.dormFemale >= policy.femaleDormBeds;
+  const waitlistFull = counters.totalWaitlist >= policy.waitlistLimit;
+  if (allRegularRoomsFull && allDormsFull && waitlistFull) {
+    await setRegistrationClosed("ACCOMMODATION_AND_WAITLIST_CAPACITY_REACHED");
+    return true;
+  }
+  return false;
+}
+
+async function enforceRegistrationOpen() {
+  if (mode === "edit") return true;
+  const controlSnap = await db.ref(`registration_control/${eventId}/registration_closed`).once("value");
+  if (controlSnap.val() === true) {
+    showRegistrationClosed("Registration is closed for this event.");
+    return false;
+  }
+  const endDate = parseLocalDate(eventConfig.reg_end_date);
+  if (endDate && compareDateOnly(new Date(), endDate) >= 0) {
+    await setRegistrationClosed("REGISTRATION_END_DATE_REACHED");
+    showRegistrationClosed("The registration closing date has been reached.");
+    return false;
+  }
+  if (await evaluateRegistrationClosure()) {
+    showRegistrationClosed("Registration is closed because the accommodation and waitlist limits have been reached.");
+    return false;
+  }
+  return true;
+}
+
+function showRegistrationClosed(message) {
+  $("loading").classList.add("hidden");
+  $("app").classList.remove("hidden");
+  $("formArea").innerHTML = `<div class="notice" style="background:#ffebee;color:#b71c1c;font-weight:700;text-align:center;padding:24px;">${message}</div>`;
+  $("backBtn").classList.add("hidden");
+  $("nextBtn").classList.add("hidden");
+  $("progressBar").style.width = "100%";
+  $("progressLabel").textContent = "Registration closed";
+}
+
+async function recalculateAvailableSeats(targetEventId = eventId) {
+  const [configSnap, maleRoomSnap, femaleRoomSnap, maleDormSnap, femaleDormSnap] = await Promise.all([
+    db.ref(`config/eventConfig/${targetEventId}`).once("value"),
+    db.ref(`counters/confirmed_counters/room_male/${targetEventId}`).once("value"),
+    db.ref(`counters/confirmed_counters/room_female/${targetEventId}`).once("value"),
+    db.ref(`counters/confirmed_counters/dorm_male/${targetEventId}`).once("value"),
+    db.ref(`counters/confirmed_counters/dorm_female/${targetEventId}`).once("value")
+  ]);
+  const cfg = configSnap.val() || {};
+  const roomCapacity = getRegularRoomCapacity(cfg);
+  const personsPerRoom = Number(cfg.persons_per_room) || 2;
+  const maleDormCapacity = Math.max(0, Number(cfg.male_dorm_capacity) || 0);
+  const femaleDormCapacity = Math.max(0, Number(cfg.female_dorm_capacity) || 0);
+  const maleDormPersons = Math.max(0, Number(cfg.male_dorm_persons_per_dorm) || 0);
+  const femaleDormPersons = Math.max(0, Number(cfg.female_dorm_persons_per_dorm) || 0);
+  if (personsPerRoom <= 0) throw new Error("Invalid persons_per_room in Event_Config.");
+
+  const maleRoom = Math.max(0, Number(maleRoomSnap.val()) || 0);
+  const femaleRoom = Math.max(0, Number(femaleRoomSnap.val()) || 0);
+  const maleDorm = Math.max(0, Number(maleDormSnap.val()) || 0);
+  const femaleDorm = Math.max(0, Number(femaleDormSnap.val()) || 0);
+
+  // A room occupied by one gender cannot be shared by the other gender.
+  const maleRoomsBlockedByFemale = Math.ceil(femaleRoom / personsPerRoom);
+  const femaleRoomsBlockedByMale = Math.ceil(maleRoom / personsPerRoom);
+  const available = {
+    room_male: Math.max(0, (Math.max(0, roomCapacity - maleRoomsBlockedByFemale) * personsPerRoom) - maleRoom),
+    room_female: Math.max(0, (Math.max(0, roomCapacity - femaleRoomsBlockedByMale) * personsPerRoom) - femaleRoom),
+    dorm_male: Math.max(0, (maleDormCapacity * maleDormPersons) - maleDorm),
+    dorm_female: Math.max(0, (femaleDormCapacity * femaleDormPersons) - femaleDorm)
+  };
+  const updates = {};
+  Object.entries(available).forEach(([key, value]) => {
+    updates[`counters/available_seats/${key}/${targetEventId}`] = value;
+  });
+  await db.ref().update(updates);
+  console.info("[MERS CAPACITY] Available-seat counters recalculated:", targetEventId, available);
+  return available;
+}
+
+async function getStayAvailability(targetEventId, gender) {
   if (!eventConfig || !Object.keys(eventConfig).length) {
     throw new Error("Event configuration is not loaded.");
   }
-
   const normalizedGender = clean(gender).toLowerCase();
   if (normalizedGender !== "male" && normalizedGender !== "female") {
     throw new Error("Please select Male or Female.");
   }
 
-  const roomCapacity = Number(eventConfig.room_capacity) || 0;
-  const personsPerRoom = Number(eventConfig.persons_per_room) || 2;
-  const maleDormCapacity = Number(eventConfig.male_dorm_capacity) || 0;
-  const femaleDormCapacity = Number(eventConfig.female_dorm_capacity) || 0;
-  const maleDormPersons = Number(eventConfig.male_dorm_persons_per_dorm) || 0;
-  const femaleDormPersons = Number(eventConfig.female_dorm_persons_per_dorm) || 0;
+  const keys = ["room_male", "room_female", "dorm_male", "dorm_female"];
+  const [availableSnapshots, counters, configSnap] = await Promise.all([
+    Promise.all(keys.map(key => db.ref(`counters/available_seats/${key}/${targetEventId}`).once("value"))),
+    getAccommodationCounters(targetEventId),
+    db.ref(`config/eventConfig/${targetEventId}`).once("value")
+  ]);
 
-  if (personsPerRoom <= 0) throw new Error("Invalid persons_per_room in Event_Config.");
-
-  const paths = {
-    maleRoom: `counters/confirmed_counters/room_male/${eventId}`,
-    femaleRoom: `counters/confirmed_counters/room_female/${eventId}`,
-    maleDorm: `counters/confirmed_counters/dorm_male/${eventId}`,
-    femaleDorm: `counters/confirmed_counters/dorm_female/${eventId}`,
-    roomWaitlist: `counters/waitlist_counters/room_${normalizedGender}/${eventId}`,
-    dormWaitlist: `counters/waitlist_counters/dorm_${normalizedGender}/${eventId}`
-  };
-
-  const keys = Object.keys(paths);
-  const snapshots = await Promise.all(keys.map(key => db.ref(paths[key]).once("value")));
-  const counts = {};
-  keys.forEach((key, index) => {
-    const n = Number(snapshots[index].val());
-    counts[key] = Number.isFinite(n) && n > 0 ? n : 0;
-  });
-
-  const maleRoom = counts.maleRoom;
-  const femaleRoom = counts.femaleRoom;
-  const maleDorm = counts.maleDorm;
-  const femaleDorm = counts.femaleDorm;
-
-  const dormSeats = normalizedGender === "male"
-    ? Math.max(0, (maleDormCapacity * maleDormPersons) - maleDorm)
-    : Math.max(0, (femaleDormCapacity * femaleDormPersons) - femaleDorm);
-
-  // A room occupied by the opposite gender cannot be shared.
-  let roomSeats;
-  if (normalizedGender === "male") {
-    const femaleRoomsOccupied = Math.ceil(femaleRoom / personsPerRoom);
-    const roomsAvailableForMale = Math.max(0, roomCapacity - femaleRoomsOccupied);
-    roomSeats = Math.max(0, (roomsAvailableForMale * personsPerRoom) - maleRoom);
-  } else {
-    const maleRoomsOccupied = Math.ceil(maleRoom / personsPerRoom);
-    const roomsAvailableForFemale = Math.max(0, roomCapacity - maleRoomsOccupied);
-    roomSeats = Math.max(0, (roomsAvailableForFemale * personsPerRoom) - femaleRoom);
+  // Backfill the derived node for an event that predates this feature.
+  if (availableSnapshots.some(snapshot => !snapshot.exists())) {
+    await recalculateAvailableSeats(targetEventId);
+    const refreshed = await Promise.all(keys.map(key => db.ref(`counters/available_seats/${key}/${targetEventId}`).once("value")));
+    availableSnapshots.splice(0, availableSnapshots.length, ...refreshed);
   }
-
+  const available = {};
+  keys.forEach((key, index) => available[key] = Math.max(0, Number(availableSnapshots[index].val()) || 0));
+  const cfg = configSnap.val() || eventConfig;
+  const policy = getCapacityPolicy(cfg);
   return {
-    roomSeats,
-    dormSeats,
-    roomWaitlist: counts.roomWaitlist,
-    dormWaitlist: counts.dormWaitlist,
-    confirmed: { maleRoom, femaleRoom, maleDorm, femaleDorm }
+    roomSeats: available[`room_${normalizedGender}`],
+    dormSeats: available[`dorm_${normalizedGender}`],
+    roomWaitlist: normalizedGender === "male" ? counters.roomWaitMale : counters.roomWaitFemale,
+    dormWaitlist: normalizedGender === "male" ? counters.dormWaitMale : counters.dormWaitFemale,
+    totalWaitlist: counters.totalWaitlist,
+    waitlistLimit: policy.waitlistLimit,
+    waitlistAvailable: counters.totalWaitlist < policy.waitlistLimit,
+    outsideStayCount: counters.outsideStay,
+    ownStayLimit: policy.ownStayLimit,
+    ownStayAvailable: counters.outsideStay < policy.ownStayLimit,
+    available
   };
 }
-
 function ensureCapacityContainer() {
   let box = $("capacity-container");
   if (!box) {
@@ -1273,12 +1433,20 @@ async function updateStayOptions() {
     `;
 
     const previous = clean(stayEl.value || values.stay_option);
-    const options = [
-      { value: "", label: "-- Select --" },
-      { value: status.roomSeats > 0 ? "Room" : "Room (Waiting List)", label: status.roomSeats > 0 ? "Room" : "Room (Waiting List)" },
-      { value: status.dormSeats > 0 ? "Dormitory" : "Dormitory (Waiting List)", label: status.dormSeats > 0 ? "Dormitory" : "Dormitory (Waiting List)" },
-      { value: "I will arrange my own stay outside the venue", label: "I will arrange my own stay outside the venue" }
-    ];
+    const options = [{ value: "", label: "-- Select --" }];
+    if (status.roomSeats > 0) {
+      options.push({ value: "Room", label: "Room" });
+    } else if (status.waitlistAvailable) {
+      options.push({ value: "Room (Waiting List)", label: "Room (Waiting List)" });
+    }
+    if (status.dormSeats > 0) {
+      options.push({ value: "Dormitory", label: "Dormitory" });
+    } else if (status.waitlistAvailable) {
+      options.push({ value: "Dormitory (Waiting List)", label: "Dormitory (Waiting List)" });
+    }
+    if (status.ownStayAvailable) {
+      options.push({ value: "I will arrange my own stay outside the venue", label: "I will arrange my own stay outside the venue" });
+    }
 
     stayEl.innerHTML = "";
     options.forEach(item => {
@@ -1322,7 +1490,8 @@ function normalizeStayCategory(value) {
 }
 function getStayCounterPath(stayValue, gender) {
   const category = normalizeStayCategory(stayValue);
-  if (!category || category === "outside") return "";
+  if (!category) return "";
+  if (category === "outside") return `counters/confirmed_counters/outside_stay/${eventId}`;
   const waitlist = clean(stayValue).toLowerCase().includes("waiting list") ||
     clean(stayValue).toUpperCase().includes("WAITLIST");
   const type = waitlist ? "waitlist_counters" : "confirmed_counters";
@@ -1330,6 +1499,7 @@ function getStayCounterPath(stayValue, gender) {
 }
 function getAllocationCounterPath(allocationCode, gender) {
   const code = clean(allocationCode).toUpperCase();
+  if (code.includes("OUTSIDE-STAY")) return `counters/confirmed_counters/outside_stay/${eventId}`;
   const category = code.includes("ROOM") ? "room" : (code.includes("DORM") ? "dorm" : "");
   if (!category) return "";
   const counterType = code.includes("WAITLIST") ? "waitlist_counters" : "confirmed_counters";
@@ -1440,6 +1610,7 @@ async function saveEditedRegistration() {
       } else {
         values.stay_allocation_code = "OUTSIDE-STAY";
       }
+      await recalculateAvailableSeats(eventId);
     }
     const payload = {
       ...originalRegistration,
@@ -1448,7 +1619,7 @@ async function saveEditedRegistration() {
       event_id: eventId,
       participant_type: isYes(values.is_practitioner) ? "Internal" : "External",
       last_updated: new Date().toLocaleString(),
-      build: "NEW_INDEX_V16_TEST"
+      build: "NEW_INDEX_V18_TEST"
     };
     if (!stayChanged) payload.stay_allocation_code = originalStayAllocationCode;
     await db.ref(`registrations/${eventId}/${regId}`).update(payload);
@@ -1463,6 +1634,9 @@ async function saveEditedRegistration() {
     }
     if (oldReleased && oldCounterPath) {
       try { await db.ref(oldCounterPath).transaction(current => (Number(current) || 0) + 1); } catch (e) { console.error("Old counter rollback failed", e); }
+    }
+    if (stayChanged) {
+      try { await recalculateAvailableSeats(eventId); } catch (e) { console.error("Availability rollback recalculation failed", e); }
     }
     submissionInProgress = false;
     $("nextBtn").disabled = false;
@@ -1767,6 +1941,7 @@ async function saveTestSubmission() {
 
   let accommodationCounterPath = "";
   let allocationPrefix = "";
+  let outsideStaySelected = false;
   if (stayLower === "room" || stayLower === "room (waiting list)") {
     const isWaitlist = stayLower.includes("waiting list");
     accommodationCounterPath = isWaitlist
@@ -1781,6 +1956,7 @@ async function saveTestSubmission() {
     allocationPrefix = isWaitlist ? "DORM-WAITLIST" : "DORM-CONFIRM";
   } else if (["i will arrange my own stay outside the venue", "outside stay"].includes(stayLower)) {
     allocationPrefix = "OUTSIDE-STAY";
+    outsideStaySelected = true;
   } else {
     showMessage("Please select a valid stay option.", "error");
     return;
@@ -1809,6 +1985,13 @@ async function saveTestSubmission() {
   let registrationRef = null;
 
   try {
+    if (!(await enforceRegistrationOpen())) throw new Error("Registration is closed.");
+    const liveStatus = await getStayAvailability(eventId, gender);
+    if (stayLower === "room" && liveStatus.roomSeats <= 0) throw new Error("Room availability has changed. Please review the updated stay options.");
+    if (stayLower === "room (waiting list)" && !liveStatus.waitlistAvailable) throw new Error("The combined accommodation waitlist is now full. Please select another available option.");
+    if (["dormitory", "dorm"].includes(stayLower) && liveStatus.dormSeats <= 0) throw new Error("Dormitory availability has changed. Please review the updated stay options.");
+    if (stayLower === "dormitory (waiting list)" && !liveStatus.waitlistAvailable) throw new Error("The combined accommodation waitlist is now full. Please select another available option.");
+    if (outsideStaySelected && !liveStatus.ownStayAvailable) throw new Error("The own-stay registration limit has been reached. Please select another available option.");
     const sequenceRef = db.ref("counters/" + eventId);
     const sequenceResult = await sequenceRef.transaction(current => (Number(current) || 0) + 1);
     if (!sequenceResult.committed) throw new Error("Registration ID sequence could not be allocated.");
@@ -1827,7 +2010,7 @@ async function saveTestSubmission() {
       registration_status: "REGISTERED ON " + now.toLocaleString(),
       stay_allocation_code: "",
       original_stay_allocation_code: "",
-      build: "NEW_INDEX_V16_TEST"
+      build: "NEW_INDEX_V18_TEST"
     };
 
     activeSeatsRef = db.ref("active_seats/" + eventId);
@@ -1835,7 +2018,13 @@ async function saveTestSubmission() {
     if (!activeResult.committed) throw new Error("Active registration counter could not be updated.");
     activeSeatsIncremented = true;
 
-    if (accommodationCounterPath) {
+    if (outsideStaySelected) {
+      accommodationRef = db.ref(`counters/confirmed_counters/outside_stay/${eventId}`);
+      const outsideResult = await accommodationRef.transaction(current => (Number(current) || 0) + 1);
+      if (!outsideResult.committed) throw new Error("Own-stay counter transaction was not committed.");
+      accommodationIncremented = true;
+      payload.stay_allocation_code = "OUTSIDE-STAY";
+    } else if (accommodationCounterPath) {
       accommodationRef = db.ref(accommodationCounterPath);
       const accommodationResult = await accommodationRef.transaction(current => (Number(current) || 0) + 1);
       if (!accommodationResult.committed) throw new Error("Accommodation counter transaction was not committed.");
@@ -1848,6 +2037,8 @@ async function saveTestSubmission() {
 
     registrationRef = db.ref("registrations/" + eventId + "/" + registrationId);
     await registrationRef.set(payload);
+    await recalculateAvailableSeats(eventId);
+    await evaluateRegistrationClosure();
 
     // FIRST: show the event-specific Thank You HTML immediately after the registration write succeeds.
     showThankYouScreen(payload);
@@ -1870,6 +2061,10 @@ async function saveTestSubmission() {
       try { await activeSeatsRef.transaction(current => Math.max(0, (Number(current) || 0) - 1)); }
       catch (rollbackError) { console.error("Active seats rollback failed:", rollbackError); }
     }
+    if (accommodationIncremented) {
+      try { await recalculateAvailableSeats(eventId); }
+      catch (rollbackError) { console.error("Available-seat rollback recalculation failed:", rollbackError); }
+    }
     submissionInProgress = false;
     $("nextBtn").disabled = false;
     $("nextBtn").textContent = "SUBMIT REGISTRATION";
@@ -1878,7 +2073,7 @@ async function saveTestSubmission() {
 }
 async function init() {
   console.clear();
-  console.log("%c MERS V16 DIAGNOSTICS STARTED ", "background:#1a237e;color:#fff;padding:4px 8px;font-weight:bold");
+  console.log("%c MERS V18 DIAGNOSTICS STARTED ", "background:#1a237e;color:#fff;padding:4px 8px;font-weight:bold");
   try {
     if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
     const [eventSnap,rulesSnap,bannerSnap,thankSnap]=await Promise.all([
@@ -1887,17 +2082,20 @@ async function init() {
       db.ref("htmlStorage/"+eventId+"/banner").once("value"),
       db.ref("htmlStorage/"+eventId+"/thank").once("value")
     ]);
+    if(!eventSnap.exists()) throw new Error("Event configuration not found for "+eventId);
     eventConfig=eventSnap.val()||{};
+    validateV18CapacityConfig(eventConfig);
     thankYouHtml = thankSnap.val() || "<h2>Registration Successful!</h2><p>Thank you for registering.</p>";
     console.log("[MERS THANK YOU] Event-specific Thank You HTML loaded:", Boolean(thankSnap.val()));
     console.log("[MERS INIT] Event configuration loaded:", eventConfig);
+    if (mode !== "edit" && !(await enforceRegistrationOpen())) return;
+    await recalculateAvailableSeats(eventId);
     console.log("[MERS TRAVEL CONFIG]", {
       event_start_date: eventConfig.event_start_date, event_start_time: eventConfig.event_start_time,
       event_end_date: eventConfig.event_end_date, event_end_time: eventConfig.event_end_time,
       arrival_buffer_days: eventConfig.arrival_buffer_days,
       departure_buffer_days: eventConfig.departure_buffer_days
     });
-    if(!eventSnap.exists()) throw new Error("Event configuration not found for "+eventId);
     const rawRules=rulesSnap.val()||{};
     fieldRules=Object.values(rawRules).filter(r=>clean(r.event_id).toUpperCase()===eventId);
     console.log("[MERS INIT] Field_Rules loaded:", fieldRules.length, fieldRules);
