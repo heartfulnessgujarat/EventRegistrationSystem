@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cancel Registration — MERS V2</title>
+  <title>Cancel Registration — MERS V3</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
   
@@ -82,8 +82,12 @@
       db.ref(`counters/confirmed_counters/dorm_female/${targetEventId}`).once('value')
     ]);
     const cfg = configSnap.val() || {};
-    const roomCapacity = Math.max(0, Number(cfg.room_capacity) || 0);
     const personsPerRoom = Number(cfg.persons_per_room) || 2;
+    const vipRooms = String(cfg.VIP_Gate_Entry || "").trim().toUpperCase() === "YES"
+      ? Math.max(0, Number(cfg.Room_Reserved_for_VIP) || 0) : 0;
+    const maleFacilitatorRooms = Math.ceil(Math.max(0, Number(cfg.total_male_facilitators) || 0) / personsPerRoom);
+    const femaleFacilitatorRooms = Math.ceil(Math.max(0, Number(cfg.total_female_facilitators) || 0) / personsPerRoom);
+    const roomCapacity = Math.max(0, (Number(cfg.room_capacity) || 0) - vipRooms - maleFacilitatorRooms - femaleFacilitatorRooms);
     if (personsPerRoom <= 0) throw new Error('Invalid persons_per_room in Event_Config.');
     const maleRoom = Math.max(0, Number(maleRoomSnap.val()) || 0);
     const femaleRoom = Math.max(0, Number(femaleRoomSnap.val()) || 0);
@@ -102,7 +106,7 @@
     return available;
   }
 
-  console.log("MERS DEBUG: V2 CANCELLATION ENGINE ACTIVE");
+  console.log("MERS DEBUG: V3 CANCELLATION ENGINE ACTIVE");
 
   const urlParams = new URLSearchParams(window.location.search);
   const eventId = urlParams.get('id') || "EVT001";
@@ -231,15 +235,40 @@ async function handleResponse(choice) {
 
     // Release the total active-registration count. Do NOT decrement
     // counters/{eventId}: that node is the sequential registration-ID generator.
-    await db.ref(`active_seats/${eventId}`).transaction(current => Math.max(0, (Number(current) || 0) - 1));
+    const activeResult = await db.ref(`active_seats/${eventId}`).transaction(current => Math.max(0, (Number(current) || 0) - 1));
+    if (!activeResult.committed) throw new Error("Active registration counter could not be decremented.");
 
     if (accommodationCounterPath) {
       const counterResult = await db.ref(accommodationCounterPath).transaction(current => Math.max(0, (Number(current) || 0) - 1));
       if (!counterResult.committed) throw new Error("Accommodation counter could not be decremented.");
     }
 
+    if (allocationCode.includes("OUTSIDE-STAY")) {
+      await db.ref(`counters/outside_stay_cancellations/${eventId}`).transaction(current => (Number(current) || 0) + 1);
+      const outsideResult = await db.ref(`counters/confirmed_counters/outside_stay/${eventId}`).transaction(current => Math.max(0, (Number(current) || 0) - 1));
+      if (!outsideResult.committed) throw new Error("Own-stay counter could not be decremented.");
+    }
+
+    // Record confirmed Room/Dorm cancellations after the combined waitlist
+    // reached its configured limit. This is an audit counter only; it never
+    // reopens waitlist choices or a permanently closed registration form.
+    const controlSnap = await db.ref(`registration_control/${eventId}`).once("value");
+    const control = controlSnap.val() || {};
+    if (control.waitlist_choices_suspended === true &&
+        (allocationCode.includes("ROOM-CONFIRM") || allocationCode.includes("DORM-CONFIRM"))) {
+      await db.ref(`counters/confirmed_cancellations_after_waitlist_suspended/${eventId}`)
+        .transaction(current => (Number(current) || 0) + 1);
+    }
+
+    // If all registrations have been cancelled, reset the post-suspension
+    // cancellation counter as agreed. Registration closure itself is not reversed.
+    if ((Number(activeResult.snapshot.val()) || 0) === 0) {
+      await db.ref(`counters/confirmed_cancellations_after_waitlist_suspended/${eventId}`).set(0);
+      await db.ref(`registration_control/${eventId}/waitlist_choices_suspended`).set(false);
+    }
+
     // Recalculate all four available-seat values from Event_Config and the
-    // confirmed counters, including gender-aware room-sharing restrictions.
+    // confirmed counters, including VIP/facilitator room reservations.
     await recalculateAvailableSeatsForCancellation(eventId);
 
     data.registration_status = "CANCELLED";
