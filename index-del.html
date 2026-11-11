@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cancel Registration</title>
+  <title>Cancel Registration — MERS V2</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
   
@@ -73,9 +73,36 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 
-  console.log(
-  "MERS DEBUG: INTERNAL DELETE ENGINE ACTIVE"
-);
+  async function recalculateAvailableSeatsForCancellation(targetEventId) {
+    const [configSnap, maleRoomSnap, femaleRoomSnap, maleDormSnap, femaleDormSnap] = await Promise.all([
+      db.ref(`config/eventConfig/${targetEventId}`).once('value'),
+      db.ref(`counters/confirmed_counters/room_male/${targetEventId}`).once('value'),
+      db.ref(`counters/confirmed_counters/room_female/${targetEventId}`).once('value'),
+      db.ref(`counters/confirmed_counters/dorm_male/${targetEventId}`).once('value'),
+      db.ref(`counters/confirmed_counters/dorm_female/${targetEventId}`).once('value')
+    ]);
+    const cfg = configSnap.val() || {};
+    const roomCapacity = Math.max(0, Number(cfg.room_capacity) || 0);
+    const personsPerRoom = Number(cfg.persons_per_room) || 2;
+    if (personsPerRoom <= 0) throw new Error('Invalid persons_per_room in Event_Config.');
+    const maleRoom = Math.max(0, Number(maleRoomSnap.val()) || 0);
+    const femaleRoom = Math.max(0, Number(femaleRoomSnap.val()) || 0);
+    const maleDorm = Math.max(0, Number(maleDormSnap.val()) || 0);
+    const femaleDorm = Math.max(0, Number(femaleDormSnap.val()) || 0);
+    const available = {
+      room_male: Math.max(0, (Math.max(0, roomCapacity - Math.ceil(femaleRoom / personsPerRoom)) * personsPerRoom) - maleRoom),
+      room_female: Math.max(0, (Math.max(0, roomCapacity - Math.ceil(maleRoom / personsPerRoom)) * personsPerRoom) - femaleRoom),
+      dorm_male: Math.max(0, (Math.max(0, (Number(cfg.male_dorm_capacity) || 0) * (Number(cfg.male_dorm_persons_per_dorm) || 0)) - maleDorm)),
+      dorm_female: Math.max(0, (Math.max(0, (Number(cfg.female_dorm_capacity) || 0) * (Number(cfg.female_dorm_persons_per_dorm) || 0)) - femaleDorm))
+    };
+    const updates = {};
+    Object.entries(available).forEach(([key, value]) => updates[`counters/available_seats/${key}/${targetEventId}`] = value);
+    await db.ref().update(updates);
+    console.log('MERS cancellation: available-seat counters recalculated', available);
+    return available;
+  }
+
+  console.log("MERS DEBUG: V2 CANCELLATION ENGINE ACTIVE");
 
   const urlParams = new URLSearchParams(window.location.search);
   const eventId = urlParams.get('id') || "EVT001";
@@ -171,196 +198,54 @@ async function handleResponse(choice) {
 
     const data = snapshot.val();
 
-    // STORE ORIGINAL STATUS BEFORE OVERWRITING
-    const originalStatus = (
-      data.registration_status || ""
-    ).toUpperCase();
+    if (!data) throw new Error("Registration record was not found.");
+    // V16 registration records use stay_allocation_code as the authoritative
+    // accommodation allocation marker. registration_status is a timestamp label,
+    // not the literal value CONFIRMED / ROOM WL / DORM WL.
+    const allocationCode = String(data.stay_allocation_code || data.original_stay_allocation_code || "").trim().toUpperCase();
+    const gender = String(data.gender || "").trim().toLowerCase();
+    if (!gender || !["male", "female"].includes(gender)) {
+      throw new Error("The registration has no valid gender. Counters were not changed.");
+    }
+
+    // Prevent accidental second decrement if the cancellation page is retried.
+    const alreadyDeleted = await db.ref(`deleted_registrations/${eventId}/${regId}`).once('value');
+    if (alreadyDeleted.exists()) {
+      showFinalStatus("Already Cancelled", "This registration has already been cancelled.", "ℹ️");
+      return;
+    }
+
+    // Determine the accommodation counter before changing any counters.
+    let accommodationCounterPath = "";
+    if (allocationCode.includes("ROOM-CONFIRM")) {
+      accommodationCounterPath = `counters/confirmed_counters/room_${gender}/${eventId}`;
+    } else if (allocationCode.includes("DORM-CONFIRM")) {
+      accommodationCounterPath = `counters/confirmed_counters/dorm_${gender}/${eventId}`;
+    } else if (allocationCode.includes("ROOM-WAITLIST")) {
+      accommodationCounterPath = `counters/waitlist_counters/room_${gender}/${eventId}`;
+    } else if (allocationCode.includes("DORM-WAITLIST")) {
+      accommodationCounterPath = `counters/waitlist_counters/dorm_${gender}/${eventId}`;
+    } else if (!allocationCode.includes("OUTSIDE-STAY")) {
+      throw new Error("The registration's stay_allocation_code is missing or unrecognised. No accommodation counter was changed.");
+    }
+
+    // Release the total active-registration count. Do NOT decrement
+    // counters/{eventId}: that node is the sequential registration-ID generator.
+    await db.ref(`active_seats/${eventId}`).transaction(current => Math.max(0, (Number(current) || 0) - 1));
+
+    if (accommodationCounterPath) {
+      const counterResult = await db.ref(accommodationCounterPath).transaction(current => Math.max(0, (Number(current) || 0) - 1));
+      if (!counterResult.committed) throw new Error("Accommodation counter could not be decremented.");
+    }
+
+    // Recalculate all four available-seat values from Event_Config and the
+    // confirmed counters, including gender-aware room-sharing restrictions.
+    await recalculateAvailableSeatsForCancellation(eventId);
 
     data.registration_status = "CANCELLED";
     data.cancelled_at = new Date().toLocaleString();
-
-    // =====================================================
-    // MOVE RECORD TO DELETED FOLDER
-    // =====================================================
-
-    await db.ref(
-      `deleted_registrations/${eventId}/${regId}`
-    ).set(data);
-
-    // =====================================================
-    // REMOVE ACTIVE REGISTRATION
-    // =====================================================
-
-    await db.ref(
-      `registrations/${eventId}/${regId}`
-    ).remove();
-
-    // =====================================================
-    // READ REQUIRED VALUES
-    // =====================================================
-
-    const gender = (
-      data.gender || ""
-    ).trim().toUpperCase();
-
-    const accType = (
-      data.accommodation_type || ""
-    ).trim().toUpperCase();
-
-    const regStatus = originalStatus;
-
-
-// =====================================================
-// DECREMENT OLD ROOT COUNTERS
-// =====================================================
-
-if (regStatus === "CONFIRMED") {
-
-  // OLD active_seats counter
-  await db.ref(
-    `active_seats/${eventId}`
-  ).transaction(current => {
-
-    return Math.max((current || 0) - 1, 0);
-
-  });
-
-  // OLD root counters
-  await db.ref(
-    `counters/${eventId}`
-  ).transaction(current => {
-
-    return Math.max((current || 0) - 1, 0);
-
-  });
-
-}
-    
-    if (regStatus === "CONFIRMED") {
-
-      // ---------- ROOM ----------
-      if (accType === "ROOM") {
-
-        if (gender === "MALE") {
-
-          await db.ref(
-            `counters/confirmed_counters/room_male/${eventId}`
-          ).transaction(current => {
-
-            return Math.max((current || 0) - 1, 0);
-
-          });
-
-        }
-
-        if (gender === "FEMALE") {
-
-          await db.ref(
-            `counters/confirmed_counters/room_female/${eventId}`
-          ).transaction(current => {
-
-            return Math.max((current || 0) - 1, 0);
-
-          });
-
-        }
-
-      }
-
-      // ---------- DORM ----------
-      if (accType === "DORM") {
-
-        if (gender === "MALE") {
-
-          await db.ref(
-            `counters/confirmed_counters/dorm_male/${eventId}`
-          ).transaction(current => {
-
-            return Math.max((current || 0) - 1, 0);
-
-          });
-
-        }
-
-        if (gender === "FEMALE") {
-
-          await db.ref(
-            `counters/confirmed_counters/dorm_female/${eventId}`
-          ).transaction(current => {
-
-            return Math.max((current || 0) - 1, 0);
-
-          });
-
-        }
-
-      }
-
-    }
-
-    // =====================================================
-    // DECREMENT ROOM WAITLIST COUNTERS
-    // =====================================================
-
-    if (regStatus === "ROOM WL") {
-
-      if (gender === "MALE") {
-
-        await db.ref(
-          `counters/waitlist_counters/room_male/${eventId}`
-        ).transaction(current => {
-
-          return Math.max((current || 0) - 1, 0);
-
-        });
-
-      }
-
-      if (gender === "FEMALE") {
-
-        await db.ref(
-          `counters/waitlist_counters/room_female/${eventId}`
-        ).transaction(current => {
-
-          return Math.max((current || 0) - 1, 0);
-
-        });
-
-      }
-
-    }
-
-    // =====================================================
-    // DECREMENT DORM WAITLIST COUNTERS
-    // =====================================================
-
-    if (regStatus === "DORM WL") {
-
-      if (gender === "MALE") {
-
-        await db.ref(
-          `counters/waitlist_counters/dorm_male/${eventId}`
-        ).transaction(current => {
-
-          return Math.max((current || 0) - 1, 0);
-
-        });
-
-      }
-
-      if (gender === "FEMALE") {
-
-        await db.ref(
-          `counters/waitlist_counters/dorm_female/${eventId}`
-        ).transaction(current => {
-
-          return Math.max((current || 0) - 1, 0);
-
-        });
-
-      }
-
-    }
+    await db.ref(`deleted_registrations/${eventId}/${regId}`).set(data);
+    await db.ref(`registrations/${eventId}/${regId}`).remove();
 
     // =====================================================
     // SUCCESS MESSAGE
