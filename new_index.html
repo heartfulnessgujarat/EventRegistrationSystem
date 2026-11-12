@@ -1437,8 +1437,6 @@ async function updateStayOptions() {
     box.innerHTML = `
       <div class="capacity-row"><span>Current Available Seats for Room:</span>${renderCapacityValue(status.roomSeats, status.roomWaitlist)}</div>
       <div class="capacity-row"><span>Current Available Seats for Dorm:</span>${renderCapacityValue(status.dormSeats, status.dormWaitlist)}</div>
-      <div class="capacity-row"><span>Own Stay Confirmed:</span>${status.outsideStayCount} / ${status.ownStayLimit}</div>
-      <div class="capacity-row"><span>Own Stay Waiting List:</span>${status.outsideStayWaitlistCount} / ${status.ownStayWaitlistLimit}</div>
     `;
 
     const previous = clean(stayEl.value || values.stay_option);
