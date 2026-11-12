@@ -47,7 +47,7 @@
     <div style="text-align:center"><span class="pill">NEW ENGINE · V19A TEST BUILD</span></div>
     <h1 id="eventTitle">Event Registration</h1>
     <p id="eventSubtitle" class="subtitle"></p>
-    <div class="test-note"><b>TEST VERSION V19A FIX5:</b> Includes configurable combined accommodation waitlist limits, dynamic own-stay limits, VIP/facilitator room reservations, and permanent registration closure controls. Retains the accepted profile duplicate-protection and validation behaviour. Uses the single Master_Internal_DB profile structure. Email verification remains required. Firebase-to-Google-Sheets synchronisation is separate. Use only while the event is UNDER_TEST. Existing index.html is not modified.</div>
+    <div class="test-note"><b>TEST VERSION V19B:</b> Includes configurable combined accommodation waitlist limits, dynamic own-stay limits, VIP/facilitator room reservations, and reversible capacity-based registration closure with reason-specific messages. Retains the accepted profile duplicate-protection and validation behaviour. Uses the single Master_Internal_DB profile structure. Email verification remains required. Firebase-to-Google-Sheets synchronisation is separate. Use only while the event is UNDER_TEST. Existing index.html is not modified.</div>
     <div class="progress"><div id="progressBar"></div></div>
     <div id="progressLabel" class="progress-label"></div>
     <div id="formArea"></div>
@@ -1236,99 +1236,127 @@ async function getAccommodationCounters(targetEventId) {
   };
 }
 
-async function setRegistrationClosed(reason) {
-  const controlRef = db.ref(`registration_control/${eventId}`);
-  const snap = await controlRef.once("value");
-  const current = snap.val() || {};
-  if (current.registration_closed === true) return;
-  await controlRef.update({
-    registration_closed: true,
-    closure_reason: reason,
-    closed_at: new Date().toISOString()
-  });
-  console.warn("[MERS REGISTRATION] Registration permanently closed:", reason);
+function getRegistrationClosureMessage(reason, cfg) {
+  if (reason === "REGISTRATION_END_DATE_REACHED") {
+    return clean(cfg.reg_close_msg) || "Registration is closed because the registration closing date has been reached.";
+  }
+  if (reason === "HALL_CAPACITY_REACHED") {
+    return clean(cfg.hall_capacity_full_msg) || "Registration is closed because the hall capacity has been reached.";
+  }
+  if (reason === "ACCOMMODATION_AND_WAITLIST_CAPACITY_REACHED") {
+    return "Registration is closed because all accommodation options and their respective waiting lists have reached their configured limits.";
+  }
+  return "Registration is currently unavailable. Please contact the event administrator.";
 }
 
 async function evaluateRegistrationClosure() {
-  const [configSnap, counters] = await Promise.all([
+  const [configSnap, counters, controlSnap] = await Promise.all([
     db.ref(`config/eventConfig/${eventId}`).once("value"),
-    getAccommodationCounters(eventId)
+    getAccommodationCounters(eventId),
+    db.ref(`registration_control/${eventId}`).once("value")
   ]);
   const cfg = configSnap.val() || eventConfig || {};
   const policy = getCapacityPolicy(cfg);
-  if (counters.totalWaitlist >= policy.waitlistLimit) {
-    const controlRef = db.ref(`registration_control/${eventId}`);
-    const controlSnap = await controlRef.once("value");
-    const control = controlSnap.val() || {};
-    if (control.waitlist_choices_suspended !== true) {
-      await controlRef.update({ waitlist_choices_suspended: true, waitlist_suspended_at: new Date().toISOString() });
+  const controlRef = db.ref(`registration_control/${eventId}`);
+  const current = controlSnap.val() || {};
+  const nowIso = new Date().toISOString();
+
+  // Waiting-list suspension is derived from the current configured combined
+  // limit. It can therefore be reversed when the administrator raises the limit.
+  const waitlistSuspended = counters.totalWaitlist >= policy.waitlistLimit;
+  const controlUpdate = {};
+  if (current.waitlist_choices_suspended !== waitlistSuspended || (!waitlistSuspended && current.waitlist_suspended_at)) {
+    controlUpdate.waitlist_choices_suspended = waitlistSuspended;
+    controlUpdate.waitlist_suspended_at = waitlistSuspended ? (current.waitlist_suspended_at || nowIso) : null;
+    if (waitlistSuspended && current.waitlist_choices_suspended !== true) {
       await db.ref(`counters/confirmed_cancellations_after_waitlist_suspended/${eventId}`).set(0);
     }
   }
+
   // Use the same gender-lock availability calculation as the live Room seat
   // calculation. A room containing one participant is not necessarily full.
   const maleRoomsBlockedByFemale = Math.ceil(counters.roomFemale / policy.personsPerRoom);
   const femaleRoomsBlockedByMale = Math.ceil(counters.roomMale / policy.personsPerRoom);
-
-  const roomSeatsMale = Math.max(
-    0,
-    (Math.max(0, policy.regularRooms - maleRoomsBlockedByFemale) * policy.personsPerRoom) -
-      counters.roomMale
-  );
-  const roomSeatsFemale = Math.max(
-    0,
-    (Math.max(0, policy.regularRooms - femaleRoomsBlockedByMale) * policy.personsPerRoom) -
-      counters.roomFemale
-  );
+  const roomSeatsMale = Math.max(0,
+    (Math.max(0, policy.regularRooms - maleRoomsBlockedByFemale) * policy.personsPerRoom) - counters.roomMale);
+  const roomSeatsFemale = Math.max(0,
+    (Math.max(0, policy.regularRooms - femaleRoomsBlockedByMale) * policy.personsPerRoom) - counters.roomFemale);
 
   const allRegularRoomsFull = roomSeatsMale <= 0 && roomSeatsFemale <= 0;
-  const allDormsFull =
-    counters.dormMale >= policy.maleDormBeds &&
-    counters.dormFemale >= policy.femaleDormBeds;
+  const allDormsFull = counters.dormMale >= policy.maleDormBeds && counters.dormFemale >= policy.femaleDormBeds;
   const waitlistFull = counters.totalWaitlist >= policy.waitlistLimit;
-
-  // Own Stay is a separate pathway: it must also be exhausted before the
-  // entire event is permanently closed.
   const ownStayConfirmedFull = counters.outsideStay >= policy.ownStayLimit;
-  const ownStayWaitlistFull =
-    counters.outsideStayWaitlist >= policy.ownStayWaitlistLimit;
+  const ownStayWaitlistFull = counters.outsideStayWaitlist >= policy.ownStayWaitlistLimit;
   const allOwnStayOptionsFull = ownStayConfirmedFull && ownStayWaitlistFull;
+  const allAccommodationOptionsFull = allRegularRoomsFull && allDormsFull && waitlistFull && allOwnStayOptionsFull;
 
-  if (allRegularRoomsFull && allDormsFull && waitlistFull && allOwnStayOptionsFull) {
-    await setRegistrationClosed("ACCOMMODATION_AND_WAITLIST_CAPACITY_REACHED");
-    return true;
+  const endDate = parseLocalDate(cfg.reg_end_date);
+  const dateClosed = Boolean(endDate && compareDateOnly(new Date(), endDate) >= 0);
+  const confirmedTotal = counters.roomMale + counters.roomFemale + counters.dormMale +
+    counters.dormFemale + counters.outsideStay;
+  const hallCapacityReached = policy.effectiveHallCapacity <= confirmedTotal;
+
+  // Date closure has priority. Capacity-based closure is reversible: every
+  // evaluation recomputes it from the latest configuration and live counters.
+  let reason = null;
+  if (dateClosed) reason = "REGISTRATION_END_DATE_REACHED";
+  else if (allAccommodationOptionsFull && hallCapacityReached) reason = "HALL_CAPACITY_REACHED";
+  else if (allAccommodationOptionsFull) reason = "ACCOMMODATION_AND_WAITLIST_CAPACITY_REACHED";
+
+  const isClosed = Boolean(reason);
+  const previousReason = current.closure_reason || null;
+  if (current.registration_closed !== isClosed || previousReason !== reason || (!isClosed && current.closed_at)) {
+    controlUpdate.registration_closed = isClosed;
+    controlUpdate.closure_reason = reason;
+    controlUpdate.closed_at = isClosed ? (current.closed_at && previousReason === reason ? current.closed_at : nowIso) : null;
   }
-  return false;
+  if (Object.keys(controlUpdate).length) await controlRef.update(controlUpdate);
+
+  const result = {
+    closed: isClosed,
+    reason,
+    message: isClosed ? getRegistrationClosureMessage(reason, cfg) : "",
+    waitlistSuspended,
+    confirmedTotal,
+    effectiveHallCapacity: policy.effectiveHallCapacity,
+    totalWaitlist: counters.totalWaitlist,
+    waitlistLimit: policy.waitlistLimit
+  };
+  console.log("[MERS CLOSURE EVALUATION]", result);
+  return result;
 }
 
 async function enforceRegistrationOpen() {
   if (mode === "edit") return true;
-  const controlSnap = await db.ref(`registration_control/${eventId}/registration_closed`).once("value");
-  if (controlSnap.val() === true) {
-    showRegistrationClosed("Registration is closed for this event.");
-    return false;
-  }
-  const endDate = parseLocalDate(eventConfig.reg_end_date);
-  if (endDate && compareDateOnly(new Date(), endDate) >= 0) {
-    await setRegistrationClosed("REGISTRATION_END_DATE_REACHED");
-    showRegistrationClosed("The registration closing date has been reached.");
-    return false;
-  }
-  if (await evaluateRegistrationClosure()) {
-    showRegistrationClosed("Registration is closed because the accommodation and waitlist limits have been reached.");
+  const closure = await evaluateRegistrationClosure();
+  if (closure.closed) {
+    const controlSnap = await db.ref(`registration_control/${eventId}`).once("value");
+    showRegistrationClosed(closure.message, closure.reason, controlSnap.val() || {});
     return false;
   }
   return true;
 }
 
-function showRegistrationClosed(message) {
+function showRegistrationClosed(message, reason, control) {
   $("loading").classList.add("hidden");
   $("app").classList.remove("hidden");
-  $("formArea").innerHTML = `<div class="notice" style="background:#ffebee;color:#b71c1c;font-weight:700;text-align:center;padding:24px;">${message}</div>`;
+  const safeMessage = String(message || "Registration is currently unavailable.");
+  const safeReason = String(reason || "UNKNOWN");
+  const closedAt = control && control.closed_at ? new Date(control.closed_at).toLocaleString() : "Not recorded";
+  $("formArea").innerHTML = `
+    <div class="notice" style="background:#ffebee;color:#b71c1c;font-weight:700;text-align:center;padding:24px;white-space:pre-wrap;"></div>
+    <div style="margin-top:10px;padding:10px 12px;background:#f3f4f6;border-radius:8px;color:#555;font-size:11px;text-align:center;">
+      <div><strong>Closure reason:</strong> <span id="mersClosureReason"></span></div>
+      <div style="margin-top:4px;"><strong>Closed at:</strong> <span id="mersClosureTimestamp"></span></div>
+    </div>`;
+  $("formArea").querySelector(".notice").textContent = safeMessage;
+  $("mersClosureReason").textContent = safeReason;
+  $("mersClosureTimestamp").textContent = closedAt;
   $("backBtn").classList.add("hidden");
   $("nextBtn").classList.add("hidden");
   $("progressBar").style.width = "100%";
   $("progressLabel").textContent = "Registration closed";
+  console.warn("[MERS REGISTRATION CLOSED]", { reason: safeReason, closed_at: closedAt, message: safeMessage });
 }
 
 async function recalculateAvailableSeats(targetEventId = eventId) {
@@ -2214,7 +2242,7 @@ async function saveTestSubmission() {
 }
 async function init() {
   console.clear();
-  console.log("%c MERS V19A FIX5 DIAGNOSTICS STARTED ", "background:#1a237e;color:#fff;padding:4px 8px;font-weight:bold");
+  console.log("%c MERS V19B DIAGNOSTICS STARTED ", "background:#1a237e;color:#fff;padding:4px 8px;font-weight:bold");
   try {
     if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
     const [eventSnap,rulesSnap,bannerSnap,thankSnap]=await Promise.all([
