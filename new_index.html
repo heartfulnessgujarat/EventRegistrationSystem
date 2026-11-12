@@ -1158,20 +1158,20 @@ async function verifyEmailCode(email, code) {
    Read-only in this revision: no counters are created or changed.
    Uses the existing config/eventConfig and counters nodes.
    ========================================================= */
-function validateV18CapacityConfig(cfg) {
+function validateV19ACapacityConfig(cfg) {
   const requiredKeys = [
-    "limit_total_wl", "VIP_Gate_Entry", "VIP_Numbers",
+    "limit_total_wl", "limit_ownstay_wl", "VIP_Gate_Entry", "VIP_Numbers",
     "Room_Reserved_for_VIP", "total_male_facilitators", "total_female_facilitators"
   ];
   const missing = requiredKeys.filter(key => !Object.prototype.hasOwnProperty.call(cfg, key));
   if (missing.length) {
-    throw new Error("V18 Event_Config fields are missing: " + missing.join(", ") + ". Please update Event_Config and run Admin System → Step 1.5.");
+    throw new Error("V19A Event_Config fields are missing: " + missing.join(", ") + ". Please update Event_Config and run Admin System → Step 1.5.");
   }
   const vipGate = clean(cfg.VIP_Gate_Entry).toUpperCase();
   if (!["YES", "NO"].includes(vipGate)) {
     throw new Error("VIP_Gate_Entry must be YES or NO in Event_Config.");
   }
-  ["limit_total_wl", "VIP_Numbers", "Room_Reserved_for_VIP", "total_male_facilitators", "total_female_facilitators"].forEach(key => {
+  ["limit_total_wl", "limit_ownstay_wl", "VIP_Numbers", "Room_Reserved_for_VIP", "total_male_facilitators", "total_female_facilitators"].forEach(key => {
     const raw = clean(cfg[key]);
     if (raw !== "" && (!Number.isFinite(Number(raw)) || Number(raw) < 0)) {
       throw new Error(key + " must be a non-negative number in Event_Config.");
@@ -1206,7 +1206,8 @@ function getCapacityPolicy(cfg) {
   return {
     personsPerRoom, regularRooms, maleDormBeds, femaleDormBeds,
     effectiveHallCapacity, regularStayCapacity, ownStayLimit,
-    waitlistLimit: Math.max(0, Number(cfg.limit_total_wl) || 0)
+    waitlistLimit: Math.max(0, Number(cfg.limit_total_wl) || 0),
+    ownStayWaitlistLimit: Math.max(0, Number(cfg.limit_ownstay_wl) || 0)
   };
 }
 
@@ -1220,7 +1221,8 @@ async function getAccommodationCounters(targetEventId) {
     `counters/waitlist_counters/room_female/${targetEventId}`,
     `counters/waitlist_counters/dorm_male/${targetEventId}`,
     `counters/waitlist_counters/dorm_female/${targetEventId}`,
-    `counters/confirmed_counters/outside_stay/${targetEventId}`
+    `counters/confirmed_counters/outside_stay/${targetEventId}`,
+    `counters/waitlist_counters/outside_stay/${targetEventId}`
   ];
   const snaps = await Promise.all(paths.map(path => db.ref(path).once("value")));
   const nums = snaps.map(s => Math.max(0, Number(s.val()) || 0));
@@ -1228,6 +1230,7 @@ async function getAccommodationCounters(targetEventId) {
     roomMale: nums[0], roomFemale: nums[1], dormMale: nums[2], dormFemale: nums[3],
     roomWaitMale: nums[4], roomWaitFemale: nums[5], dormWaitMale: nums[6], dormWaitFemale: nums[7],
     outsideStay: nums[8],
+    outsideStayWaitlist: nums[9],
     totalWaitlist: nums.slice(4, 8).reduce((a, b) => a + b, 0)
   };
 }
@@ -1381,6 +1384,10 @@ async function getStayAvailability(targetEventId, gender) {
     outsideStayCount: counters.outsideStay,
     ownStayLimit: policy.ownStayLimit,
     ownStayAvailable: counters.outsideStay < policy.ownStayLimit,
+    outsideStayWaitlistCount: counters.outsideStayWaitlist,
+    ownStayWaitlistLimit: policy.ownStayWaitlistLimit,
+    ownStayWaitlistAvailable: counters.outsideStay >= policy.ownStayLimit &&
+      counters.outsideStayWaitlist < policy.ownStayWaitlistLimit,
     available
   };
 }
@@ -1430,6 +1437,8 @@ async function updateStayOptions() {
     box.innerHTML = `
       <div class="capacity-row"><span>Current Available Seats for Room:</span>${renderCapacityValue(status.roomSeats, status.roomWaitlist)}</div>
       <div class="capacity-row"><span>Current Available Seats for Dorm:</span>${renderCapacityValue(status.dormSeats, status.dormWaitlist)}</div>
+      <div class="capacity-row"><span>Own Stay Confirmed:</span>${status.outsideStayCount} / ${status.ownStayLimit}</div>
+      <div class="capacity-row"><span>Own Stay Waiting List:</span>${status.outsideStayWaitlistCount} / ${status.ownStayWaitlistLimit}</div>
     `;
 
     const previous = clean(stayEl.value || values.stay_option);
@@ -1446,6 +1455,8 @@ async function updateStayOptions() {
     }
     if (status.ownStayAvailable) {
       options.push({ value: "I will arrange my own stay outside the venue", label: "I will arrange my own stay outside the venue" });
+    } else if (status.ownStayWaitlistAvailable) {
+      options.push({ value: "I will arrange my own stay outside the venue (Waiting List)", label: "I will arrange my own stay outside the venue (Waiting List)" });
     }
 
     stayEl.innerHTML = "";
@@ -1491,7 +1502,13 @@ function normalizeStayCategory(value) {
 function getStayCounterPath(stayValue, gender) {
   const category = normalizeStayCategory(stayValue);
   if (!category) return "";
-  if (category === "outside") return `counters/confirmed_counters/outside_stay/${eventId}`;
+  if (category === "outside") {
+    const waitlist = clean(stayValue).toLowerCase().includes("waiting list") ||
+      clean(stayValue).toUpperCase().includes("WAITLIST");
+    return waitlist
+      ? `counters/waitlist_counters/outside_stay/${eventId}`
+      : `counters/confirmed_counters/outside_stay/${eventId}`;
+  }
   const waitlist = clean(stayValue).toLowerCase().includes("waiting list") ||
     clean(stayValue).toUpperCase().includes("WAITLIST");
   const type = waitlist ? "waitlist_counters" : "confirmed_counters";
@@ -1499,6 +1516,7 @@ function getStayCounterPath(stayValue, gender) {
 }
 function getAllocationCounterPath(allocationCode, gender) {
   const code = clean(allocationCode).toUpperCase();
+  if (code.includes("OUTSIDE-STAY-WAITLIST")) return `counters/waitlist_counters/outside_stay/${eventId}`;
   if (code.includes("OUTSIDE-STAY")) return `counters/confirmed_counters/outside_stay/${eventId}`;
   const category = code.includes("ROOM") ? "room" : (code.includes("DORM") ? "dorm" : "");
   if (!category) return "";
@@ -1507,9 +1525,10 @@ function getAllocationCounterPath(allocationCode, gender) {
 }
 function getStayAllocationPrefix(stayValue) {
   const category = normalizeStayCategory(stayValue);
-  if (!category || category === "outside") return "OUTSIDE-STAY";
+  if (!category) return "";
   const waitlist = clean(stayValue).toLowerCase().includes("waiting list") ||
     clean(stayValue).toUpperCase().includes("WAITLIST");
+  if (category === "outside") return waitlist ? "OUTSIDE-STAY-WAITLIST" : "OUTSIDE-STAY";
   return `${category.toUpperCase()}-${waitlist ? "WAITLIST" : "CONFIRM"}`;
 }
 function showAccommodationEditWarning() {
@@ -1619,7 +1638,7 @@ async function saveEditedRegistration() {
       event_id: eventId,
       participant_type: isYes(values.is_practitioner) ? "Internal" : "External",
       last_updated: new Date().toLocaleString(),
-      build: "NEW_INDEX_V18_TEST"
+      build: "NEW_INDEX_V19A_TEST"
     };
     if (!stayChanged) payload.stay_allocation_code = originalStayAllocationCode;
     await db.ref(`registrations/${eventId}/${regId}`).update(payload);
@@ -1942,6 +1961,7 @@ async function saveTestSubmission() {
   let accommodationCounterPath = "";
   let allocationPrefix = "";
   let outsideStaySelected = false;
+  let outsideStayWaitlistSelected = false;
   if (stayLower === "room" || stayLower === "room (waiting list)") {
     const isWaitlist = stayLower.includes("waiting list");
     accommodationCounterPath = isWaitlist
@@ -1957,6 +1977,10 @@ async function saveTestSubmission() {
   } else if (["i will arrange my own stay outside the venue", "outside stay"].includes(stayLower)) {
     allocationPrefix = "OUTSIDE-STAY";
     outsideStaySelected = true;
+  } else if (stayLower === "i will arrange my own stay outside the venue (waiting list)" || stayLower === "outside stay (waiting list)") {
+    allocationPrefix = "OUTSIDE-STAY-WAITLIST";
+    outsideStayWaitlistSelected = true;
+    accommodationCounterPath = `counters/waitlist_counters/outside_stay/${eventId}`;
   } else {
     showMessage("Please select a valid stay option.", "error");
     return;
@@ -1991,7 +2015,8 @@ async function saveTestSubmission() {
     if (stayLower === "room (waiting list)" && !liveStatus.waitlistAvailable) throw new Error("The combined accommodation waitlist is now full. Please select another available option.");
     if (["dormitory", "dorm"].includes(stayLower) && liveStatus.dormSeats <= 0) throw new Error("Dormitory availability has changed. Please review the updated stay options.");
     if (stayLower === "dormitory (waiting list)" && !liveStatus.waitlistAvailable) throw new Error("The combined accommodation waitlist is now full. Please select another available option.");
-    if (outsideStaySelected && !liveStatus.ownStayAvailable) throw new Error("The own-stay registration limit has been reached. Please select another available option.");
+    if (outsideStaySelected && !liveStatus.ownStayAvailable) throw new Error("Own Stay confirmed capacity is no longer available. Please review the updated stay options.");
+    if (outsideStayWaitlistSelected && !liveStatus.ownStayWaitlistAvailable) throw new Error("The Own Stay waiting list is full or confirmed Own Stay capacity is still available. Please review the updated stay options.");
     const sequenceRef = db.ref("counters/" + eventId);
     const sequenceResult = await sequenceRef.transaction(current => (Number(current) || 0) + 1);
     if (!sequenceResult.committed) throw new Error("Registration ID sequence could not be allocated.");
@@ -2020,10 +2045,22 @@ async function saveTestSubmission() {
 
     if (outsideStaySelected) {
       accommodationRef = db.ref(`counters/confirmed_counters/outside_stay/${eventId}`);
-      const outsideResult = await accommodationRef.transaction(current => (Number(current) || 0) + 1);
-      if (!outsideResult.committed) throw new Error("Own-stay counter transaction was not committed.");
+      const outsideResult = await accommodationRef.transaction(current => {
+        const count = Math.max(0, Number(current) || 0);
+        return count >= liveStatus.ownStayLimit ? undefined : count + 1;
+      });
+      if (!outsideResult.committed) throw new Error("Own Stay confirmed capacity has just been filled. Please review the updated stay options.");
       accommodationIncremented = true;
       payload.stay_allocation_code = "OUTSIDE-STAY";
+    } else if (outsideStayWaitlistSelected && accommodationCounterPath) {
+      accommodationRef = db.ref(accommodationCounterPath);
+      const outsideWaitlistResult = await accommodationRef.transaction(current => {
+        const count = Math.max(0, Number(current) || 0);
+        return count >= liveStatus.ownStayWaitlistLimit ? undefined : count + 1;
+      });
+      if (!outsideWaitlistResult.committed) throw new Error("The Own Stay waiting list has just become full. Please review the updated stay options.");
+      accommodationIncremented = true;
+      payload.stay_allocation_code = `${allocationPrefix}#${Number(outsideWaitlistResult.snapshot.val()) || 0}`;
     } else if (accommodationCounterPath) {
       accommodationRef = db.ref(accommodationCounterPath);
       const accommodationResult = await accommodationRef.transaction(current => (Number(current) || 0) + 1);
