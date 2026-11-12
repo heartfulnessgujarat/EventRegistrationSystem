@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cancel Registration — MERS V3</title>
+  <title>Cancel Registration — MERS V4A</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
   
@@ -106,7 +106,7 @@
     return available;
   }
 
-  console.log("MERS DEBUG: V3 CANCELLATION ENGINE ACTIVE");
+  console.log("MERS DEBUG: V4A CANCELLATION ENGINE ACTIVE");
 
   const urlParams = new URLSearchParams(window.location.search);
   const eventId = urlParams.get('id') || "EVT001";
@@ -243,7 +243,10 @@ async function handleResponse(choice) {
       if (!counterResult.committed) throw new Error("Accommodation counter could not be decremented.");
     }
 
-    if (allocationCode.includes("OUTSIDE-STAY")) {
+    if (allocationCode.includes("OUTSIDE-STAY-WAITLIST")) {
+      const outsideWaitlistResult = await db.ref(`counters/waitlist_counters/outside_stay/${eventId}`).transaction(current => Math.max(0, (Number(current) || 0) - 1));
+      if (!outsideWaitlistResult.committed) throw new Error("Own-stay waitlist counter could not be decremented.");
+    } else if (allocationCode.includes("OUTSIDE-STAY")) {
       await db.ref(`counters/outside_stay_cancellations/${eventId}`).transaction(current => (Number(current) || 0) + 1);
       const outsideResult = await db.ref(`counters/confirmed_counters/outside_stay/${eventId}`).transaction(current => Math.max(0, (Number(current) || 0) - 1));
       if (!outsideResult.committed) throw new Error("Own-stay counter could not be decremented.");
