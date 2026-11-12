@@ -47,7 +47,7 @@
     <div style="text-align:center"><span class="pill">NEW ENGINE · V19A TEST BUILD</span></div>
     <h1 id="eventTitle">Event Registration</h1>
     <p id="eventSubtitle" class="subtitle"></p>
-    <div class="test-note"><b>TEST VERSION V19A:</b> Includes configurable combined accommodation waitlist limits, dynamic own-stay limits, VIP/facilitator room reservations, and permanent registration closure controls. Retains the accepted profile duplicate-protection and validation behaviour. Uses the single Master_Internal_DB profile structure. Email verification remains required. Firebase-to-Google-Sheets synchronisation is separate. Use only while the event is UNDER_TEST. Existing index.html is not modified.</div>
+    <div class="test-note"><b>TEST VERSION V19A FIX5:</b> Includes configurable combined accommodation waitlist limits, dynamic own-stay limits, VIP/facilitator room reservations, and permanent registration closure controls. Retains the accepted profile duplicate-protection and validation behaviour. Uses the single Master_Internal_DB profile structure. Email verification remains required. Firebase-to-Google-Sheets synchronisation is separate. Use only while the event is UNDER_TEST. Existing index.html is not modified.</div>
     <div class="progress"><div id="progressBar"></div></div>
     <div id="progressLabel" class="progress-label"></div>
     <div id="formArea"></div>
@@ -106,6 +106,7 @@ let resendTimer = null;
 let masterRecords = [];
 let lookupCache = {};
 let stayAvailabilityRequest = 0;
+let accommodationUnavailable = false;
 let profileFlow = {
   stage: "START",
   selectedProfile: null,
@@ -1264,13 +1265,36 @@ async function evaluateRegistrationClosure() {
       await db.ref(`counters/confirmed_cancellations_after_waitlist_suspended/${eventId}`).set(0);
     }
   }
-  const roomRoomsUsed = Math.ceil(counters.roomMale / policy.personsPerRoom) +
-    Math.ceil(counters.roomFemale / policy.personsPerRoom);
-  const allRegularRoomsFull = roomRoomsUsed >= policy.regularRooms;
-  const allDormsFull = counters.dormMale >= policy.maleDormBeds &&
+  // Use the same gender-lock availability calculation as the live Room seat
+  // calculation. A room containing one participant is not necessarily full.
+  const maleRoomsBlockedByFemale = Math.ceil(counters.roomFemale / policy.personsPerRoom);
+  const femaleRoomsBlockedByMale = Math.ceil(counters.roomMale / policy.personsPerRoom);
+
+  const roomSeatsMale = Math.max(
+    0,
+    (Math.max(0, policy.regularRooms - maleRoomsBlockedByFemale) * policy.personsPerRoom) -
+      counters.roomMale
+  );
+  const roomSeatsFemale = Math.max(
+    0,
+    (Math.max(0, policy.regularRooms - femaleRoomsBlockedByMale) * policy.personsPerRoom) -
+      counters.roomFemale
+  );
+
+  const allRegularRoomsFull = roomSeatsMale <= 0 && roomSeatsFemale <= 0;
+  const allDormsFull =
+    counters.dormMale >= policy.maleDormBeds &&
     counters.dormFemale >= policy.femaleDormBeds;
   const waitlistFull = counters.totalWaitlist >= policy.waitlistLimit;
-  if (allRegularRoomsFull && allDormsFull && waitlistFull) {
+
+  // Own Stay is a separate pathway: it must also be exhausted before the
+  // entire event is permanently closed.
+  const ownStayConfirmedFull = counters.outsideStay >= policy.ownStayLimit;
+  const ownStayWaitlistFull =
+    counters.outsideStayWaitlist >= policy.ownStayWaitlistLimit;
+  const allOwnStayOptionsFull = ownStayConfirmedFull && ownStayWaitlistFull;
+
+  if (allRegularRoomsFull && allDormsFull && waitlistFull && allOwnStayOptionsFull) {
     await setRegistrationClosed("ACCOMMODATION_AND_WAITLIST_CAPACITY_REACHED");
     return true;
   }
@@ -1410,6 +1434,50 @@ function renderCapacityValue(seats, waitlistCount) {
   return `<span class="capacity-value capacity-waitlist">WL#${Number(waitlistCount || 0) + 1}</span>`;
 }
 
+function renderNoAccommodationScreen() {
+  accommodationUnavailable = true;
+
+  const area = $("formArea");
+  area.innerHTML = `
+    <div class="section-title">Accommodation Unavailable</div>
+    <div class="notice" style="display:block; margin-top:16px;">
+      <strong>No Accommodation Options Available</strong>
+      <p style="margin:10px 0 0;">
+        We regret that all accommodation options, including their respective
+        waiting lists, have reached their limits.
+      </p>
+      <p style="margin:10px 0 0;">
+        Unfortunately, we are unable to accept any further registrations
+        under the current accommodation arrangements.
+      </p>
+      <p style="margin:10px 0 0;">
+        We request you to close this registration form.
+      </p>
+    </div>
+    <button id="closeAccommodationFormBtn" class="btn secondary"
+      type="button" style="width:100%; margin-top:18px;">
+      CLOSE THIS FORM
+    </button>
+    <div id="closeAccommodationFallback" class="notice hidden"
+      style="margin-top:12px;">
+      Your browser did not allow this page to close automatically.
+      Please close this browser tab manually.
+    </div>
+  `;
+
+  $("backBtn").classList.add("hidden");
+  $("nextBtn").classList.add("hidden");
+  $("progressLabel").textContent = "Accommodation unavailable";
+
+  $("closeAccommodationFormBtn").addEventListener("click", () => {
+    try {
+      window.close();
+    } finally {
+      $("closeAccommodationFallback").classList.remove("hidden");
+    }
+  });
+}
+
 async function updateStayOptions() {
   if (getSection()?.id !== "Section2") return;
 
@@ -1489,6 +1557,24 @@ async function updateStayOptions() {
       stayEl.appendChild(option);
       preserved = retained;
     }
+    // Retain an existing allocation during edit mode. For a new registration,
+    // if no real accommodation choice remains for this gender, show the terminal screen.
+    const selectableOptions = options.filter(item => item.value !== "");
+    if (selectableOptions.length === 0) {
+      box.classList.add("hidden");
+      values.stay_option = "";
+      renderNoAccommodationScreen();
+      console.warn("[MERS CAPACITY] No accommodation choices remain for this gender.", {
+        eventId, gender,
+        roomSeats: status.roomSeats,
+        dormSeats: status.dormSeats,
+        roomDormWaitlistAvailable: status.waitlistAvailable,
+        ownStayAvailable: status.ownStayAvailable,
+        ownStayWaitlistAvailable: status.ownStayWaitlistAvailable
+      });
+      return;
+    }
+
     stayEl.value = preserved ? previous : "";
     values.stay_option = stayEl.value;
     if (mode === "edit") stayEl.disabled = !accommodationEditUnlocked;
@@ -1729,6 +1815,11 @@ function sectionReady() {
   return true;
 }
 function updateContinueState(){
+  if (accommodationUnavailable) {
+    $("backBtn").classList.add("hidden");
+    $("nextBtn").classList.add("hidden");
+    return;
+  }
   const routeAllowsContinue = shouldShowSectionContinue();
   const ready = routeAllowsContinue && sectionReady();
   const visible = routeAllowsContinue && ready;
@@ -1754,6 +1845,7 @@ async function refreshCurrentVisibility() {
 }
 async function renderCurrentSection() {
   const sec=getSection(); if(!sec) return;
+  accommodationUnavailable = false;
   const area=$("formArea"); area.innerHTML="";
   const heading=document.createElement("h2"); heading.className="section-title"; heading.textContent=sec.name; area.appendChild(heading);
   const rules=sectionRules(sec.id);
@@ -2122,7 +2214,7 @@ async function saveTestSubmission() {
 }
 async function init() {
   console.clear();
-  console.log("%c MERS V19A DIAGNOSTICS STARTED ", "background:#1a237e;color:#fff;padding:4px 8px;font-weight:bold");
+  console.log("%c MERS V19A FIX5 DIAGNOSTICS STARTED ", "background:#1a237e;color:#fff;padding:4px 8px;font-weight:bold");
   try {
     if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
     const [eventSnap,rulesSnap,bannerSnap,thankSnap]=await Promise.all([
