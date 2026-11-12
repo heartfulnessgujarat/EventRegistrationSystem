@@ -2121,7 +2121,7 @@ async function init() {
     ]);
     if(!eventSnap.exists()) throw new Error("Event configuration not found for "+eventId);
     eventConfig=eventSnap.val()||{};
-    validateV18CapacityConfig(eventConfig);
+    validateV19ACapacityConfig(eventConfig);
     thankYouHtml = thankSnap.val() || "<h2>Registration Successful!</h2><p>Thank you for registering.</p>";
     console.log("[MERS THANK YOU] Event-specific Thank You HTML loaded:", Boolean(thankSnap.val()));
     console.log("[MERS INIT] Event configuration loaded:", eventConfig);
