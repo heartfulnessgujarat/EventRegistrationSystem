@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cancel Registration — MERS V5A</title>
+  <title>Cancel Registration — MERS V5B</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
   
@@ -265,7 +265,7 @@
         await db.ref(waitlistCounterPath).transaction(current => (Number(current) || 0) + 1);
         throw new Error("Own Stay confirmed counter could not be incremented during promotion.");
       }
-      newAllocationCode = "OUTSIDE-STAY";
+      newAllocationCode = `${confirmedPrefix}#${Number(confirmedResult.snapshot.val()) || 0}`;
     } else {
       const confirmedResult = await db.ref(confirmedCounterPath).transaction(current => (Number(current) || 0) + 1);
       if (!confirmedResult.committed) {
@@ -291,7 +291,7 @@
       throw writeError;
     }
 
-    console.log("MERS V5A: Waitlist participant promoted", {
+    console.log("MERS V5B: Waitlist participant promoted", {
       eventId: targetEventId,
       registrationId: selected.id,
       queue: queue.type,
@@ -401,7 +401,7 @@ async function handleResponse(choice) {
     // not trigger promotion. Room/Dorm queues remain separate by gender/type;
     // Own Stay uses one common queue.
     const promotionResult = await promoteFirstWaitlisted(eventId, allocationCode, gender);
-    console.log("MERS V5A: Promotion result", promotionResult);
+    console.log("MERS V5B: Promotion result", promotionResult);
 
     // Recalculate all four available-seat values from Event_Config and the
     // confirmed counters, including VIP/facilitator room reservations.
