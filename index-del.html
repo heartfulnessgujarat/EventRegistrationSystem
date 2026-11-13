@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cancel Registration — MERS V5B</title>
+  <title>Cancel Registration — MERS V5C</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
   
@@ -291,7 +291,7 @@
       throw writeError;
     }
 
-    console.log("MERS V5B: Waitlist participant promoted", {
+    console.log("MERS V5C: Waitlist participant promoted", {
       eventId: targetEventId,
       registrationId: selected.id,
       queue: queue.type,
@@ -300,6 +300,94 @@
       newAllocation: newAllocationCode
     });
     return { promoted: true, registrationId: selected.id, queue: queue.type, gender: queue.gender, previousAllocation: selected.record.stay_allocation_code, newAllocation: newAllocationCode };
+  }
+
+
+  // =====================================================
+  // V5C — RE-NUMBER THE REMAINING WAITLIST AFTER A CANCELLATION
+  // Applies to both waitlisted cancellations and promotions.
+  // Room/Dorm queues are separated by gender; Own Stay is one queue.
+  // stay_allocation_code is updated; original_stay_allocation_code is audit history.
+  // =====================================================
+  async function renumberRemainingWaitlist(targetEventId, cancelledAllocation, cancelledGender) {
+    const cancelledCode = String(cancelledAllocation || "").trim().toUpperCase();
+    let queueType = "";
+    let queueGender = "all";
+    let prefix = "";
+    let counterPath = "";
+
+    if (cancelledCode.startsWith("ROOM-")) {
+      queueType = "room";
+      queueGender = String(cancelledGender || "").trim().toLowerCase();
+      prefix = "ROOM-WAITLIST";
+      counterPath = `counters/waitlist_counters/room_${queueGender}/${targetEventId}`;
+    } else if (cancelledCode.startsWith("DORM-")) {
+      queueType = "dorm";
+      queueGender = String(cancelledGender || "").trim().toLowerCase();
+      prefix = "DORM-WAITLIST";
+      counterPath = `counters/waitlist_counters/dorm_${queueGender}/${targetEventId}`;
+    } else if (cancelledCode.startsWith("OUTSIDE-STAY")) {
+      queueType = "outside";
+      prefix = "OUTSIDE-STAY-WAITLIST";
+      counterPath = `counters/waitlist_counters/outside_stay/${targetEventId}`;
+    } else {
+      return { renumbered: false, reason: "NOT_AN_ACCOMMODATION_QUEUE" };
+    }
+
+    if ((queueType === "room" || queueType === "dorm") &&
+        !["male", "female"].includes(queueGender)) {
+      throw new Error(`Cannot renumber ${queueType} waitlist: valid gender is missing.`);
+    }
+
+    const snap = await db.ref(`registrations/${targetEventId}`).once("value");
+    const allRecords = snap.val() || {};
+    const candidates = Object.entries(allRecords)
+      .map(([id, record]) => ({ id, record: record || {} }))
+      .filter(item => {
+        const currentCode = String(item.record.stay_allocation_code || "").trim().toUpperCase();
+        if (!currentCode.startsWith(prefix + "#")) return false;
+        if (queueType === "outside") return true;
+        return String(item.record.gender || "").trim().toLowerCase() === queueGender;
+      })
+      .sort((a, b) => {
+        const qDiff = parseQueueNumber(a.record.stay_allocation_code) -
+          parseQueueNumber(b.record.stay_allocation_code);
+        if (qDiff !== 0) return qDiff;
+        const aTime = Date.parse(a.record.created_at || a.record.timestamp || "") || 0;
+        const bTime = Date.parse(b.record.created_at || b.record.timestamp || "") || 0;
+        return aTime - bTime || a.id.localeCompare(b.id);
+      });
+
+    const changes = [];
+    for (let index = 0; index < candidates.length; index++) {
+      const item = candidates[index];
+      const newCode = `${prefix}#${index + 1}`;
+      const oldCode = String(item.record.stay_allocation_code || "").trim().toUpperCase();
+      if (oldCode !== newCode) {
+        await db.ref(`registrations/${targetEventId}/${item.id}`).update({
+          stay_allocation_code: newCode
+        });
+        changes.push({
+          registrationId: item.id,
+          previousAllocation: oldCode,
+          newAllocation: newCode
+        });
+      }
+    }
+
+    // The waitlist counter represents the number of active participants in this queue.
+    // It therefore also becomes the next available queue number.
+    await db.ref(counterPath).set(candidates.length);
+
+    const result = {
+      renumbered: true,
+      queue: queueType,
+      gender: queueGender,
+      activeWaitlistCount: candidates.length,
+      changes
+    };
+    console.log("MERS V5C: Waitlist renumbering result", result);
+    return result;
   }
 
 
@@ -401,7 +489,7 @@ async function handleResponse(choice) {
     // not trigger promotion. Room/Dorm queues remain separate by gender/type;
     // Own Stay uses one common queue.
     const promotionResult = await promoteFirstWaitlisted(eventId, allocationCode, gender);
-    console.log("MERS V5B: Promotion result", promotionResult);
+    console.log("MERS V5C: Promotion result", promotionResult);
 
     // Recalculate all four available-seat values from Event_Config and the
     // confirmed counters, including VIP/facilitator room reservations.
@@ -412,6 +500,11 @@ async function handleResponse(choice) {
     data.waitlist_promotion_result = promotionResult;
     await db.ref(`deleted_registrations/${eventId}/${regId}`).set(data);
     await db.ref(`registrations/${eventId}/${regId}`).remove();
+
+    // Renumber the remaining queue after either a waitlisted cancellation
+    // or a confirmed-participant cancellation that may have promoted someone.
+    const renumberResult = await renumberRemainingWaitlist(eventId, allocationCode, gender);
+    console.log("MERS V5C: Post-cancellation queue update", renumberResult);
 
     // =====================================================
     // SUCCESS MESSAGE
