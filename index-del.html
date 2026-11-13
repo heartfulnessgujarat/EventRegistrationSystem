@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cancel Registration — MERS V4A</title>
+  <title>Cancel Registration — MERS V5A</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
   
@@ -106,7 +106,7 @@
     return available;
   }
 
-  console.log("MERS DEBUG: V4A CANCELLATION ENGINE ACTIVE");
+  console.log("MERS DEBUG: V5A CANCELLATION + WAITLIST PROMOTION ENGINE ACTIVE");
 
   const urlParams = new URLSearchParams(window.location.search);
   const eventId = urlParams.get('id') || "EVT001";
@@ -174,6 +174,132 @@
       <strong>Reg Date:</strong> ${data.timestamp || 'N/A'}<br>
       <strong>Status:</strong> ${data.registration_status || 'ACTIVE'}
     `;
+  }
+
+
+  // =====================================================
+  // V5A — FIFO WAITLIST PROMOTION ENGINE
+  // Queue number is the numeric suffix in stay_allocation_code:
+  // ROOM-WAITLIST#n, DORM-WAITLIST#n, OUTSIDE-STAY-WAITLIST#n.
+  // Room/Dorm queues are separated by gender; Own Stay has one queue.
+  // =====================================================
+  function parseQueueNumber(allocationCode) {
+    const match = String(allocationCode || "").match(/#(\d+)\s*$/);
+    return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER;
+  }
+
+  function getPromotionQueue(allocationCode, gender) {
+    const code = String(allocationCode || "").trim().toUpperCase();
+    if (code.startsWith("ROOM-WAITLIST")) return { type: "room", gender };
+    if (code.startsWith("DORM-WAITLIST")) return { type: "dorm", gender };
+    if (code.startsWith("OUTSIDE-STAY-WAITLIST")) return { type: "outside", gender: "all" };
+    return null;
+  }
+
+  async function promoteFirstWaitlisted(targetEventId, cancelledAllocation, cancelledGender) {
+    const cancelledCode = String(cancelledAllocation || "").trim().toUpperCase();
+    let queue = null;
+    let confirmedCounterPath = "";
+    let waitlistCounterPath = "";
+    let confirmedPrefix = "";
+
+    if (cancelledCode.includes("ROOM-CONFIRM")) {
+      queue = { type: "room", gender: cancelledGender };
+      confirmedCounterPath = `counters/confirmed_counters/room_${cancelledGender}/${targetEventId}`;
+      waitlistCounterPath = `counters/waitlist_counters/room_${cancelledGender}/${targetEventId}`;
+      confirmedPrefix = "ROOM-CONFIRM";
+    } else if (cancelledCode.includes("DORM-CONFIRM")) {
+      queue = { type: "dorm", gender: cancelledGender };
+      confirmedCounterPath = `counters/confirmed_counters/dorm_${cancelledGender}/${targetEventId}`;
+      waitlistCounterPath = `counters/waitlist_counters/dorm_${cancelledGender}/${targetEventId}`;
+      confirmedPrefix = "DORM-CONFIRM";
+    } else if (cancelledCode.includes("OUTSIDE-STAY") && !cancelledCode.includes("WAITLIST")) {
+      queue = { type: "outside", gender: "all" };
+      confirmedCounterPath = `counters/confirmed_counters/outside_stay/${targetEventId}`;
+      waitlistCounterPath = `counters/waitlist_counters/outside_stay/${targetEventId}`;
+      confirmedPrefix = "OUTSIDE-STAY";
+    } else {
+      return { promoted: false, reason: "CANCELLED_REGISTRATION_WAS_NOT_CONFIRMED" };
+    }
+
+    const registrationsSnap = await db.ref(`registrations/${targetEventId}`).once("value");
+    const registrations = registrationsSnap.val() || {};
+    const candidates = Object.entries(registrations)
+      .map(([id, record]) => ({ id, record: record || {} }))
+      .filter(item => {
+        const code = String(item.record.stay_allocation_code || "").trim().toUpperCase();
+        if (!code.includes("WAITLIST")) return false;
+        if (queue.type === "outside") return code.startsWith("OUTSIDE-STAY-WAITLIST");
+        return code.startsWith(`${queue.type.toUpperCase()}-WAITLIST`) &&
+          String(item.record.gender || "").trim().toLowerCase() === queue.gender;
+      })
+      .sort((a, b) => {
+        const qDiff = parseQueueNumber(a.record.stay_allocation_code) - parseQueueNumber(b.record.stay_allocation_code);
+        if (qDiff !== 0) return qDiff;
+        const aTime = Date.parse(a.record.created_at || a.record.timestamp || "") || 0;
+        const bTime = Date.parse(b.record.created_at || b.record.timestamp || "") || 0;
+        return aTime - bTime || a.id.localeCompare(b.id);
+      });
+
+    if (!candidates.length) {
+      return { promoted: false, reason: "NO_MATCHING_WAITLIST_PARTICIPANT", queue: queue.type, gender: queue.gender };
+    }
+
+    const selected = candidates[0];
+    const participantRef = db.ref(`registrations/${targetEventId}/${selected.id}`);
+    const latestSnap = await participantRef.once("value");
+    const latest = latestSnap.val();
+    if (!latest || String(latest.stay_allocation_code || "").trim().toUpperCase() !==
+        String(selected.record.stay_allocation_code || "").trim().toUpperCase()) {
+      throw new Error("Waitlist candidate changed during promotion. Please retry after checking the registration.");
+    }
+
+    // Move the counters first. A failed transaction aborts promotion.
+    const waitlistResult = await db.ref(waitlistCounterPath).transaction(current => Math.max(0, (Number(current) || 0) - 1));
+    if (!waitlistResult.committed) throw new Error("Waitlist counter could not be decremented during promotion.");
+
+    let newAllocationCode = "";
+    if (queue.type === "outside") {
+      const confirmedResult = await db.ref(confirmedCounterPath).transaction(current => (Number(current) || 0) + 1);
+      if (!confirmedResult.committed) {
+        await db.ref(waitlistCounterPath).transaction(current => (Number(current) || 0) + 1);
+        throw new Error("Own Stay confirmed counter could not be incremented during promotion.");
+      }
+      newAllocationCode = "OUTSIDE-STAY";
+    } else {
+      const confirmedResult = await db.ref(confirmedCounterPath).transaction(current => (Number(current) || 0) + 1);
+      if (!confirmedResult.committed) {
+        await db.ref(waitlistCounterPath).transaction(current => (Number(current) || 0) + 1);
+        throw new Error("Confirmed accommodation counter could not be incremented during promotion.");
+      }
+      newAllocationCode = `${confirmedPrefix}#${Number(confirmedResult.snapshot.val()) || 0}`;
+    }
+
+    const promotedAt = new Date().toISOString();
+    try {
+      await participantRef.update({
+        stay_allocation_code: newAllocationCode,
+        accommodation_promotion_status: "PROMOTED",
+        accommodation_promoted_at: promotedAt,
+        accommodation_previous_allocation_code: selected.record.stay_allocation_code,
+        accommodation_promotion_source: "WAITLIST_FIFO"
+      });
+    } catch (writeError) {
+      // Roll back counter changes if the participant record cannot be updated.
+      await db.ref(confirmedCounterPath).transaction(current => Math.max(0, (Number(current) || 0) - 1));
+      await db.ref(waitlistCounterPath).transaction(current => (Number(current) || 0) + 1);
+      throw writeError;
+    }
+
+    console.log("MERS V5A: Waitlist participant promoted", {
+      eventId: targetEventId,
+      registrationId: selected.id,
+      queue: queue.type,
+      gender: queue.gender,
+      previousAllocation: selected.record.stay_allocation_code,
+      newAllocation: newAllocationCode
+    });
+    return { promoted: true, registrationId: selected.id, queue: queue.type, gender: queue.gender, previousAllocation: selected.record.stay_allocation_code, newAllocation: newAllocationCode };
   }
 
 
@@ -270,12 +396,20 @@ async function handleResponse(choice) {
       await db.ref(`registration_control/${eventId}/waitlist_choices_suspended`).set(false);
     }
 
+    // Promote the earliest participant from the matching FIFO waitlist.
+    // A waitlisted cancellation does not create a vacancy and therefore does
+    // not trigger promotion. Room/Dorm queues remain separate by gender/type;
+    // Own Stay uses one common queue.
+    const promotionResult = await promoteFirstWaitlisted(eventId, allocationCode, gender);
+    console.log("MERS V5A: Promotion result", promotionResult);
+
     // Recalculate all four available-seat values from Event_Config and the
     // confirmed counters, including VIP/facilitator room reservations.
     await recalculateAvailableSeatsForCancellation(eventId);
 
     data.registration_status = "CANCELLED";
     data.cancelled_at = new Date().toLocaleString();
+    data.waitlist_promotion_result = promotionResult;
     await db.ref(`deleted_registrations/${eventId}/${regId}`).set(data);
     await db.ref(`registrations/${eventId}/${regId}`).remove();
 
