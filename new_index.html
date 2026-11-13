@@ -44,10 +44,10 @@
   <div id="banner" class="banner hidden"></div>
   <div id="loading"><h2>Loading registration form…</h2><p>Please wait.</p></div>
   <main id="app" class="content hidden">
-    <div style="text-align:center"><span class="pill">NEW ENGINE · V19A TEST BUILD</span></div>
+    <div style="text-align:center"><span class="pill">NEW ENGINE · V19C TEST BUILD</span></div>
     <h1 id="eventTitle">Event Registration</h1>
     <p id="eventSubtitle" class="subtitle"></p>
-    <div class="test-note"><b>TEST VERSION V19B:</b> Includes configurable combined accommodation waitlist limits, dynamic own-stay limits, VIP/facilitator room reservations, and reversible capacity-based registration closure with reason-specific messages. Retains the accepted profile duplicate-protection and validation behaviour. Uses the single Master_Internal_DB profile structure. Email verification remains required. Firebase-to-Google-Sheets synchronisation is separate. Use only while the event is UNDER_TEST. Existing index.html is not modified.</div>
+    <div class="test-note"><b>TEST VERSION V19C:</b> Includes configurable combined accommodation waitlist limits, dynamic own-stay limits, VIP/facilitator room reservations, and reversible capacity-based registration closure with reason-specific messages. Retains the accepted profile duplicate-protection and validation behaviour. Uses the single Master_Internal_DB profile structure. Email verification remains required. Firebase-to-Google-Sheets synchronisation is separate. Use only while the event is UNDER_TEST. Existing index.html is not modified.</div>
     <div class="progress"><div id="progressBar"></div></div>
     <div id="progressLabel" class="progress-label"></div>
     <div id="formArea"></div>
@@ -1435,6 +1435,7 @@ async function getStayAvailability(targetEventId, gender) {
     waitlistAvailable: counters.totalWaitlist < policy.waitlistLimit,
     outsideStayCount: counters.outsideStay,
     ownStayLimit: policy.ownStayLimit,
+    ownStaySeats: Math.max(0, policy.ownStayLimit - counters.outsideStay),
     ownStayAvailable: counters.outsideStay < policy.ownStayLimit,
     outsideStayWaitlistCount: counters.outsideStayWaitlist,
     ownStayWaitlistLimit: policy.ownStayWaitlistLimit,
@@ -1544,6 +1545,14 @@ async function updateStayOptions() {
     if (status.dormSeats > 0 || status.waitlistAvailable) {
       capacityRows.push(
         `<div class="capacity-row"><span>Current Available Seats for Dorm:</span>${renderCapacityValue(status.dormSeats, status.dormWaitlist)}</div>`
+      );
+    }
+
+    // Own Stay is a separate accommodation category. Display its remaining
+    // confirmed capacity, or the next Own Stay waitlist position when full.
+    if (status.ownStayAvailable || status.ownStayWaitlistAvailable) {
+      capacityRows.push(
+        `<div class="capacity-row"><span>Current Available Seats for Own Stay:</span>${renderCapacityValue(status.ownStaySeats, status.outsideStayWaitlistCount)}</div>`
       );
     }
 
@@ -2242,7 +2251,7 @@ async function saveTestSubmission() {
 }
 async function init() {
   console.clear();
-  console.log("%c MERS V19B DIAGNOSTICS STARTED ", "background:#1a237e;color:#fff;padding:4px 8px;font-weight:bold");
+  console.log("%c MERS V19C DIAGNOSTICS STARTED ", "background:#1a237e;color:#fff;padding:4px 8px;font-weight:bold");
   try {
     if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
     const [eventSnap,rulesSnap,bannerSnap,thankSnap]=await Promise.all([
