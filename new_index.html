@@ -1663,7 +1663,7 @@ function getStayAllocationPrefix(stayValue) {
   if (!category) return "";
   const waitlist = clean(stayValue).toLowerCase().includes("waiting list") ||
     clean(stayValue).toUpperCase().includes("WAITLIST");
-  if (category === "outside") return waitlist ? "OUTSIDE-STAY-WAITLIST" : "OUTSIDE-STAY";
+  if (category === "outside") return waitlist ? "OUTSIDE-STAY-WAITLIST" : "OUTSIDE-STAY-CONFIRM";
   return `${category.toUpperCase()}-${waitlist ? "WAITLIST" : "CONFIRM"}`;
 }
 function showAccommodationEditWarning() {
@@ -1773,11 +1773,11 @@ async function saveEditedRegistration() {
       event_id: eventId,
       participant_type: isYes(values.is_practitioner) ? "Internal" : "External",
       last_updated: new Date().toLocaleString(),
-      build: "NEW_INDEX_V19A_TEST"
+      build: "NEW_INDEX_V19D_TEST"
     };
     if (!stayChanged) payload.stay_allocation_code = originalStayAllocationCode;
     await db.ref(`registrations/${eventId}/${regId}`).update(payload);
-    console.log("[MERS EDIT] Registration updated successfully.", {regId, stayChanged, oldCounterPath, newCounterPath});
+    console.log("[MERS EDIT] Registration updated successfully.", {regId, stayChanged, oldCounterPath, newCounterPath, stay_allocation_code: payload.stay_allocation_code});
     // Display success immediately, then fire email and master-profile update in the background.
     showEditSuccessScreen(payload);
     startPostRegistrationTasks(payload);
@@ -2176,7 +2176,7 @@ async function saveTestSubmission() {
       registration_status: "REGISTERED ON " + now.toLocaleString(),
       stay_allocation_code: "",
       original_stay_allocation_code: "",
-      build: "NEW_INDEX_V19A_TEST"
+      build: "NEW_INDEX_V19D_TEST"
     };
 
     activeSeatsRef = db.ref("active_seats/" + eventId);
@@ -2192,7 +2192,7 @@ async function saveTestSubmission() {
       });
       if (!outsideResult.committed) throw new Error("Own Stay confirmed capacity has just been filled. Please review the updated stay options.");
       accommodationIncremented = true;
-      payload.stay_allocation_code = "OUTSIDE-STAY";
+      payload.stay_allocation_code = `OUTSIDE-STAY-CONFIRM#${Number(outsideResult.snapshot.val()) || 0}`;
     } else if (outsideStayWaitlistSelected && accommodationCounterPath) {
       accommodationRef = db.ref(accommodationCounterPath);
       const outsideWaitlistResult = await accommodationRef.transaction(current => {
