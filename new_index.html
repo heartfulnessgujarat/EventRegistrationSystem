@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MERS — New Registration Engine V19A (Test)</title>
+<title>MERS — New Registration Engine V19E (Test)</title>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 <style>
@@ -44,10 +44,10 @@
   <div id="banner" class="banner hidden"></div>
   <div id="loading"><h2>Loading registration form…</h2><p>Please wait.</p></div>
   <main id="app" class="content hidden">
-    <div style="text-align:center"><span class="pill">NEW ENGINE · V19D TEST BUILD</span></div>
+    <div style="text-align:center"><span class="pill">NEW ENGINE · V19E TEST BUILD</span></div>
     <h1 id="eventTitle">Event Registration</h1>
     <p id="eventSubtitle" class="subtitle"></p>
-    <div class="test-note"><b>TEST VERSION V19D:</b> Includes configurable combined accommodation waitlist limits, dynamic own-stay limits, VIP/facilitator room reservations, and reversible capacity-based registration closure with reason-specific messages. Retains the accepted profile duplicate-protection and validation behaviour. Uses the single Master_Internal_DB profile structure. Email verification remains required. Firebase-to-Google-Sheets synchronisation is separate. Use only while the event is UNDER_TEST. Existing index.html is not modified.</div>
+    <div class="test-note"><b>TEST VERSION V19E:</b> Includes configurable combined accommodation waitlist limits, dynamic own-stay limits, VIP/facilitator room reservations, and reversible capacity-based registration closure with reason-specific messages. Retains the accepted profile duplicate-protection and validation behaviour. Uses the single Master_Internal_DB profile structure. Email verification remains required. Firebase-to-Google-Sheets synchronisation is separate. Use only while the event is UNDER_TEST. Existing index.html is not modified.</div>
     <div class="progress"><div id="progressBar"></div></div>
     <div id="progressLabel" class="progress-label"></div>
     <div id="formArea"></div>
@@ -1450,8 +1450,14 @@ function ensureCapacityContainer() {
     box = document.createElement("div");
     box.id = "capacity-container";
     box.className = "capacity-box hidden";
-    const genderWrap = $("wrap_gender");
-    if (genderWrap?.parentNode) genderWrap.parentNode.insertBefore(box, genderWrap.nextSibling);
+  }
+
+  // Capacity information belongs to Section2, not to the physical location
+  // of the Gender field. Keep it immediately below the Section2 heading.
+  const area = $("formArea");
+  const heading = area?.querySelector(".section-title");
+  if (area && heading && box.parentNode !== area) {
+    heading.insertAdjacentElement("afterend", box);
   }
   return box;
 }
@@ -1510,12 +1516,10 @@ function renderNoAccommodationScreen() {
 async function updateStayOptions() {
   if (getSection()?.id !== "Section2") return;
 
-  const genderEl = $("field_gender");
+  const gender = fieldValue("gender");
   const stayEl = $("field_stay_option");
   const box = ensureCapacityContainer();
-  if (!genderEl || !stayEl || !box) return;
-
-  const gender = clean(genderEl.value);
+  if (!stayEl || !box) return;
   if (!gender) {
     box.classList.add("hidden");
     stayEl.innerHTML = '<option value="">-- Select --</option>';
@@ -1773,7 +1777,7 @@ async function saveEditedRegistration() {
       event_id: eventId,
       participant_type: isYes(values.is_practitioner) ? "Internal" : "External",
       last_updated: new Date().toLocaleString(),
-      build: "NEW_INDEX_V19D_TEST"
+      build: "NEW_INDEX_V19E_TEST"
     };
     if (!stayChanged) payload.stay_allocation_code = originalStayAllocationCode;
     await db.ref(`registrations/${eventId}/${regId}`).update(payload);
@@ -1885,6 +1889,7 @@ async function renderCurrentSection() {
   accommodationUnavailable = false;
   const area=$("formArea"); area.innerHTML="";
   const heading=document.createElement("h2"); heading.className="section-title"; heading.textContent=sec.name; area.appendChild(heading);
+  if (sec.id === "Section2") ensureCapacityContainer();
   const rules=sectionRules(sec.id);
   for(let i=0;i<rules.length;i++){
     const r=rules[i];
@@ -1892,12 +1897,6 @@ async function renderCurrentSection() {
     const wrap=await makeField(r,rules,i);
     wrap.style.display=isVisible(r,rules,i)?"block":"none";
     area.appendChild(wrap);
-    if (sec.id === "Section2" && r.field_id === "gender") {
-      const capacityBox = document.createElement("div");
-      capacityBox.id = "capacity-container";
-      capacityBox.className = "capacity-box hidden";
-      area.appendChild(capacityBox);
-    }
   }
   if(sec.id==="Section1" && normalize(fieldValue("attended_before"))==="YES" && profileFlow.stage==="SEARCH") {
     const searchWrap=$("wrap_profile_search");
@@ -2176,7 +2175,7 @@ async function saveTestSubmission() {
       registration_status: "REGISTERED ON " + now.toLocaleString(),
       stay_allocation_code: "",
       original_stay_allocation_code: "",
-      build: "NEW_INDEX_V19D_TEST"
+      build: "NEW_INDEX_V19E_TEST"
     };
 
     activeSeatsRef = db.ref("active_seats/" + eventId);
@@ -2251,7 +2250,7 @@ async function saveTestSubmission() {
 }
 async function init() {
   console.clear();
-  console.log("%c MERS V19D DIAGNOSTICS STARTED ", "background:#1a237e;color:#fff;padding:4px 8px;font-weight:bold");
+  console.log("%c MERS V19C DIAGNOSTICS STARTED ", "background:#1a237e;color:#fff;padding:4px 8px;font-weight:bold");
   try {
     if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
     const [eventSnap,rulesSnap,bannerSnap,thankSnap]=await Promise.all([
